@@ -174,6 +174,13 @@ BOK_MAPPING = {
         "items": {},  # 동적 조회 (get_statistic_item_list 사용)
         "default_item": None  # 첫 번째 국가 또는 한국
     },
+    "cpi-international": {
+        "stat_code": "902Y008",  # 국제 주요국 소비자물가지수
+        "name": "국제 주요국 소비자물가지수",
+        "default_cycle": "M",
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None  # 첫 번째 국가 또는 한국
+    },
     "trade": {
         "stat_code": "301Y013",  # 수출입 통계
         "name": "수출입 통계",
@@ -452,34 +459,45 @@ def get_market_index(category, start_date, end_date, item_code=None, cycle=None,
         logger.error(error_msg)
         return {"error": error_msg}
     
-    # Interest-international의 경우 동적 국가 리스트 조회
-    if category == "interest-international":
+    # Interest-international 및 CPI-international의 경우 동적 국가 리스트 조회
+    if category == "interest-international" or category == "cpi-international":
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
         
-        # items가 비어있으면 StatisticItemList로 조회
-        if not stat_items:
+        # items가 비어있거나, 요청된 cycle의 items가 없으면 StatisticItemList로 조회
+        # 요청된 cycle에 맞는 items가 있는지 확인
+        has_requested_cycle_items = False
+        if stat_items:
+            for item_info in stat_items.values():
+                if item_info.get('cycle') == requested_cycle:
+                    has_requested_cycle_items = True
+                    break
+        
+        if not stat_items or not has_requested_cycle_items:
             logger.info(f"Fetching country list for stat_code={stat_code}, cycle={requested_cycle}")
             item_list_result = get_statistic_item_list(stat_code, start_index=1, end_index=300)
             
             if 'error' in item_list_result:
                 logger.warning(f"Failed to fetch item list: {item_list_result['error']}")
-                stat_items = {}
+                if not stat_items:
+                    stat_items = {}
             else:
                 # 항목 목록을 items 형식으로 변환
                 rows = item_list_result.get('row', [])
-                stat_items = {}
+                if not stat_items:
+                    stat_items = {}
                 
                 logger.info(f"Filtering items for cycle={requested_cycle}")
                 
+                # 요청된 cycle의 items만 추가/업데이트 (다른 cycle의 items는 유지)
                 for row in rows:
                     # 대문자 필드명 사용 (실제 API 응답 형식)
                     item_code_val = row.get('ITEM_CODE', '')
                     item_name = row.get('ITEM_NAME', '')
                     row_cycle = row.get('CYCLE', '')
                     
-                    # 요청된 주기와 일치하는 항목만 추가
+                    # 요청된 주기와 일치하는 항목만 추가/업데이트
                     if item_code_val and row_cycle == requested_cycle:
                         # 키는 item_code만 사용 (주기별로 이미 필터링됨)
                         key = item_code_val
@@ -488,11 +506,18 @@ def get_market_index(category, start_date, end_date, item_code=None, cycle=None,
                             "name": item_name,
                             "cycle": row_cycle
                         }
-                        logger.debug(f"Added item: code={item_code_val}, name={item_name}, cycle={row_cycle}")
+                        logger.debug(f"Added/Updated item: code={item_code_val}, name={item_name}, cycle={row_cycle}")
                 
                 # 캐시에 저장
                 mapping['items'] = stat_items
                 logger.info(f"Cached {len(stat_items)} items for stat_code={stat_code}, cycle={requested_cycle}")
+        
+        # 요청된 cycle에 맞는 items만 필터링
+        filtered_items = {k: v for k, v in stat_items.items() if v.get('cycle') == requested_cycle}
+        if not filtered_items:
+            logger.warning(f"No items found for cycle={requested_cycle}, using all items")
+            filtered_items = stat_items
+        stat_items = filtered_items
         
         # Determine item_code
         if item_code:
@@ -520,8 +545,8 @@ def get_market_index(category, start_date, end_date, item_code=None, cycle=None,
             else:
                 return {"error": f"No items available for stat_code '{stat_code}'"}
         
-        # Determine cycle (M 고정)
-        cycle = 'M'
+        # Determine cycle (요청된 주기 사용)
+        cycle = requested_cycle
         logger.info(f"Using cycle: {cycle}")
         
         result = get_bok_statistics(
@@ -974,8 +999,8 @@ def get_market_index_multi(category, start_date, end_date, item_codes=None, cycl
     if not cycle:
         cycle = mapping.get('default_cycle', 'D')
     
-    # interest-international의 경우 동적 국가 리스트 조회
-    if category == "interest-international":
+    # interest-international 및 cpi-international의 경우 동적 국가 리스트 조회
+    if category == "interest-international" or category == "cpi-international":
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
@@ -1156,12 +1181,16 @@ def get_category_info(category=None):
         if not mapping:
             return {"error": f"Unknown category: {category}"}
         
-        # interest-international의 경우 items가 비어있으면 동적으로 로드
+        # interest-international 및 cpi-international의 경우 items가 비어있으면 동적으로 로드
         stat_items = mapping.get('items', {})
-        if category == "interest-international" and not stat_items:
-            stat_code = mapping.get('stat_code', '902Y006')
+        if (category == "interest-international" or category == "cpi-international") and not stat_items:
+            stat_code = mapping.get('stat_code')
+            if category == "interest-international":
+                stat_code = stat_code or '902Y006'
+            elif category == "cpi-international":
+                stat_code = stat_code or '902Y008'
             default_cycle = mapping.get('default_cycle', 'M')
-            logger.info(f"Fetching items for interest-international category (stat_code={stat_code}, cycle={default_cycle})")
+            logger.info(f"Fetching items for {category} category (stat_code={stat_code}, cycle={default_cycle})")
             item_list_result = get_statistic_item_list(stat_code, start_index=1, end_index=300)
             
             if 'error' not in item_list_result:
@@ -1183,7 +1212,7 @@ def get_category_info(category=None):
                 
                 # 캐시에 저장
                 mapping['items'] = stat_items
-                logger.info(f"Cached {len(stat_items)} items for interest-international category")
+                logger.info(f"Cached {len(stat_items)} items for {category} category")
         
         return {
             "category": category,
