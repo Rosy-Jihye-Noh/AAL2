@@ -61,6 +61,23 @@
             --c-employment-unemployment: #ef4444; /* Red for Unemployment Rate */
             --c-employment-employment: #22c55e; /* Green for Employment Rate */
             --c-employment-employed: #3b82f6; /* Blue for Employed */
+            
+            /* International Interest Rates Colors */
+            --c-interest-kor: #3b82f6;  /* Blue - 한국 */
+            --c-interest-usa: #ef4444;  /* Red - 미국 */
+            --c-interest-jpn: #ec4899;  /* Pink - 일본 */
+            --c-interest-chn: #eab308;  /* Yellow - 중국 */
+            --c-interest-gbr: #06b6d4;  /* Cyan - 영국 */
+            --c-interest-deu: #22c55e;  /* Green - 독일 */
+            --c-interest-fra: #a855f7;  /* Purple - 프랑스 */
+            --c-interest-ita: #f59e0b;  /* Amber - 이탈리아 */
+            --c-interest-esp: #10b981;  /* Emerald - 스페인 */
+            --c-interest-can: #14b8a6;  /* Teal - 캐나다 */
+            --c-interest-aus: #f97316;  /* Orange - 호주 */
+            --c-interest-nzl: #84cc16;  /* Lime - 뉴질랜드 */
+            --c-interest-bra: #22c55e;  /* Green - 브라질 */
+            --c-interest-ind: #8b5cf6;  /* Violet - 인도 */
+            --c-interest-rus: #ef4444;  /* Red - 러시아 */
 
             /* Inflation Colors */
             --c-cpi-total: #3b82f6;      /* Blue - 총지수 */
@@ -227,6 +244,7 @@
 
         /* Currency Chips (Toggles) */
         .currency-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .country-chips { display: flex; gap: 8px; flex-wrap: wrap; }
         .gdp-indicators-list { display: flex; flex-direction: column; gap: 12px; }
         .gdp-indicator-item { display: flex; align-items: center; gap: 12px; }
         .gdp-indicator-btn { flex: 1; }
@@ -2031,7 +2049,7 @@
                             <div>
                                 <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-color); text-transform: uppercase;">Economy / Interest Rates</span>
                                 <h2>Interest Rates</h2>
-                                <p>한국은행 기준금리 변동 추이 분석</p>
+                                <p>주요국 기준금리 변동 추이 분석</p>
                             </div>
                             <div class="live-badge"><div class="live-dot"></div> Live Market</div>
                         </div>
@@ -2047,6 +2065,13 @@
                                 <div class="period-btns interest-cycle-btns">
                                     <button class="period-btn interest-cycle-btn active" data-cycle="M" title="Monthly (월간): 월별 데이터">월별</button>
                                     <button class="period-btn interest-cycle-btn" data-cycle="Q" title="Quarterly (분기별): 분기별 데이터">분기별</button>
+                                </div>
+                            </div>
+                            <!-- Country Selection Chips -->
+                            <div class="filter-group">
+                                <span class="filter-label">Compare</span>
+                                <div class="country-chips" id="interest-country-chips">
+                                    <!-- 동적으로 생성 -->
                                 </div>
                             </div>
                         </div>
@@ -2093,8 +2118,8 @@
                                 <!-- Bar chart (for single unit periods) -->
                                 <g id="interest-bar-chart"></g>
                                 
-                                <!-- Line chart path (for multiple unit periods) -->
-                                <path id="path-interest" class="chart-path visible" stroke="var(--accent-color)" d="" />
+                                <!-- Line chart paths (for multiple countries) -->
+                                <!-- 동적으로 생성: path-interest-[COUNTRY_CODE] -->
                                 
                                 <!-- Data points (for line chart) -->
                                 <g id="interest-data-points"></g>
@@ -3059,9 +3084,15 @@
         }
 
         // Interest Rates Functions
-        let interestRateData = {}; // Interest rate data cache
+        let interestRateData = {}; // Interest rate data cache (단일 국가용, 하위 호환성)
         let interestCycle = 'M'; // Current cycle (A, M, Q)
         let interestYAxisRange = { min: 0, max: 0 }; // Y-axis range for interest rates
+        
+        // International Interest Rates Variables
+        let activeInterestCountries = []; // 활성화된 국가 목록 (item_code)
+        let interestCountryData = {}; // 국가별 데이터 저장 { 'item_code': [{date, value}], ... }
+        let interestCountryMapping = {}; // item_code → {code, name} 매핑
+        let interestCountryListLoaded = false; // 국가 리스트 로드 여부
         
         // Trade Statistics variables
         let tradeCycle = 'M'; // Current cycle (M, Q)
@@ -3145,12 +3176,27 @@
                         endDateInput.type = 'date';
                     }
                     
-                    fetchInterestRateData();
+                    if (activeInterestCountries.length > 0) {
+                        fetchInterestRateDataMulti();
+                    } else {
+                        fetchInterestRateData();
+                    }
                 });
             });
             
-            // Initial data fetch
-            fetchInterestRateData();
+            // Load country list and initialize chips
+            fetchInterestCountryList().then(() => {
+                // Initial data fetch (다중 국가)
+                if (activeInterestCountries.length > 0) {
+                    fetchInterestRateDataMulti();
+                } else {
+                    // 국가 리스트 로드 실패 시 기존 단일 국가 방식 사용
+                    fetchInterestRateData();
+                }
+            }).catch(err => {
+                console.error('Failed to load country list, using single country mode:', err);
+                fetchInterestRateData();
+            });
             window.interestDataLoaded = true;
         }
 
@@ -3178,19 +3224,19 @@
             const startDateInput = document.getElementById('interest-start-date');
             const endDateInput = document.getElementById('interest-end-date');
             
-            if (!startDateInput || !endDateInput) return;
+            if (!startDateInputEl || !endDateInputEl) return;
             
             // 연도별(A)인 경우 년도 값을 날짜로 변환
             let startDate, endDate;
-            if (interestCycle === 'A' && startDateInput.type === 'number') {
+            if (interestCycle === 'A' && startDateInputEl.type === 'number') {
                 // 년도만 선택한 경우, 해당 년도의 1월 1일 ~ 12월 31일로 변환
-                const startYear = parseInt(startDateInput.value);
-                const endYear = parseInt(endDateInput.value);
+                const startYear = parseInt(startDateInputEl.value);
+                const endYear = parseInt(endDateInputEl.value);
                 startDate = `${startYear}0101`;
                 endDate = `${endYear}1231`;
             } else {
-                startDate = formatDateForAPI(startDateInput.value);
-                endDate = formatDateForAPI(endDateInput.value);
+                startDate = formatDateForAPI(startDateInputEl.value);
+                endDate = formatDateForAPI(endDateInputEl.value);
             }
             
             const chartContainer = document.getElementById('interest-chart-container');
@@ -3266,6 +3312,234 @@
             }
         }
 
+        // International Interest Rates Functions
+        async function fetchInterestCountryList() {
+            if (interestCountryListLoaded && Object.keys(interestCountryMapping).length > 0) {
+                return interestCountryMapping;
+            }
+            
+            try {
+                // BOK_MAPPING에서 interest-international 카테고리의 items를 가져오기 위해
+                // get_market_index를 호출하면 자동으로 items가 채워짐
+                // 하지만 프론트엔드에서는 직접 items를 가져올 수 없으므로
+                // 임시로 하나의 item_code로 요청하여 items를 채우거나,
+                // 별도의 엔드포인트가 필요함
+                // 일단 카테고리 정보를 가져오는 API를 사용하거나,
+                // 첫 번째 item_code를 시도해서 에러 메시지에서 사용 가능한 items를 알 수 있음
+                
+                // 대신 백엔드의 get_statistic_item_list를 직접 호출하는 엔드포인트가 필요
+                // 또는 첫 번째 데이터 요청 시 자동으로 items가 채워지므로
+                // 임시로 첫 번째 국가를 요청하여 items를 채움
+                
+                // 간단한 방법: 카테고리 정보 조회 엔드포인트 사용
+                const url = `${API_BASE}/market/categories?category=interest-international`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.items && Object.keys(data.items).length > 0) {
+                        interestCountryMapping = data.items;
+                        interestCountryListLoaded = true;
+                        
+                        // 기본으로 첫 3개 국가 선택 (한국, 미국, 일본 우선)
+                        const itemCodes = Object.keys(interestCountryMapping);
+                        const defaultCodes = [];
+                        
+                        // 한국 찾기 (KOR, KOREA, 한국 등)
+                        const korCode = itemCodes.find(code => {
+                            const name = interestCountryMapping[code].name;
+                            return name.includes('한국') || name.includes('KOR') || code.includes('KOR');
+                        });
+                        if (korCode) defaultCodes.push(korCode);
+                        
+                        // 미국 찾기
+                        const usaCode = itemCodes.find(code => {
+                            const name = interestCountryMapping[code].name;
+                            return name.includes('미국') || name.includes('USA') || name.includes('US') || code.includes('USA');
+                        });
+                        if (usaCode && !defaultCodes.includes(usaCode)) defaultCodes.push(usaCode);
+                        
+                        // 일본 찾기
+                        const jpnCode = itemCodes.find(code => {
+                            const name = interestCountryMapping[code].name;
+                            return name.includes('일본') || name.includes('JPN') || name.includes('JAPAN') || code.includes('JPN');
+                        });
+                        if (jpnCode && !defaultCodes.includes(jpnCode)) defaultCodes.push(jpnCode);
+                        
+                        // 최소 1개는 선택
+                        if (defaultCodes.length === 0 && itemCodes.length > 0) {
+                            defaultCodes.push(itemCodes[0]);
+                        }
+                        
+                        activeInterestCountries = defaultCodes;
+                        initInterestCountryChips();
+                        
+                        return interestCountryMapping;
+                    }
+                }
+                
+                // Fallback: 첫 번째 item_code로 요청하여 items를 채움
+                // 이 방법은 백엔드에서 items가 채워지므로, 
+                // 다음 요청부터는 카테고리 정보 조회로 items를 가져올 수 있음
+                throw new Error('Failed to fetch country list from categories endpoint');
+                
+            } catch (err) {
+                console.error('Failed to fetch interest country list:', err);
+                // 기본 국가 매핑 (하드코딩, 실제 API에서 가져오지 못한 경우)
+                // 이 경우 백엔드가 items를 자동으로 채워줄 때까지 대기하거나
+                // 다시 시도해야 함
+                throw err;
+            }
+        }
+        
+        function initInterestCountryChips() {
+            const chipsContainer = document.getElementById('interest-country-chips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            const itemCodes = Object.keys(interestCountryMapping);
+            if (itemCodes.length === 0) {
+                chipsContainer.innerHTML = '<span style="color: var(--text-sub); font-size: 0.8rem;">국가 리스트 로딩 중...</span>';
+                return;
+            }
+            
+            itemCodes.forEach(itemCode => {
+                const countryInfo = interestCountryMapping[itemCode];
+                const chip = document.createElement('button');
+                chip.className = 'chip';
+                chip.setAttribute('data-item-code', itemCode);
+                chip.setAttribute('title', countryInfo.name);
+                
+                if (activeInterestCountries.includes(itemCode)) {
+                    chip.classList.add('active');
+                }
+                
+                chip.innerHTML = `
+                    <div class="chip-dot"></div>
+                    ${countryInfo.name}
+                `;
+                
+                chip.addEventListener('click', () => toggleInterestCountry(itemCode));
+                
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function toggleInterestCountry(itemCode) {
+            const index = activeInterestCountries.indexOf(itemCode);
+            
+            // 최소 1개 국가는 항상 선택되어야 함
+            if (index === -1) {
+                activeInterestCountries.push(itemCode);
+            } else if (activeInterestCountries.length > 1) {
+                activeInterestCountries.splice(index, 1);
+            } else {
+                // 마지막 국가는 제거할 수 없음
+                return;
+            }
+            
+            // UI 업데이트
+            const chip = document.querySelector(`#interest-country-chips [data-item-code="${itemCode}"]`);
+            if (chip) {
+                if (activeInterestCountries.includes(itemCode)) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            }
+            
+            // 데이터 재조회
+            if (validateInterestDateRange()) {
+                fetchInterestRateDataMulti();
+            }
+        }
+        
+        async function fetchInterestRateDataMulti() {
+            if (!validateInterestDateRange()) return;
+            
+            const startDateInputEl = document.getElementById('interest-start-date');
+            const endDateInputEl = document.getElementById('interest-end-date');
+            
+            if (!startDateInputEl || !endDateInputEl) return;
+            
+            if (activeInterestCountries.length === 0) {
+                console.warn('No countries selected');
+                return;
+            }
+            
+            const startDate = formatDateForAPI(startDateInputEl.value);
+            const endDate = formatDateForAPI(endDateInputEl.value);
+            const cycle = 'M'; // interest-international은 M 고정
+            
+            const chartContainer = document.getElementById('interest-chart-container');
+            if (chartContainer) {
+                chartContainer.style.opacity = '0.5';
+            }
+            
+            try {
+                // 각 국가별로 API 호출
+                const fetchPromises = activeInterestCountries.map(async (itemCode) => {
+                    const url = `${API_BASE}/market/indices?type=interest-international&itemCode=${itemCode}&startDate=${startDate}&endDate=${endDate}&cycle=${cycle}`;
+                    
+                    try {
+                        const response = await fetch(url);
+                        const json = await response.json();
+                        return { itemCode, data: json };
+                    } catch (err) {
+                        console.error(`Failed to fetch ${itemCode}:`, err);
+                        return { itemCode, data: { error: err.message } };
+                    }
+                });
+                
+                const results = await Promise.all(fetchPromises);
+                processInterestRateDataMulti(results);
+                
+            } catch (err) {
+                console.error('Failed to fetch interest rate data:', err);
+                alert('금리 데이터 조회 중 오류가 발생했습니다: ' + err.message);
+            } finally {
+                if (chartContainer) {
+                    chartContainer.style.opacity = '1';
+                }
+            }
+        }
+        
+        function processInterestRateDataMulti(results) {
+            interestCountryData = {};
+            
+            results.forEach(({ itemCode, data }) => {
+                if (data.error || !data.StatisticSearch) {
+                    console.error(`Error processing ${itemCode}:`, data.error || 'Invalid data format');
+                    return;
+                }
+                
+                const rows = data.StatisticSearch.row || [];
+                const values = rows.map(row => ({
+                    date: row.TIME,
+                    value: parseFloat(row.DATA_VALUE)
+                })).filter(item => !isNaN(item.value) && item.value > 0);
+                
+                // 날짜 정렬 (YYYYMM 형식)
+                values.sort((a, b) => {
+                    const dateA = parseInt(a.date) || 0;
+                    const dateB = parseInt(b.date) || 0;
+                    return dateA - dateB;
+                });
+                
+                interestCountryData[itemCode] = values;
+            });
+            
+            console.log('Processed interest rate data (multi):', {
+                countries: Object.keys(interestCountryData),
+                dataCounts: Object.fromEntries(
+                    Object.entries(interestCountryData).map(([code, data]) => [code, data.length])
+                )
+            });
+            
+            updateInterestChartMulti();
+        }
+        
         function processInterestRateData(data) {
             if (!data || !data.StatisticSearch) {
                 console.error('Invalid interest rate data format');
@@ -3339,6 +3613,493 @@
             return data.length;
         }
 
+        // 국가별 색상 매핑 (item_code → CSS 변수)
+        function getInterestCountryColor(itemCode) {
+            const countryInfo = interestCountryMapping[itemCode];
+            if (!countryInfo) return 'var(--accent-color)';
+            
+            const name = countryInfo.name.toLowerCase();
+            if (name.includes('한국') || name.includes('kor')) return 'var(--c-interest-kor)';
+            if (name.includes('미국') || name.includes('usa') || name.includes('us ')) return 'var(--c-interest-usa)';
+            if (name.includes('일본') || name.includes('jpn') || name.includes('japan')) return 'var(--c-interest-jpn)';
+            if (name.includes('중국') || name.includes('chn') || name.includes('china')) return 'var(--c-interest-chn)';
+            if (name.includes('영국') || name.includes('gbr') || name.includes('uk')) return 'var(--c-interest-gbr)';
+            if (name.includes('독일') || name.includes('deu') || name.includes('germany')) return 'var(--c-interest-deu)';
+            if (name.includes('프랑스') || name.includes('fra') || name.includes('france')) return 'var(--c-interest-fra)';
+            if (name.includes('이탈리아') || name.includes('ita') || name.includes('italy')) return 'var(--c-interest-ita)';
+            if (name.includes('스페인') || name.includes('esp') || name.includes('spain')) return 'var(--c-interest-esp)';
+            if (name.includes('캐나다') || name.includes('can') || name.includes('canada')) return 'var(--c-interest-can)';
+            if (name.includes('호주') || name.includes('aus') || name.includes('australia')) return 'var(--c-interest-aus)';
+            if (name.includes('뉴질랜드') || name.includes('nzl') || name.includes('zealand')) return 'var(--c-interest-nzl)';
+            if (name.includes('브라질') || name.includes('bra') || name.includes('brazil')) return 'var(--c-interest-bra)';
+            if (name.includes('인도') || name.includes('ind') || name.includes('india')) return 'var(--c-interest-ind)';
+            if (name.includes('러시아') || name.includes('rus') || name.includes('russia')) return 'var(--c-interest-rus)';
+            
+            // 기본 색상 (item_code 기반 해시)
+            const colors = [
+                'var(--c-interest-kor)', 'var(--c-interest-usa)', 'var(--c-interest-jpn)',
+                'var(--c-interest-chn)', 'var(--c-interest-gbr)', 'var(--c-interest-deu)',
+                'var(--c-interest-fra)', 'var(--c-interest-ita)', 'var(--c-interest-esp)',
+                'var(--c-interest-can)', 'var(--c-interest-aus)', 'var(--c-interest-nzl)'
+            ];
+            let hash = 0;
+            for (let i = 0; i < itemCode.length; i++) {
+                hash = ((hash << 5) - hash) + itemCode.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+        
+        function updateInterestChartMulti() {
+            const svg = document.getElementById('interest-chart-svg');
+            const pointsGroup = document.getElementById('interest-data-points');
+            
+            if (!svg || !pointsGroup) return;
+            
+            // 모든 국가 path 정리
+            Object.keys(interestCountryMapping).forEach(itemCode => {
+                let path = document.getElementById(`path-interest-${itemCode}`);
+                if (!path) {
+                    // path 요소 생성
+                    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.id = `path-interest-${itemCode}`;
+                    path.classList.add('chart-path');
+                    path.setAttribute('stroke', getInterestCountryColor(itemCode));
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('fill', 'none');
+                    svg.insertBefore(path, pointsGroup);
+                }
+                path.setAttribute('d', '');
+                path.classList.remove('visible');
+            });
+            
+            // 모든 국가 데이터 병합하여 공통 날짜 목록 생성
+            const allDates = new Set();
+            Object.values(interestCountryData).forEach(data => {
+                data.forEach(item => allDates.add(item.date));
+            });
+            const sortedDates = Array.from(allDates).sort((a, b) => {
+                const dateA = parseInt(a) || 0;
+                const dateB = parseInt(b) || 0;
+                return dateA - dateB;
+            });
+            
+            if (sortedDates.length === 0) {
+                renderInterestYAxisLabelsMulti([]);
+                renderInterestXAxisLabelsMulti([]);
+                return;
+            }
+            
+            // Y축 범위 계산 (모든 국가 데이터 기반)
+            const allValues = [];
+            Object.values(interestCountryData).forEach(data => {
+                data.forEach(item => allValues.push(item.value));
+            });
+            
+            if (allValues.length === 0) {
+                renderInterestYAxisLabelsMulti([]);
+                renderInterestXAxisLabelsMulti(sortedDates);
+                return;
+            }
+            
+            const minValue = Math.min(...allValues);
+            const maxValue = Math.max(...allValues);
+            const range = maxValue - minValue || 1;
+            const paddingPercent = range < 10 ? 0.05 : 0.03;
+            interestYAxisRange = {
+                min: Math.max(0, minValue - range * paddingPercent),
+                max: maxValue + range * paddingPercent
+            };
+            
+            // Y축 라벨 렌더링
+            renderInterestYAxisLabelsMulti(sortedDates);
+            
+            // 각 국가별 path 렌더링
+            activeInterestCountries.forEach(itemCode => {
+                const data = interestCountryData[itemCode];
+                if (!data || data.length === 0) return;
+                
+                let path = document.getElementById(`path-interest-${itemCode}`);
+                if (!path) {
+                    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.id = `path-interest-${itemCode}`;
+                    path.classList.add('chart-path');
+                    path.setAttribute('stroke', getInterestCountryColor(itemCode));
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('fill', 'none');
+                    svg.insertBefore(path, pointsGroup);
+                }
+                
+                // 데이터를 공통 날짜 기준으로 정렬
+                const sortedData = sortedDates.map(date => {
+                    const found = data.find(item => item.date === date);
+                    return found || { date, value: null };
+                }).filter(item => item.value !== null);
+                
+                if (sortedData.length > 0) {
+                    const pathData = generateInterestSVGPathMulti(sortedData);
+                    path.setAttribute('d', pathData);
+                    path.classList.add('visible');
+                }
+            });
+            
+            // 데이터 포인트 렌더링
+            renderInterestDataPointsMulti(sortedDates);
+            
+            // X축 라벨 렌더링
+            renderInterestXAxisLabelsMulti(sortedDates);
+            
+            // 인터랙티브 기능 설정
+            setupInterestChartInteractivityMulti();
+            
+            // 통계 헤더 업데이트
+            updateInterestChartHeaderMulti();
+        }
+        
+        function generateInterestSVGPathMulti(data) {
+            if (!data || data.length === 0) return '';
+            
+            const svg = document.getElementById('interest-chart-svg');
+            if (!svg) return '';
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const minValue = interestYAxisRange.min;
+            const maxValue = interestYAxisRange.max;
+            const valueRange = maxValue - minValue || 1;
+            
+            let pathData = '';
+            data.forEach((point, index) => {
+                const x = padding.left + (index / (data.length - 1 || 1)) * chartWidth;
+                const normalizedValue = (point.value - minValue) / valueRange;
+                const y = padding.top + (1 - normalizedValue) * chartHeight;
+                
+                if (index === 0) {
+                    pathData = `M ${x},${y}`;
+                } else {
+                    pathData += ` L ${x},${y}`;
+                }
+            });
+            
+            return pathData;
+        }
+        
+        function renderInterestYAxisLabelsMulti(sortedDates) {
+            const yAxisGroup = document.getElementById('interest-y-axis-labels');
+            if (!yAxisGroup) return;
+            
+            yAxisGroup.innerHTML = '';
+            
+            const minValue = interestYAxisRange.min;
+            const maxValue = interestYAxisRange.max;
+            const steps = 5;
+            
+            for (let i = 0; i <= steps; i++) {
+                const value = maxValue - (i / steps) * (maxValue - minValue);
+                const y = 20 + (i / steps) * 330; // 350 - 20 = 330 (차트 높이)
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', '30');
+                label.setAttribute('y', y);
+                label.setAttribute('class', 'chart-yaxis-label');
+                label.setAttribute('text-anchor', 'end');
+                label.setAttribute('dominant-baseline', 'middle');
+                label.textContent = value.toFixed(2) + '%';
+                
+                yAxisGroup.appendChild(label);
+            }
+        }
+        
+        function renderInterestXAxisLabelsMulti(sortedDates) {
+            const xAxisGroup = document.getElementById('interest-x-axis-labels');
+            if (!xAxisGroup || !sortedDates || sortedDates.length === 0) return;
+            
+            xAxisGroup.innerHTML = '';
+            
+            const svg = document.getElementById('interest-chart-svg');
+            if (!svg) return;
+            
+            const { width } = getSvgViewBoxSize(svg);
+            const padding = { left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            
+            // 월별 데이터이므로 매 2개월마다 표시
+            const labelInterval = Math.max(1, Math.floor(sortedDates.length / 8));
+            
+            sortedDates.forEach((date, index) => {
+                if (index % labelInterval !== 0 && index !== sortedDates.length - 1) return;
+                
+                const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
+                const y = 370; // 400 - 30 = 370
+                
+                // YYYYMM 형식을 YY.MM 형식으로 변환
+                let labelText = '';
+                if (date.length === 6) {
+                    const year = date.substring(0, 4);
+                    const month = date.substring(4, 6);
+                    labelText = `${year.substring(2)}.${month}`;
+                } else {
+                    labelText = date;
+                }
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', x);
+                label.setAttribute('y', y);
+                label.setAttribute('class', 'chart-xaxis-label');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('dominant-baseline', 'middle');
+                label.textContent = labelText;
+                
+                xAxisGroup.appendChild(label);
+            });
+        }
+        
+        function renderInterestDataPointsMulti(sortedDates) {
+            const pointsGroup = document.getElementById('interest-data-points');
+            if (!pointsGroup || !sortedDates || sortedDates.length === 0) return;
+            
+            pointsGroup.innerHTML = '';
+            
+            const svg = document.getElementById('interest-chart-svg');
+            if (!svg) return;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const minValue = interestYAxisRange.min;
+            const maxValue = interestYAxisRange.max;
+            const valueRange = maxValue - minValue || 1;
+            
+            activeInterestCountries.forEach(itemCode => {
+                const data = interestCountryData[itemCode];
+                if (!data || data.length === 0) return;
+                
+                const color = getInterestCountryColor(itemCode);
+                
+                sortedDates.forEach((date, index) => {
+                    const item = data.find(d => d.date === date);
+                    if (!item) return;
+                    
+                    const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
+                    const normalizedValue = (item.value - minValue) / valueRange;
+                    const y = padding.top + (1 - normalizedValue) * chartHeight;
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', x);
+                    circle.setAttribute('cy', y);
+                    circle.setAttribute('r', '4');
+                    circle.setAttribute('fill', color);
+                    circle.setAttribute('stroke', 'var(--bg-color)');
+                    circle.setAttribute('stroke-width', '1');
+                    circle.setAttribute('data-date', date);
+                    circle.setAttribute('data-item-code', itemCode);
+                    circle.setAttribute('data-value', item.value);
+                    circle.style.cursor = 'pointer';
+                    
+                    pointsGroup.appendChild(circle);
+                });
+            });
+        }
+        
+        function setupInterestChartInteractivityMulti() {
+            const chartContainer = document.getElementById('interest-chart-container');
+            const svg = document.getElementById('interest-chart-svg');
+            if (!chartContainer || !svg) return;
+            
+            const tooltip = document.getElementById('interest-chart-tooltip');
+            if (tooltip && tooltip.parentElement !== document.body) {
+                document.body.appendChild(tooltip);
+            }
+            
+            // 기존 이벤트 리스너 제거
+            chartContainer.removeEventListener('mousemove', interestMouseMoveHandler);
+            chartContainer.removeEventListener('mouseleave', interestMouseLeaveHandler);
+            
+            let rafId = null;
+            
+            interestMouseMoveHandler = (event) => {
+                if (rafId) return;
+                
+                rafId = requestAnimationFrame(() => {
+                    rafId = null;
+                    showInterestTooltipMulti(event);
+                });
+            };
+            
+            interestMouseLeaveHandler = () => {
+                if (rafId) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+                hideInterestTooltip();
+            };
+            
+            chartContainer.addEventListener('mousemove', interestMouseMoveHandler);
+            chartContainer.addEventListener('mouseleave', interestMouseLeaveHandler);
+        }
+        
+        function showInterestTooltipMulti(event) {
+            const tooltip = document.getElementById('interest-chart-tooltip');
+            if (!tooltip) return;
+            
+            const svg = document.getElementById('interest-chart-svg');
+            if (!svg) return;
+            
+            const rect = svg.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            
+            // 모든 국가 데이터 병합하여 공통 날짜 목록 생성
+            const allDates = new Set();
+            Object.values(interestCountryData).forEach(data => {
+                data.forEach(item => allDates.add(item.date));
+            });
+            const sortedDates = Array.from(allDates).sort((a, b) => {
+                const dateA = parseInt(a) || 0;
+                const dateB = parseInt(b) || 0;
+                return dateA - dateB;
+            });
+            
+            if (sortedDates.length === 0) return;
+            
+            // X 좌표로 날짜 찾기
+            const dateIndex = Math.round(((x - padding.left) / chartWidth) * (sortedDates.length - 1));
+            const dateIndexClamped = Math.max(0, Math.min(sortedDates.length - 1, dateIndex));
+            const date = sortedDates[dateIndexClamped];
+            
+            // 툴팁 내용 생성
+            let dateLabel = date;
+            if (date.length === 6) {
+                const year = date.substring(0, 4);
+                const month = date.substring(4, 6);
+                dateLabel = `${year}.${month}`;
+            }
+            
+            let tooltipContent = `<div style="font-weight: 600; margin-bottom: 8px;">${dateLabel}</div>`;
+            
+            activeInterestCountries.forEach(itemCode => {
+                const data = interestCountryData[itemCode];
+                if (!data) return;
+                
+                const item = data.find(d => d.date === date);
+                if (!item) return;
+                
+                const countryInfo = interestCountryMapping[itemCode];
+                const countryName = countryInfo ? countryInfo.name : itemCode;
+                const color = getInterestCountryColor(itemCode);
+                
+                tooltipContent += `
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${color};"></div>
+                        <span>${countryName}: <strong>${item.value.toFixed(2)}%</strong></span>
+                    </div>
+                `;
+            });
+            
+            const tooltipContentEl = document.getElementById('interest-tooltip-content');
+            if (tooltipContentEl) {
+                tooltipContentEl.innerHTML = tooltipContent;
+            }
+            
+            const tooltipDateEl = document.getElementById('interest-tooltip-date');
+            if (tooltipDateEl) {
+                tooltipDateEl.textContent = dateLabel;
+            }
+            
+            // 툴팁 위치 조정
+            tooltip.style.display = 'block';
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = event.clientX + 10;
+            let top = event.clientY + 10;
+            
+            if (left + tooltipRect.width > viewportWidth) {
+                left = event.clientX - tooltipRect.width - 10;
+            }
+            if (top + tooltipRect.height > viewportHeight) {
+                top = event.clientY - tooltipRect.height - 10;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+        
+        function hideInterestTooltip() {
+            const tooltip = document.getElementById('interest-chart-tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        }
+        
+        function updateInterestChartHeaderMulti() {
+            if (activeInterestCountries.length === 0) return;
+            
+            // 모든 국가 데이터에서 통계 계산
+            const allValues = [];
+            Object.values(interestCountryData).forEach(data => {
+                data.forEach(item => allValues.push(item.value));
+            });
+            
+            if (allValues.length === 0) return;
+            
+            const high = Math.max(...allValues);
+            const low = Math.min(...allValues);
+            const average = allValues.reduce((sum, v) => sum + v, 0) / allValues.length;
+            
+            // 첫 번째 국가의 최신값
+            const firstCountryCode = activeInterestCountries[0];
+            const firstCountryData = interestCountryData[firstCountryCode];
+            const current = firstCountryData && firstCountryData.length > 0 
+                ? firstCountryData[firstCountryData.length - 1].value 
+                : 0;
+            const previous = firstCountryData && firstCountryData.length > 1
+                ? firstCountryData[firstCountryData.length - 2].value
+                : current;
+            
+            const change = current - previous;
+            const changePercent = previous !== 0 ? (change / previous) * 100 : 0;
+            
+            // 헤더 업데이트
+            const countryInfo = interestCountryMapping[firstCountryCode];
+            const countryName = countryInfo ? countryInfo.name : firstCountryCode;
+            
+            const titleEl = document.getElementById('interest-chart-main-title');
+            if (titleEl) titleEl.textContent = countryName + ' 기준금리';
+            
+            const valueEl = document.getElementById('interest-chart-main-value');
+            if (valueEl) valueEl.textContent = current.toFixed(2) + '%';
+            
+            const changeValueEl = document.getElementById('interest-change-value');
+            const changePercentEl = document.getElementById('interest-change-percent');
+            if (changeValueEl && changePercentEl) {
+                const changeText = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
+                const changePercentText = `(${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`;
+                
+                changeValueEl.textContent = changeText;
+                changePercentEl.textContent = changePercentText;
+                changeValueEl.style.color = change >= 0 ? '#ef4444' : '#22c55e';
+            }
+            
+            const highEl = document.getElementById('interest-stat-high');
+            const lowEl = document.getElementById('interest-stat-low');
+            const avgEl = document.getElementById('interest-stat-average');
+            
+            if (highEl) highEl.textContent = high.toFixed(2) + '%';
+            if (lowEl) lowEl.textContent = low.toFixed(2) + '%';
+            if (avgEl) avgEl.textContent = average.toFixed(2) + '%';
+        }
+        
         function updateInterestChart() {
             const path = document.getElementById('path-interest');
             const barGroup = document.getElementById('interest-bar-chart');
