@@ -23,7 +23,7 @@
             }
         }
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1e4B8-yeTWPCN1Gy_31QCt8XRg4fdXXc&callback=initMapsAPI&loading=async" async defer onerror="console.error('Failed to load Google Maps API')"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC1e4B8-yeTWPCN1Gy_31QCt8XRg4fdXXc&libraries=visualization&callback=initMapsAPI&loading=async" async defer onerror="console.error('Failed to load Google Maps API')"></script>
     <style>
         /* --- RESET & VARIABLES --- */
         :root {
@@ -622,31 +622,263 @@
             }
         }
         
+        /* Fade In Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert-card {
+            animation: fadeInUp 0.3s ease-out;
+            animation-fill-mode: both;
+        }
+        
+        /* Stagger animation for cards */
+        .alert-card:nth-child(1) { animation-delay: 0.05s; }
+        .alert-card:nth-child(2) { animation-delay: 0.1s; }
+        .alert-card:nth-child(3) { animation-delay: 0.15s; }
+        .alert-card:nth-child(4) { animation-delay: 0.2s; }
+        .alert-card:nth-child(5) { animation-delay: 0.25s; }
+        .alert-card:nth-child(n+6) { animation-delay: 0.3s; }
+        
+        /* Severity Colors */
+        :root {
+            --severity-extreme: #991b1b;
+            --severity-extreme-bg: #7f1d1d;
+            --severity-severe: #dc2626;
+            --severity-severe-bg: #991b1b;
+            --severity-high: #ea580c;
+            --severity-high-bg: #c2410c;
+            --severity-moderate: #f59e0b;
+            --severity-moderate-bg: #d97706;
+            --severity-low: #3b82f6;
+            --severity-low-bg: #2563eb;
+        }
+        
+        /* Severity Legend */
+        .severity-legend {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .legend-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+        }
+        
+        .legend-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.65rem;
+            white-space: nowrap;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .legend-badge.extreme { background: var(--severity-extreme); color: white; }
+        .legend-badge.severe { background: var(--severity-severe); color: white; }
+        .legend-badge.high { background: var(--severity-high); color: white; }
+        .legend-badge.moderate { background: var(--severity-moderate); color: white; }
+        .legend-badge.low { background: var(--severity-low); color: white; }
+        
+        .legend-range {
+            color: var(--text-sub);
+            min-width: 80px;
+        }
+        
+        .legend-desc {
+            color: var(--text-sub);
+            flex: 1;
+        }
+        
+        /* Alert Controls (Filters & Sort) */
+        .alert-controls {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .control-group {
+            margin-bottom: 12px;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+            display: block;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-sub);
+            border-radius: 6px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+        
+        .filter-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .control-select {
+            width: 100%;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #1e293b;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .control-select:hover {
+            background: #e2e8f0;
+        }
+        
+        .control-select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            background: #ffffff;
+        }
+        
+        .control-select option {
+            background: #ffffff;
+            color: #1e293b;
+            padding: 8px;
+        }
+        
         /* Alert Card Styles */
         .alert-card {
             padding: 15px;
             border-bottom: 1px solid var(--border-color);
-            transition: background 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             border-radius: 8px;
             margin-bottom: 4px;
+            border-left: 3px solid transparent;
         }
         
         .alert-card:hover {
             background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
         
         .alert-card:last-child {
             border-bottom: none;
         }
         
-        .alert-card-title {
-            color: var(--c-alert-critical);
-            font-size: 0.75rem;
+        .alert-card.extreme { border-left-color: var(--severity-extreme); }
+        .alert-card.severe { border-left-color: var(--severity-severe); }
+        .alert-card.high { border-left-color: var(--severity-high); }
+        .alert-card.moderate { border-left-color: var(--severity-moderate); }
+        .alert-card.low { border-left-color: var(--severity-low); }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .severity-badge {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
             font-weight: 700;
-            margin-bottom: 6px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+        
+        .severity-badge.extreme { background: var(--severity-extreme-bg); color: white; }
+        .severity-badge.severe { background: var(--severity-severe-bg); color: white; }
+        .severity-badge.high { background: var(--severity-high-bg); color: white; }
+        .severity-badge.moderate { background: var(--severity-moderate-bg); color: white; }
+        .severity-badge.low { background: var(--severity-low-bg); color: white; }
+        
+        .alert-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            font-size: 0.7rem;
+            color: var(--text-sub);
+        }
+        
+        .alert-category {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .alert-content {
+            margin-bottom: 8px;
+        }
+        
+        .alert-card-title {
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            line-height: 1.4;
         }
         
         .alert-card-name {
@@ -654,6 +886,27 @@
             font-size: 0.85rem;
             margin: 5px 0;
             line-height: 1.4;
+        }
+        
+        .alert-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.7rem;
+            color: var(--text-sub);
+        }
+        
+        .alert-location {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .alert-actors {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
         }
         
         .alert-card-scale {
@@ -671,6 +924,425 @@
             opacity: 0;
             pointer-events: none;
         }
+        
+        /* Alert Detail Modal */
+        .alert-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .alert-modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        
+        .alert-modal {
+            background: var(--card-bg);
+            border-radius: 16px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .alert-modal-overlay.active .alert-modal {
+            transform: scale(1);
+        }
+        
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        
+        .modal-severity-info {
+            flex: 1;
+        }
+        
+        .modal-severity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+        }
+        
+        .modal-severity-badge.extreme { background: var(--severity-extreme); color: white; }
+        .modal-severity-badge.severe { background: var(--severity-severe); color: white; }
+        .modal-severity-badge.high { background: var(--severity-high); color: white; }
+        .modal-severity-badge.moderate { background: var(--severity-moderate); color: white; }
+        .modal-severity-badge.low { background: var(--severity-low); color: white; }
+        
+        .modal-severity-meaning {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+        
+        .modal-close-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        
+        .modal-close-btn:hover {
+            color: var(--text-main);
+        }
+        
+        .modal-body {
+            padding: 24px;
+        }
+        
+        .modal-section {
+            margin-bottom: 24px;
+        }
+        
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .modal-section-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .modal-event-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            line-height: 1.4;
+        }
+        
+        .modal-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .modal-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+        
+        .modal-actors {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+        }
+        
+        .modal-actor-card {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .modal-actor-flag {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        
+        .modal-actor-name {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        
+        .modal-actor-role {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+        
+        .modal-relationship {
+            text-align: center;
+        }
+        
+        .modal-relationship-arrow {
+            font-size: 1.5rem;
+            margin-bottom: 4px;
+        }
+        
+        .modal-relationship-type {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+        
+        .modal-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .modal-stat-card {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .modal-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+        }
+        
+        .modal-stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        
+        .modal-source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 20px;
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .modal-source-link:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Timeline View */
+        .view-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .view-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .view-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        
+        .timeline-view {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .timeline-view.active {
+            display: flex;
+        }
+        
+        .timeline-date-group {
+            border-left: 3px solid var(--accent-color);
+            padding-left: 16px;
+        }
+        
+        .timeline-date-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .timeline-date-count {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .timeline-events {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .timeline-event {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .timeline-event:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+        }
+        
+        .timeline-event.extreme { border-left-color: var(--severity-extreme); }
+        .timeline-event.severe { border-left-color: var(--severity-severe); }
+        .timeline-event.high { border-left-color: var(--severity-high); }
+        .timeline-event.moderate { border-left-color: var(--severity-moderate); }
+        .timeline-event.low { border-left-color: var(--severity-low); }
+        
+        .timeline-event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .timeline-event-time {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+        }
+        
+        .timeline-event-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        
+        .timeline-event-location {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+        }
+        
+        /* Country Dashboard */
+        .country-dashboard {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .country-dashboard.active {
+            display: flex;
+        }
+        
+        .country-card {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .country-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+        }
+        
+        .country-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .country-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        
+        .country-flag {
+            font-size: 1.5rem;
+        }
+        
+        .country-count {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        
+        .country-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 0.7rem;
+        }
+        
+        .country-stat {
+            text-align: center;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+        
+        .country-stat-label {
+            color: var(--text-sub);
+            margin-bottom: 2px;
+        }
+        
+        .country-stat-value {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        
+        .country-stat-value.extreme { color: var(--severity-extreme); }
+        .country-stat-value.severe { color: var(--severity-severe); }
+        .country-stat-value.high { color: var(--severity-high); }
         
         /* Chart Tooltip Styles */
         .chart-tooltip {
@@ -1731,15 +2403,104 @@
                 
                 <!-- Critical Alerts Sidebar -->
                 <div class="card-bg" style="flex: 1; padding: 20px; display: flex; flex-direction: column; border-radius: 16px; border: 1px solid var(--border-color);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="margin: 0; font-size: 1.2rem;">Critical Alerts</h3>
                         <div id="alert-status" style="font-size: 0.75rem; color: var(--text-sub);">
                             <span id="alert-count">0</span> alerts
                         </div>
                     </div>
-                    <div id="alert-items-list" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                    
+                    <!-- View Toggle -->
+                    <div class="view-toggle">
+                        <button class="view-btn active" onclick="switchView('list')">📋 리스트</button>
+                        <button class="view-btn" onclick="switchView('timeline')">📅 타임라인</button>
+                        <button class="view-btn" onclick="switchView('country')">🌍 국가별</button>
+                    </div>
+                    
+                    <!-- Alert Controls -->
+                    <div class="alert-controls">
+                        <div class="control-group">
+                            <label class="control-label">위험도 필터</label>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" data-severity="all" onclick="filterBySeverity('all')">전체</button>
+                                <button class="filter-btn" data-severity="extreme" onclick="filterBySeverity('extreme')">EXTREME</button>
+                                <button class="filter-btn" data-severity="severe" onclick="filterBySeverity('severe')">SEVERE</button>
+                                <button class="filter-btn" data-severity="high" onclick="filterBySeverity('high')">HIGH</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">카테고리</label>
+                            <select class="control-select" id="category-filter" onchange="applyFilters()">
+                                <option value="all">전체</option>
+                                <option value="Material Conflict">Material Conflict</option>
+                                <option value="Verbal Conflict">Verbal Conflict</option>
+                                <option value="Material Cooperation">Material Cooperation</option>
+                                <option value="Verbal Cooperation">Verbal Cooperation</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">정렬</label>
+                            <select class="control-select" id="sort-select" onchange="applyFilters()">
+                                <option value="severity">위험도 높은 순</option>
+                                <option value="recent">최신 순</option>
+                                <option value="mentions">언급 많은 순</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- GoldsteinScale Legend -->
+                    <div class="severity-legend">
+                        <div class="legend-title">
+                            GoldsteinScale Guide
+                            <span style="cursor: help;" title="이벤트의 중요도와 위험성을 나타냅니다">ℹ️</span>
+                        </div>
+                        <div class="legend-items">
+                            <div class="legend-item">
+                                <span class="legend-badge extreme">⚠️ EXTREME</span>
+                                <span class="legend-range">-10.0 ~ -8.0</span>
+                                <span class="legend-desc">전쟁, 대량살상</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-badge severe">🔴 SEVERE</span>
+                                <span class="legend-range">-7.9 ~ -6.0</span>
+                                <span class="legend-desc">군사공격, 폭력</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-badge high">🟠 HIGH</span>
+                                <span class="legend-range">-5.9 ~ -4.0</span>
+                                <span class="legend-desc">중간 갈등</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-badge moderate">🟡 MODERATE</span>
+                                <span class="legend-range">-3.9 ~ -2.0</span>
+                                <span class="legend-desc">경미한 갈등</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-badge low">ℹ️ LOW</span>
+                                <span class="legend-range">-1.9 이하</span>
+                                <span class="legend-desc">정보성</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- List View -->
+                    <div id="alert-items-list" class="list-view active" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;">
                         <div style="text-align: center; color: var(--text-sub); padding: 40px 20px;">
                             <div style="font-size: 0.9rem;">Loading alerts...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timeline View -->
+                    <div id="alert-timeline-view" class="timeline-view">
+                        <div style="text-align: center; color: var(--text-sub); padding: 40px 20px;">
+                            <div style="font-size: 0.9rem;">Loading timeline...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Country Dashboard -->
+                    <div id="alert-country-dashboard" class="country-dashboard">
+                        <div style="text-align: center; color: var(--text-sub); padding: 40px 20px;">
+                            <div style="font-size: 0.9rem;">Loading country data...</div>
                         </div>
                     </div>
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
@@ -1750,6 +2511,90 @@
                 </div>
             </div>
         </section>
+
+        <!-- Alert Detail Modal -->
+        <div id="alert-detail-modal" class="alert-modal-overlay">
+            <div class="alert-modal">
+                <div class="modal-header">
+                    <div class="modal-severity-info">
+                        <div id="modal-severity-badge" class="modal-severity-badge"></div>
+                        <div id="modal-severity-meaning" class="modal-severity-meaning"></div>
+                    </div>
+                    <button class="modal-close-btn" onclick="closeAlertModal()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-section">
+                        <h2 id="modal-event-title" class="modal-event-title"></h2>
+                        <div class="modal-meta-grid">
+                            <div class="modal-meta-item">
+                                <span>📅</span>
+                                <span id="modal-event-date"></span>
+                            </div>
+                            <div class="modal-meta-item">
+                                <span>📍</span>
+                                <span id="modal-event-location"></span>
+                            </div>
+                            <div class="modal-meta-item">
+                                <span>🏷️</span>
+                                <span id="modal-event-category"></span>
+                            </div>
+                            <div class="modal-meta-item">
+                                <span>🔢</span>
+                                <span id="modal-event-code"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="modal-section-title">행위자 관계</div>
+                        <div class="modal-actors">
+                            <div class="modal-actor-card">
+                                <div class="modal-actor-flag" id="modal-actor1-flag">🌐</div>
+                                <div class="modal-actor-name" id="modal-actor1-name"></div>
+                                <div class="modal-actor-role">Actor 1</div>
+                            </div>
+                            <div class="modal-relationship">
+                                <div class="modal-relationship-arrow">→</div>
+                                <div class="modal-relationship-type" id="modal-relationship-type"></div>
+                            </div>
+                            <div class="modal-actor-card">
+                                <div class="modal-actor-flag" id="modal-actor2-flag">🌐</div>
+                                <div class="modal-actor-name" id="modal-actor2-name"></div>
+                                <div class="modal-actor-role">Actor 2</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <div class="modal-section-title">통계 정보</div>
+                        <div class="modal-stats-grid">
+                            <div class="modal-stat-card">
+                                <div class="modal-stat-label">언급 횟수</div>
+                                <div class="modal-stat-value" id="modal-num-mentions">-</div>
+                            </div>
+                            <div class="modal-stat-card">
+                                <div class="modal-stat-label">보도 소스</div>
+                                <div class="modal-stat-value" id="modal-num-sources">-</div>
+                            </div>
+                            <div class="modal-stat-card">
+                                <div class="modal-stat-label">관련 기사</div>
+                                <div class="modal-stat-value" id="modal-num-articles">-</div>
+                            </div>
+                            <div class="modal-stat-card">
+                                <div class="modal-stat-label">평균 톤</div>
+                                <div class="modal-stat-value" id="modal-avg-tone">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-section">
+                        <a id="modal-source-link" href="#" target="_blank" class="modal-source-link">
+                            전체 기사 읽기 ↗
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- News Section -->
         <section id="news" class="container section-padding">
@@ -7209,9 +8054,180 @@
         // ============================================
         let mapInstance = null;
         let currentMarkers = [];
+        let heatmapLayer = null;
         let alertUpdateInterval = null;
         let isMapInitialized = false;
         let intersectionObserver = null;
+        let allAlerts = []; // 전체 알림 데이터 저장
+        let currentFilters = {
+            severity: 'all',
+            category: 'all',
+            sort: 'severity'
+        };
+
+        // ============================================
+        // GDELT 데이터 품질 개선 함수들
+        // ============================================
+        
+        // CAMEO Event Code 설명 매핑 테이블
+        const CAMEO_EVENT_DESCRIPTIONS = {
+            // Root Code 01: Make Public Statement
+            '010': '공개 성명',
+            '011': '공식 방문 승인',
+            '012': '낙관적 발언',
+            '013': '비관적 발언',
+            
+            // Root Code 10: Demand
+            '100': '요구',
+            '101': '정보 요구',
+            '102': '경제 지원 요구',
+            '103': '군사 지원 요구',
+            
+            // Root Code 13: Protest
+            '130': '시위',
+            '131': '평화 시위',
+            '138': '항의 시위',
+            '139': '폭력 시위',
+            
+            // Root Code 14: Exhibit Force Posture
+            '140': '무력 시위',
+            '141': '군사력 증강',
+            '142': '군사력 동원',
+            '145': '위협',
+            
+            // Root Code 16: Reduce Relations
+            '160': '관계 축소',
+            '161': '외교 축소',
+            '162': '외교 제재',
+            '163': '경제 제재',
+            '164': '경제 봉쇄',
+            '165': '군사 제재',
+            
+            // Root Code 17: Coerce
+            '170': '강압',
+            '171': '재산 압류',
+            '172': '활동 제한',
+            '173': '물리력 사용',
+            '174': '군사력 사용',
+            '175': '무력 사용',
+            
+            // Root Code 18: Assault
+            '180': '폭행',
+            '181': '직접 폭행',
+            '182': '화학/생물학 공격',
+            '183': '폭탄 공격',
+            '185': '무차별 폭력',
+            '186': '고문',
+            
+            // Root Code 19: Fight
+            '190': '전투/살상',
+            '191': '대규모 무력 충돌',
+            '192': '전면전',
+            '193': '교전',
+            '194': '포격/공습',
+            '195': '점령',
+            '196': '침공',
+            
+            // Root Code 20: Mass Violence
+            '200': '대량 살상',
+            '201': '민간인 학살',
+            
+            // 4자리 상세 코드
+            '1711': '재산 압류',
+            '1712': '재산 손상',
+            '1713': '재산 파괴'
+        };
+        
+        /**
+         * Event Code를 설명으로 변환
+         */
+        function getEventDescription(eventCode) {
+            if (!eventCode) return '미분류';
+            
+            const code = String(eventCode);
+            
+            // 정확한 매칭 시도
+            if (CAMEO_EVENT_DESCRIPTIONS[code]) {
+                return CAMEO_EVENT_DESCRIPTIONS[code];
+            }
+            
+            // Root Code로 폴백 (예: 1712 → 171 → 17)
+            if (code.length === 4) {
+                const rootCode3 = code.substring(0, 3);
+                if (CAMEO_EVENT_DESCRIPTIONS[rootCode3]) {
+                    return CAMEO_EVENT_DESCRIPTIONS[rootCode3];
+                }
+            }
+            
+            if (code.length >= 2) {
+                const rootCode2 = code.substring(0, 2);
+                if (CAMEO_EVENT_DESCRIPTIONS[rootCode2]) {
+                    return CAMEO_EVENT_DESCRIPTIONS[rootCode2];
+                }
+            }
+            
+            return `이벤트 ${code}`;
+        }
+        
+        /**
+         * 신뢰도 점수 계산
+         */
+        function calculateConfidence(alert) {
+            let score = 100;
+            let flags = [];
+            
+            // 1. Tone-Scale 모순 감지 (가장 중요)
+            const avgTone = alert.avg_tone || 0;
+            const goldstein = alert.goldstein_scale || alert.scale || 0;
+            
+            // AvgTone은 양수(긍정)인데 GoldsteinScale은 매우 부정적
+            if (avgTone > 0 && goldstein < -7.0) {
+                score -= 50;
+                flags.push('TONE_SCALE_MISMATCH');
+            }
+            
+            // 2. 단일 소스 (신뢰도 낮음)
+            if ((alert.num_sources || 0) <= 1) {
+                score -= 15;
+                flags.push('SINGLE_SOURCE');
+            }
+            
+            // 3. 극단적 점수 + 낮은 언급 횟수
+            if (goldstein < -8.0 && (alert.num_mentions || 0) < 3) {
+                score -= 25;
+                flags.push('EXTREME_LOW_MENTIONS');
+            }
+            
+            // 4. Actor 정보 부족
+            if (!alert.actor1 && !alert.actor2) {
+                score -= 10;
+                flags.push('MISSING_ACTORS');
+            }
+            
+            return {
+                score: Math.max(0, score),
+                flags: flags,
+                is_reliable: score >= 60
+            };
+        }
+        
+        /**
+         * Actor 이름 정리 (빈 actor 제거)
+         */
+        function getCleanActorName(actor1, actor2) {
+            const a1 = (actor1 || '').trim();
+            const a2 = (actor2 || '').trim();
+            
+            if (a1 && a2) {
+                return `${a1} - ${a2}`;
+            } else if (a1) {
+                return a1;
+            } else if (a2) {
+                return a2;
+            } else {
+                return '미분류';
+            }
+        }
 
         // 네비게이션 클릭 핸들러 (War Room 섹션으로 스크롤)
         document.addEventListener('DOMContentLoaded', function() {
@@ -7486,9 +8502,35 @@
                     throw new Error('Invalid data format: alerts is not an array');
                 }
 
-                const alerts = data.alerts || [];
-                updateMapMarkers(alerts);
-                updateAlertList(alerts, data.last_updated);
+                const rawAlerts = data.alerts || [];
+                
+                // ✅ 신뢰도 계산 및 품질 필터링
+                const alertsWithConfidence = rawAlerts.map(alert => ({
+                    ...alert,
+                    confidence: calculateConfidence(alert)
+                }));
+                
+                // ✅ 저신뢰도 데이터 자동 필터링
+                const filteredAlerts = alertsWithConfidence.filter(alert => {
+                    // Tone-Scale 모순 제거 (가장 명확한 오분류)
+                    if (alert.avg_tone > 0 && alert.scale < -7.0) {
+                        console.log(`필터링됨 (Tone-Scale 모순): ${alert.name} [Tone: ${alert.avg_tone.toFixed(2)}, Scale: ${alert.scale.toFixed(2)}]`);
+                        return false;
+                    }
+                    
+                    // 신뢰도 60% 미만 제거
+                    if (alert.confidence.score < 60) {
+                        console.log(`필터링됨 (낮은 신뢰도 ${alert.confidence.score}%): ${alert.name}`);
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                console.log(`✅ 데이터 품질 필터링: ${rawAlerts.length}개 → ${filteredAlerts.length}개 (${rawAlerts.length - filteredAlerts.length}개 제거)`);
+                
+                allAlerts = filteredAlerts; // 필터링된 데이터 저장
+                applyFilters(); // 추가 필터 적용하여 표시
 
             } catch (error) {
                 console.error('Error fetching global alerts:', error);
@@ -7507,11 +8549,21 @@
             // 기존 마커 제거
             currentMarkers.forEach(marker => marker.setMap(null));
             currentMarkers = [];
+            
+            // 기존 히트맵 제거
+            if (heatmapLayer) {
+                heatmapLayer.setMap(null);
+                heatmapLayer = null;
+            }
 
             // 빈 데이터 처리
             if (!alerts || alerts.length === 0) {
                 return;
             }
+            
+            // 히트맵 데이터 준비
+            const heatmapData = [];
+            const validAlerts = [];
 
             alerts.forEach(alert => {
                 // 좌표 유효성 검사
@@ -7520,46 +8572,141 @@
                     return;
                 }
 
+                validAlerts.push(alert);
+                
                 const pos = { lat: alert.lat, lng: alert.lng };
-                const alertName = escapeHtml(alert.name || 'Unknown Event');
+                
+                // 히트맵 데이터 추가 (GoldsteinScale 절댓값을 가중치로 사용)
+                const weight = Math.abs(alert.scale) || 1;
+                heatmapData.push({
+                    location: new google.maps.LatLng(alert.lat, alert.lng),
+                    weight: weight
+                });
+            });
+            
+            // 히트맵 레이어 생성
+            if (heatmapData.length > 0 && google.maps.visualization) {
+                heatmapLayer = new google.maps.visualization.HeatmapLayer({
+                    data: heatmapData,
+                    map: mapInstance,
+                    radius: 50,
+                    opacity: 0.6,
+                    gradient: [
+                        'rgba(0, 255, 255, 0)',
+                        'rgba(0, 191, 255, 0.3)',
+                        'rgba(0, 127, 255, 0.5)',
+                        'rgba(255, 165, 0, 0.7)',
+                        'rgba(255, 69, 0, 0.85)',
+                        'rgba(255, 0, 0, 1)'
+                    ]
+                });
+            }
+            
+            // 마커 생성
+            validAlerts.forEach(alert => {
+                const pos = { lat: alert.lat, lng: alert.lng };
+                
+                // ✅ Actor 이름 정리
+                const cleanName = getCleanActorName(alert.actor1, alert.actor2);
+                const alertName = escapeHtml(cleanName);
+                
+                // ✅ Event Description 가져오기
+                const eventDesc = getEventDescription(alert.event_code);
+                
                 const alertScale = (alert.scale !== undefined && alert.scale !== null) ? alert.scale.toFixed(1) : '0.0';
                 const alertUrl = alert.url ? escapeHtml(alert.url) : '';
+                const severityConfig = getSeverityConfig(alert.scale);
 
-                // 마커 생성
+                // 마커 생성 (크기와 색상 개선)
                 const marker = new google.maps.Marker({
                     position: pos,
                     map: mapInstance,
                     title: alertName,
                     icon: {
                         path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: getMarkerColor(alert.scale),
-                        fillOpacity: 0.8,
+                        scale: severityConfig.size,
+                        fillColor: severityConfig.color,
+                        fillOpacity: 0.85,
                         strokeColor: '#ffffff',
                         strokeWeight: 2
-                    }
+                    },
+                    animation: severityConfig.pulse ? google.maps.Animation.DROP : null
                 });
 
-                // 인포윈도우 생성 (XSS 방지)
+                // 인포윈도우 생성 (개선된 버전)
                 const infoWindowContent = document.createElement('div');
-                infoWindowContent.style.cssText = 'color: var(--text-main); font-family: var(--font-main); padding: 8px;';
+                infoWindowContent.style.cssText = 'color: #1e293b; font-family: var(--font-main); padding: 12px; min-width: 200px;';
                 
-                const criticalLabel = document.createElement('div');
-                criticalLabel.style.cssText = 'font-weight: 700; margin-bottom: 4px; color: var(--c-alert-critical);';
-                criticalLabel.textContent = `CRITICAL [${alertScale}]`;
-                infoWindowContent.appendChild(criticalLabel);
+                // 위험도 배지
+                const severityBadge = document.createElement('div');
+                severityBadge.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-weight: 700;
+                    font-size: 0.7rem;
+                    margin-bottom: 8px;
+                    background: ${severityConfig.color};
+                    color: white;
+                `;
+                severityBadge.textContent = `${severityConfig.icon} ${severityConfig.label} [${alertScale}]`;
+                infoWindowContent.appendChild(severityBadge);
                 
+                // 이벤트 이름
                 const nameDiv = document.createElement('div');
-                nameDiv.style.cssText = 'font-size: 0.9rem; margin-bottom: 6px;';
+                nameDiv.style.cssText = 'font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #1e293b;';
                 nameDiv.textContent = alertName;
                 infoWindowContent.appendChild(nameDiv);
                 
+                // 실제 발생지
+                if (alert.location) {
+                    const locationDiv = document.createElement('div');
+                    locationDiv.style.cssText = 'font-size: 0.75rem; color: #64748b; margin-bottom: 4px;';
+                    locationDiv.innerHTML = `📍 <strong>발생지:</strong> ${escapeHtml(alert.location)}`;
+                    infoWindowContent.appendChild(locationDiv);
+                }
+                
+                // 관련 국가 (Actor)
+                if (alert.actor2 && alert.actor2_country) {
+                    const actorDiv = document.createElement('div');
+                    actorDiv.style.cssText = 'font-size: 0.75rem; color: #64748b; margin-bottom: 4px;';
+                    actorDiv.textContent = `👤 관련: ${escapeHtml(alert.actor2)} ${getCountryFlag(alert.actor2_country)}`;
+                    infoWindowContent.appendChild(actorDiv);
+                }
+                
+                // ✅ Event Description
+                if (eventDesc && eventDesc !== '미분류') {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.style.cssText = 'font-size: 0.75rem; color: #3b82f6; margin-bottom: 4px; font-weight: 600;';
+                    eventDiv.textContent = `⚡ ${eventDesc}`;
+                    infoWindowContent.appendChild(eventDiv);
+                }
+                
+                // 카테고리
+                if (alert.category) {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.style.cssText = 'font-size: 0.75rem; color: #64748b; margin-bottom: 8px;';
+                    categoryDiv.textContent = `${getCategoryIcon(alert.category)} ${escapeHtml(alert.category)}`;
+                    infoWindowContent.appendChild(categoryDiv);
+                }
+                
+                // 날짜
+                if (alert.event_date) {
+                    const dateDiv = document.createElement('div');
+                    dateDiv.style.cssText = 'font-size: 0.75rem; color: #64748b; margin-bottom: 8px;';
+                    dateDiv.textContent = `📅 ${formatEventDate(alert.event_date)}`;
+                    infoWindowContent.appendChild(dateDiv);
+                }
+                
+                // 소스 링크
                 if (alertUrl) {
                     const link = document.createElement('a');
                     link.href = alertUrl;
                     link.target = '_blank';
-                    link.style.cssText = 'color: var(--accent-color); font-size: 0.8rem;';
-                    link.textContent = 'View Source';
+                    link.style.cssText = 'color: #3b82f6; font-size: 0.8rem; text-decoration: none; font-weight: 600;';
+                    link.textContent = '원문 보기 ↗';
                     infoWindowContent.appendChild(link);
                 }
 
@@ -7587,12 +8734,454 @@
             return div.innerHTML;
         }
 
-        // 마커 색상 결정 (GoldsteinScale 기반)
+        // 위험도 분류 함수 (5단계)
+        function getSeverityLevel(scale) {
+            if (scale <= -8) return 'extreme';
+            if (scale <= -6) return 'severe';
+            if (scale <= -4) return 'high';
+            if (scale <= -2) return 'moderate';
+            return 'low';
+        }
+        
+        // 위험도별 설정
+        function getSeverityConfig(scale) {
+            const level = getSeverityLevel(scale);
+            const configs = {
+                extreme: {
+                    color: '#991b1b',
+                    size: 12,
+                    icon: '⚠️',
+                    label: 'EXTREME',
+                    pulse: true
+                },
+                severe: {
+                    color: '#dc2626',
+                    size: 10,
+                    icon: '🔴',
+                    label: 'SEVERE',
+                    pulse: true
+                },
+                high: {
+                    color: '#ea580c',
+                    size: 9,
+                    icon: '🟠',
+                    label: 'HIGH',
+                    pulse: false
+                },
+                moderate: {
+                    color: '#f59e0b',
+                    size: 8,
+                    icon: '🟡',
+                    label: 'MODERATE',
+                    pulse: false
+                },
+                low: {
+                    color: '#3b82f6',
+                    size: 7,
+                    icon: 'ℹ️',
+                    label: 'LOW',
+                    pulse: false
+                }
+            };
+            return configs[level];
+        }
+        
+        // 마커 색상 결정 (하위 호환)
         function getMarkerColor(scale) {
-            if (scale <= -7) return '#ef4444'; // 매우 위험
-            if (scale <= -5) return '#f97316'; // 위험
-            if (scale <= -3) return '#f59e0b'; // 경고
-            return '#3b82f6'; // 정보
+            return getSeverityConfig(scale).color;
+        }
+        
+        // 날짜 포맷팅 함수
+        function formatEventDate(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return '';
+            const year = dateStr.substring(0, 4);
+            const month = dateStr.substring(4, 6);
+            const day = dateStr.substring(6, 8);
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 카테고리 아이콘 가져오기
+        function getCategoryIcon(category) {
+            const icons = {
+                'Material Conflict': '⚔️',
+                'Verbal Conflict': '💬',
+                'Material Cooperation': '🤝',
+                'Verbal Cooperation': '🗣️'
+            };
+            return icons[category] || '📌';
+        }
+        
+        // 국가 코드에서 플래그 이모지 가져오기
+        function getCountryFlag(countryCode) {
+            if (!countryCode || countryCode.length !== 2) return '🌐';
+            const codePoints = countryCode
+                .toUpperCase()
+                .split('')
+                .map(char => 127397 + char.charCodeAt());
+            return String.fromCodePoint(...codePoints);
+        }
+        
+        // 위험도 의미 설명
+        function getSeverityMeaning(scale) {
+            if (scale <= -8) return '전쟁, 대량살상 등 극도로 심각한 사건';
+            if (scale <= -6) return '군사 공격, 폭력 시위 등 매우 심각한 갈등';
+            if (scale <= -4) return '중간 수준의 갈등 및 충돌';
+            if (scale <= -2) return '경미한 갈등 및 외교적 항의';
+            return '정보성 이벤트';
+        }
+        
+        // 모달 열기
+        function openAlertModal(alert) {
+            const modal = document.getElementById('alert-detail-modal');
+            if (!modal) return;
+            
+            const severityConfig = getSeverityConfig(alert.scale);
+            const severityLevel = getSeverityLevel(alert.scale);
+            
+            // 위험도 배지
+            const badge = document.getElementById('modal-severity-badge');
+            badge.className = `modal-severity-badge ${severityLevel}`;
+            badge.innerHTML = `<span>${severityConfig.icon}</span> <span>${severityConfig.label}</span> <span>GoldsteinScale: ${alert.scale.toFixed(1)}</span>`;
+            
+            // 위험도 의미
+            document.getElementById('modal-severity-meaning').textContent = getSeverityMeaning(alert.scale);
+            
+            // ✅ 이벤트 제목 (Actor 이름 정리)
+            const cleanName = getCleanActorName(alert.actor1, alert.actor2);
+            document.getElementById('modal-event-title').textContent = cleanName;
+            
+            // 메타 정보
+            document.getElementById('modal-event-date').textContent = formatEventDate(alert.event_date) || 'Unknown';
+            
+            // 실제 발생지와 관련 국가 구분
+            const locationText = alert.location ? `발생지: ${alert.location}` : 'Unknown';
+            if (alert.actor2_country && alert.country_code && alert.actor2_country !== alert.country_code) {
+                document.getElementById('modal-event-location').innerHTML = `${locationText}<br><small style="color: var(--text-sub);">관련 국가: ${alert.actor2} ${getCountryFlag(alert.actor2_country)}</small>`;
+            } else {
+                document.getElementById('modal-event-location').textContent = locationText;
+            }
+            
+            document.getElementById('modal-event-category').textContent = `${getCategoryIcon(alert.category)} ${alert.category || 'Unknown'}`;
+            
+            // ✅ Event Code 설명으로 변경
+            const eventDesc = getEventDescription(alert.event_code);
+            document.getElementById('modal-event-code').textContent = `이벤트 유형: ${eventDesc}`;
+            
+            // 행위자
+            document.getElementById('modal-actor1-flag').textContent = getCountryFlag(alert.actor1_country);
+            document.getElementById('modal-actor1-name').textContent = alert.actor1 || 'Unknown';
+            document.getElementById('modal-actor2-flag').textContent = getCountryFlag(alert.actor2_country);
+            document.getElementById('modal-actor2-name').textContent = alert.actor2 || 'Unknown';
+            document.getElementById('modal-relationship-type').textContent = alert.category || 'Unknown';
+            
+            // 통계
+            document.getElementById('modal-num-mentions').textContent = alert.num_mentions || '0';
+            document.getElementById('modal-num-sources').textContent = alert.num_sources || '0';
+            document.getElementById('modal-num-articles').textContent = alert.num_articles || '0';
+            
+            const avgTone = alert.avg_tone || 0;
+            const toneText = avgTone > 0 ? `+${avgTone.toFixed(1)} (긍정적)` : `${avgTone.toFixed(1)} (부정적)`;
+            document.getElementById('modal-avg-tone').textContent = toneText;
+            
+            // 소스 링크
+            const sourceLink = document.getElementById('modal-source-link');
+            if (alert.url) {
+                sourceLink.href = alert.url;
+                sourceLink.style.display = 'inline-flex';
+            } else {
+                sourceLink.style.display = 'none';
+            }
+            
+            // 모달 표시
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 모달 닫기
+        function closeAlertModal() {
+            const modal = document.getElementById('alert-detail-modal');
+            if (!modal) return;
+            
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        // 모달 외부 클릭 시 닫기
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('alert-detail-modal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeAlertModal();
+                    }
+                });
+            }
+        });
+        
+        // 위험도 필터
+        function filterBySeverity(severity) {
+            currentFilters.severity = severity;
+            
+            // 버튼 활성화 상태 업데이트
+            document.querySelectorAll('.filter-btn[data-severity]').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.severity === severity) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            applyFilters();
+        }
+        
+        // 필터 및 정렬 적용
+        function applyFilters() {
+            // 현재 필터 상태 가져오기
+            const categoryFilter = document.getElementById('category-filter');
+            const sortSelect = document.getElementById('sort-select');
+            
+            if (categoryFilter) currentFilters.category = categoryFilter.value;
+            if (sortSelect) currentFilters.sort = sortSelect.value;
+            
+            // 필터링
+            let filteredAlerts = allAlerts.filter(alert => {
+                // 위험도 필터
+                if (currentFilters.severity !== 'all') {
+                    const alertSeverity = getSeverityLevel(alert.scale);
+                    if (alertSeverity !== currentFilters.severity) {
+                        return false;
+                    }
+                }
+                
+                // 카테고리 필터
+                if (currentFilters.category !== 'all') {
+                    if (alert.category !== currentFilters.category) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+            
+            // 정렬
+            filteredAlerts.sort((a, b) => {
+                switch (currentFilters.sort) {
+                    case 'severity':
+                        return a.scale - b.scale; // 낮은 값(더 위험)이 먼저
+                    case 'recent':
+                        return (b.event_date || '').localeCompare(a.event_date || '');
+                    case 'mentions':
+                        return (b.num_mentions || 0) - (a.num_mentions || 0);
+                    default:
+                        return 0;
+                }
+            });
+            
+            // 지도 및 리스트 업데이트
+            updateMapMarkers(filteredAlerts);
+            updateAlertList(filteredAlerts, new Date().toISOString());
+            updateTimelineView(filteredAlerts);
+            updateCountryDashboard(filteredAlerts);
+        }
+        
+        // 뷰 전환
+        function switchView(view) {
+            const listView = document.getElementById('alert-items-list');
+            const timelineView = document.getElementById('alert-timeline-view');
+            const countryView = document.getElementById('alert-country-dashboard');
+            const viewBtns = document.querySelectorAll('.view-btn');
+            
+            viewBtns.forEach(btn => btn.classList.remove('active'));
+            
+            listView.style.display = 'none';
+            timelineView.classList.remove('active');
+            countryView.classList.remove('active');
+            
+            if (view === 'list') {
+                listView.style.display = 'flex';
+                viewBtns[0].classList.add('active');
+            } else if (view === 'timeline') {
+                timelineView.classList.add('active');
+                viewBtns[1].classList.add('active');
+            } else if (view === 'country') {
+                countryView.classList.add('active');
+                viewBtns[2].classList.add('active');
+            }
+        }
+        
+        // 타임라인 뷰 업데이트
+        function updateTimelineView(alerts) {
+            const timelineEl = document.getElementById('alert-timeline-view');
+            if (!timelineEl) return;
+            
+            if (alerts.length === 0) {
+                timelineEl.innerHTML = `
+                    <div style="text-align: center; color: var(--text-sub); padding: 40px 20px;">
+                        <div style="font-size: 0.9rem;">No alerts found</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 날짜별로 그룹화
+            const groupedByDate = {};
+            alerts.forEach(alert => {
+                const date = formatEventDate(alert.event_date) || 'Unknown';
+                if (!groupedByDate[date]) {
+                    groupedByDate[date] = [];
+                }
+                groupedByDate[date].push(alert);
+            });
+            
+            // 날짜 정렬 (최신순)
+            const sortedDates = Object.keys(groupedByDate).sort().reverse();
+            
+            // HTML 생성
+            timelineEl.innerHTML = '';
+            sortedDates.forEach(date => {
+                const dateGroup = document.createElement('div');
+                dateGroup.className = 'timeline-date-group';
+                
+                const dateHeader = document.createElement('div');
+                dateHeader.className = 'timeline-date-header';
+                dateHeader.innerHTML = `
+                    <span>📅 ${date}</span>
+                    <span class="timeline-date-count">${groupedByDate[date].length}</span>
+                `;
+                dateGroup.appendChild(dateHeader);
+                
+                const eventsContainer = document.createElement('div');
+                eventsContainer.className = 'timeline-events';
+                
+                groupedByDate[date].forEach(alert => {
+                    const severityLevel = getSeverityLevel(alert.scale);
+                    const severityConfig = getSeverityConfig(alert.scale);
+                    
+                    const eventEl = document.createElement('div');
+                    eventEl.className = `timeline-event ${severityLevel}`;
+                    eventEl.addEventListener('click', () => openAlertModal(alert));
+                    
+                    // ✅ Actor 이름 정리
+                    const cleanName = getCleanActorName(alert.actor1, alert.actor2);
+                    
+                    // ✅ Event Description 가져오기
+                    const eventDesc = getEventDescription(alert.event_code);
+                    
+                    const locationInfo = [];
+                    if (alert.location) {
+                        locationInfo.push(`📍 ${escapeHtml(alert.location)}`);
+                    }
+                    if (eventDesc && eventDesc !== '미분류') {
+                        locationInfo.push(`⚡ ${escapeHtml(eventDesc)}`);
+                    }
+                    if (alert.category) {
+                        locationInfo.push(`${getCategoryIcon(alert.category)} ${escapeHtml(alert.category)}`);
+                    }
+                    
+                    eventEl.innerHTML = `
+                        <div class="timeline-event-header">
+                            <span class="severity-badge ${severityLevel}" style="font-size: 0.65rem; padding: 2px 6px;">
+                                ${severityConfig.icon} ${severityConfig.label}
+                            </span>
+                            <span class="timeline-event-time">${alert.scale.toFixed(1)}</span>
+                        </div>
+                        <div class="timeline-event-title">${escapeHtml(cleanName)}</div>
+                        <div class="timeline-event-location">
+                            ${locationInfo.join(' • ')}
+                        </div>
+                    `;
+                    
+                    eventsContainer.appendChild(eventEl);
+                });
+                
+                dateGroup.appendChild(eventsContainer);
+                timelineEl.appendChild(dateGroup);
+            });
+        }
+        
+        // 국가별 대시보드 업데이트
+        function updateCountryDashboard(alerts) {
+            const dashboardEl = document.getElementById('alert-country-dashboard');
+            if (!dashboardEl) return;
+            
+            if (alerts.length === 0) {
+                dashboardEl.innerHTML = `
+                    <div style="text-align: center; color: var(--text-sub); padding: 40px 20px;">
+                        <div style="font-size: 0.9rem;">No country data available</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 국가별로 그룹화
+            const groupedByCountry = {};
+            alerts.forEach(alert => {
+                const country = alert.country_code || 'Unknown';
+                if (!groupedByCountry[country]) {
+                    groupedByCountry[country] = {
+                        alerts: [],
+                        extreme: 0,
+                        severe: 0,
+                        high: 0,
+                        avgScale: 0
+                    };
+                }
+                groupedByCountry[country].alerts.push(alert);
+                
+                const severity = getSeverityLevel(alert.scale);
+                if (severity === 'extreme') groupedByCountry[country].extreme++;
+                else if (severity === 'severe') groupedByCountry[country].severe++;
+                else if (severity === 'high') groupedByCountry[country].high++;
+            });
+            
+            // 평균 스케일 계산 및 정렬
+            const countries = Object.keys(groupedByCountry).map(country => {
+                const data = groupedByCountry[country];
+                const avgScale = data.alerts.reduce((sum, a) => sum + a.scale, 0) / data.alerts.length;
+                return {
+                    code: country,
+                    ...data,
+                    avgScale: avgScale
+                };
+            }).sort((a, b) => a.avgScale - b.avgScale); // 낮은 값(더 위험)이 먼저
+            
+            // HTML 생성
+            dashboardEl.innerHTML = '';
+            countries.forEach(country => {
+                const countryCard = document.createElement('div');
+                countryCard.className = 'country-card';
+                countryCard.addEventListener('click', () => {
+                    // 해당 국가 필터링
+                    currentFilters.country = country.code;
+                    applyFilters();
+                    switchView('list');
+                });
+                
+                countryCard.innerHTML = `
+                    <div class="country-header">
+                        <div class="country-name">
+                            <span class="country-flag">${getCountryFlag(country.code)}</span>
+                            <span>${country.code}</span>
+                        </div>
+                        <span class="country-count">${country.alerts.length}</span>
+                    </div>
+                    <div class="country-stats">
+                        <div class="country-stat">
+                            <div class="country-stat-label">EXTREME</div>
+                            <div class="country-stat-value extreme">${country.extreme}</div>
+                        </div>
+                        <div class="country-stat">
+                            <div class="country-stat-label">SEVERE</div>
+                            <div class="country-stat-value severe">${country.severe}</div>
+                        </div>
+                        <div class="country-stat">
+                            <div class="country-stat-label">HIGH</div>
+                            <div class="country-stat-value high">${country.high}</div>
+                        </div>
+                    </div>
+                `;
+                
+                dashboardEl.appendChild(countryCard);
+            });
         }
 
         // 알림 리스트 업데이트
@@ -7646,40 +9235,121 @@
             // XSS 방지를 위해 DOM 조작 방식으로 변경
             listEl.innerHTML = '';
             alerts.forEach(alert => {
-                const scaleColor = getMarkerColor(alert.scale);
+                const severityConfig = getSeverityConfig(alert.scale);
                 const alertScale = (alert.scale !== undefined && alert.scale !== null) ? alert.scale.toFixed(1) : '0.0';
-                const alertName = escapeHtml(alert.name || 'Unknown Event');
+                
+                // ✅ Actor 이름 정리 (빈 actor 제거)
+                const cleanActorName = getCleanActorName(alert.actor1, alert.actor2);
+                const alertName = escapeHtml(cleanActorName);
+                
                 const alertUrl = alert.url ? escapeHtml(alert.url) : '';
                 const actor1 = alert.actor1 ? escapeHtml(alert.actor1) : '';
                 const actor2 = alert.actor2 ? escapeHtml(alert.actor2) : '';
+                const location = alert.location ? escapeHtml(alert.location) : '';
+                const category = alert.category ? escapeHtml(alert.category) : '';
+                const eventDate = alert.event_date ? formatEventDate(alert.event_date) : '';
+                
+                // ✅ Event Code 설명 가져오기
+                const eventDescription = getEventDescription(alert.event_code);
                 
                 const card = document.createElement('div');
-                card.className = 'alert-card';
-                if (alertUrl) {
+                card.className = `alert-card ${getSeverityLevel(alert.scale)}`;
                     card.style.cursor = 'pointer';
-                    card.addEventListener('click', function() {
-                        window.open(alertUrl, '_blank');
-                    });
-                }
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openAlertModal(alert);
+                });
                 
+                // 헤더: 위험도 + 날짜 + 카테고리
+                const header = document.createElement('div');
+                header.className = 'alert-header';
+                
+                const severityBadge = document.createElement('div');
+                severityBadge.className = `severity-badge ${getSeverityLevel(alert.scale)}`;
+                severityBadge.innerHTML = `<span>${severityConfig.icon}</span> <span>${severityConfig.label}</span> <span>[${alertScale}]</span>`;
+                header.appendChild(severityBadge);
+                
+                const meta = document.createElement('div');
+                meta.className = 'alert-meta';
+                if (eventDate) {
+                    const dateSpan = document.createElement('span');
+                    dateSpan.textContent = eventDate;
+                    meta.appendChild(dateSpan);
+                }
+                // ✅ Event Description 표시 (Event Code 대신)
+                if (eventDescription && eventDescription !== '미분류') {
+                    const eventSpan = document.createElement('span');
+                    eventSpan.className = 'alert-event-type';
+                    eventSpan.textContent = `⚡ ${eventDescription}`;
+                    eventSpan.style.color = 'var(--accent-color)';
+                    eventSpan.style.fontWeight = '500';
+                    meta.appendChild(eventSpan);
+                }
+                if (category) {
+                    const categorySpan = document.createElement('span');
+                    categorySpan.className = 'alert-category';
+                    categorySpan.textContent = `${getCategoryIcon(category)} ${category}`;
+                    meta.appendChild(categorySpan);
+                }
+                header.appendChild(meta);
+                card.appendChild(header);
+                
+                // 본문: 이벤트 이름
+                const content = document.createElement('div');
+                content.className = 'alert-content';
                 const title = document.createElement('div');
                 title.className = 'alert-card-title';
-                title.style.color = scaleColor;
-                title.textContent = `CRITICAL [${alertScale}]`;
-                card.appendChild(title);
+                title.textContent = alertName;
+                content.appendChild(title);
+                card.appendChild(content);
                 
-                const name = document.createElement('div');
-                name.className = 'alert-card-name';
-                name.textContent = alertName;
-                card.appendChild(name);
+                // 푸터: 위치 + 행위자
+                const footer = document.createElement('div');
+                footer.className = 'alert-footer';
                 
-                if (actor1 || actor2) {
-                    const actorDiv = document.createElement('div');
-                    actorDiv.className = 'alert-card-scale';
-                    actorDiv.textContent = actor1 + (actor2 ? ' - ' + actor2 : '');
-                    card.appendChild(actorDiv);
+                // 실제 발생지 (ActionGeo)
+                if (location) {
+                    const locationDiv = document.createElement('div');
+                    locationDiv.className = 'alert-location';
+                    locationDiv.innerHTML = `📍 <strong>발생지:</strong> ${location}`;
+                    footer.appendChild(locationDiv);
                 }
                 
+                // 관련 국가 (Actor 정보)
+                if (actor1 || actor2) {
+                    const actorsDiv = document.createElement('div');
+                    actorsDiv.className = 'alert-actors';
+                    actorsDiv.innerHTML = `👤 <strong>관련:</strong> `;
+                    
+                    if (actor1) {
+                        const actor1Span = document.createElement('span');
+                        actor1Span.textContent = actor1;
+                        actorsDiv.appendChild(actor1Span);
+                    }
+                    if (actor1 && actor2) {
+                        const arrow = document.createElement('span');
+                        arrow.textContent = ' → ';
+                        actorsDiv.appendChild(arrow);
+                    }
+                    if (actor2) {
+                        const actor2Span = document.createElement('span');
+                        actor2Span.textContent = actor2;
+                        actorsDiv.appendChild(actor2Span);
+                    }
+                    
+                    // Actor2의 국가 표시 (있는 경우)
+                    if (alert.actor2_country) {
+                        const countryFlag = getCountryFlag(alert.actor2_country);
+                        const countrySpan = document.createElement('span');
+                        countrySpan.textContent = ` ${countryFlag}`;
+                        countrySpan.title = alert.actor2_country;
+                        actorsDiv.appendChild(countrySpan);
+                    }
+                    
+                    footer.appendChild(actorsDiv);
+                }
+                
+                card.appendChild(footer);
                 listEl.appendChild(card);
             });
         }
