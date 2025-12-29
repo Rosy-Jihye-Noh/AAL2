@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import bok_backend  # Import the BOK backend module
 import gdelt_backend  # Import the GDELT backend module
+import fred_backend  # Import the FRED backend module
 
 # Load environment variables
 load_dotenv()
@@ -268,6 +269,54 @@ def get_logistics_indices():
         "SCFI": {"value": "2300.50", "change": "+12.5", "trend": "up"},
         "BDI": {"value": "1500.00", "change": "-5.0", "trend": "down"}
     })
+
+@app.route('/api/rates/us', methods=['GET'])
+def get_us_interest_rates():
+    """
+    미국 기준금리를 반환합니다.
+    
+    FRED API를 사용하여 다음 2종의 금리를 조회합니다:
+    - DFF: Effective Federal Funds Rate (실효금리)
+    - DFEDTARU: Federal Funds Target Range - Upper Limit (타깃 상단)
+    
+    응답 형식:
+    {
+        "source": "FRED",
+        "asOf": "YYYY-MM-DD",
+        "effective": {
+            "seriesId": "DFF",
+            "date": "YYYY-MM-DD",
+            "ratePct": float
+        },
+        "targetUpper": {
+            "seriesId": "DFEDTARU",
+            "date": "YYYY-MM-DD",
+            "ratePct": float
+        }
+    }
+    
+    캐시: 1시간 TTL로 캐시되며, API 실패 시 stale 캐시를 반환할 수 있습니다.
+    """
+    try:
+        result = fred_backend.get_us_rates()
+
+        if "error" in result:
+            # 캐시도 없고 API도 실패한 경우 502 반환
+            status_code = 502
+            # 단, API 키 누락 등 설정 오류는 500
+            if "not configured" in result.get("error", "").lower() or "not set" in result.get("error", "").lower():
+                status_code = 500
+            return jsonify(result), status_code
+
+        # warning 필드가 있으면 (stale cache) 200으로 반환하되 warning 포함
+        return jsonify(result), 200
+
+    except Exception as e:
+        logger = fred_backend.logger
+        logger.error(f"Unexpected error in get_us_interest_rates: {str(e)}", exc_info=True)
+        return jsonify({
+            "error": f"Internal server error: {str(e)}"
+        }), 500
 
 # API Proxy Endpoint (Legacy - keeping for now, but BOK logic is preferred via bok_backend)
 @app.route('/api/exchange-rates', methods=['GET'])
