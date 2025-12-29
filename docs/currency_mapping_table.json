@@ -1,0 +1,682 @@
+{
+  "test_period": "20241215 ~ 20251215",
+  "total_tested": 100,
+  "working_codes": 43,
+  "currency_mapping": {
+    "USD": [
+      {
+        "item_code": "0000001",
+        "name": "원/미국달러(매매기준율)",
+        "value": "1399.6",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000013",
+        "name": "원/캐나다달러",
+        "value": "1002.94",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000015",
+        "name": "원/홍콩달러",
+        "value": "179.31",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000017",
+        "name": "원/호주달러",
+        "value": "896.23",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000024",
+        "name": "원/싱가포르달러",
+        "value": "1079.36",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000026",
+        "name": "원/뉴질랜드달러",
+        "value": "822.33",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000031",
+        "name": "원/대만달러",
+        "value": "46.37",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000036",
+        "name": "원/브루나이달러",
+        "value": "1079.36",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "JPY": [
+      {
+        "item_code": "0000002",
+        "name": "원/일본엔(100엔)",
+        "value": "961.96",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "EUR": [
+      {
+        "item_code": "0000003",
+        "name": "원/유로",
+        "value": "1566.43",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "GBP": [
+      {
+        "item_code": "0000012",
+        "name": "원/영국파운드",
+        "value": "1862.66",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000052",
+        "name": "원/이집트파운드",
+        "value": "27.91",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "CHF": [
+      {
+        "item_code": "0000014",
+        "name": "원/스위스프랑",
+        "value": "1676.07",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "": [
+      {
+        "item_code": "0000016",
+        "name": "원/스웨덴크로나",
+        "value": "143.71",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000018",
+        "name": "원/덴마크크로나",
+        "value": "209.98",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000019",
+        "name": "원/노르웨이크로나",
+        "value": "134.38",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000020",
+        "name": "원/사우디아라비아리얄",
+        "value": "373.15",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000021",
+        "name": "원/쿠웨이트디나르",
+        "value": "4553.91",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000022",
+        "name": "원/바레인디나르",
+        "value": "3712.66",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000023",
+        "name": "원/아랍에미리트디르함",
+        "value": "381.05",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000025",
+        "name": "원/말레이지아링깃",
+        "value": "326.78",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000032",
+        "name": "원/몽골투그릭",
+        "value": "0.39",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000033",
+        "name": "원/카자흐스탄텡게",
+        "value": "2.74",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000035",
+        "name": "원/베트남동(100동)",
+        "value": "5.39",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000038",
+        "name": "원/파키스탄루피",
+        "value": "4.97",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000039",
+        "name": "원/방글라데시타카",
+        "value": "11.52",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000042",
+        "name": "원/아르헨티나페소",
+        "value": "1.23",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000044",
+        "name": "원/헝가리포린트",
+        "value": "3.89",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000045",
+        "name": "원/폴란트즈워티",
+        "value": "368.77",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000046",
+        "name": "원/체코코루나",
+        "value": "62.81",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000047",
+        "name": "원/카타르리얄",
+        "value": "383.93",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000048",
+        "name": "원/이스라엘셰켈",
+        "value": "393.69",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000049",
+        "name": "원/요르단디나르",
+        "value": "1974.05",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000050",
+        "name": "원/튀르키예리라",
+        "value": "36.05",
+        "date": "20250516",
+        "count": 243
+      },
+      {
+        "item_code": "0000051",
+        "name": "원/남아프리카공화국랜드",
+        "value": "77.69",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "THB": [
+      {
+        "item_code": "0000028",
+        "name": "원/태국바트",
+        "value": "42.16",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "IDR": [
+      {
+        "item_code": "0000029",
+        "name": "원/인도네시아루피아(100루피아)",
+        "value": "8.47",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "PHP": [
+      {
+        "item_code": "0000034",
+        "name": "원/필리핀페소",
+        "value": "25.11",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "INR": [
+      {
+        "item_code": "0000037",
+        "name": "원/인도루피",
+        "value": "16.38",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "MXN": [
+      {
+        "item_code": "0000040",
+        "name": "원/멕시코 페소",
+        "value": "71.83",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "BRL": [
+      {
+        "item_code": "0000041",
+        "name": "원/브라질 헤알",
+        "value": "246.32",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "RUB": [
+      {
+        "item_code": "0000043",
+        "name": "원/러시아루블",
+        "value": "17.5",
+        "date": "20250516",
+        "count": 243
+      }
+    ],
+    "CNY": [
+      {
+        "item_code": "0000053",
+        "name": "원/위안(매매기준율)",
+        "value": "194.03",
+        "date": "20250516",
+        "count": 243
+      }
+    ]
+  },
+  "all_results": {
+    "0000001": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/미국달러(매매기준율)",
+      "latest_value": "1399.6",
+      "latest_date": "20250516"
+    },
+    "0000002": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "JPY",
+      "currency_name": "원/일본엔(100엔)",
+      "latest_value": "961.96",
+      "latest_date": "20250516"
+    },
+    "0000003": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "EUR",
+      "currency_name": "원/유로",
+      "latest_value": "1566.43",
+      "latest_date": "20250516"
+    },
+    "0000012": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "GBP",
+      "currency_name": "원/영국파운드",
+      "latest_value": "1862.66",
+      "latest_date": "20250516"
+    },
+    "0000013": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/캐나다달러",
+      "latest_value": "1002.94",
+      "latest_date": "20250516"
+    },
+    "0000014": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "CHF",
+      "currency_name": "원/스위스프랑",
+      "latest_value": "1676.07",
+      "latest_date": "20250516"
+    },
+    "0000015": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/홍콩달러",
+      "latest_value": "179.31",
+      "latest_date": "20250516"
+    },
+    "0000016": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/스웨덴크로나",
+      "latest_value": "143.71",
+      "latest_date": "20250516"
+    },
+    "0000017": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/호주달러",
+      "latest_value": "896.23",
+      "latest_date": "20250516"
+    },
+    "0000018": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/덴마크크로나",
+      "latest_value": "209.98",
+      "latest_date": "20250516"
+    },
+    "0000019": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/노르웨이크로나",
+      "latest_value": "134.38",
+      "latest_date": "20250516"
+    },
+    "0000020": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/사우디아라비아리얄",
+      "latest_value": "373.15",
+      "latest_date": "20250516"
+    },
+    "0000021": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/쿠웨이트디나르",
+      "latest_value": "4553.91",
+      "latest_date": "20250516"
+    },
+    "0000022": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/바레인디나르",
+      "latest_value": "3712.66",
+      "latest_date": "20250516"
+    },
+    "0000023": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/아랍에미리트디르함",
+      "latest_value": "381.05",
+      "latest_date": "20250516"
+    },
+    "0000024": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/싱가포르달러",
+      "latest_value": "1079.36",
+      "latest_date": "20250516"
+    },
+    "0000025": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/말레이지아링깃",
+      "latest_value": "326.78",
+      "latest_date": "20250516"
+    },
+    "0000026": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/뉴질랜드달러",
+      "latest_value": "822.33",
+      "latest_date": "20250516"
+    },
+    "0000028": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "THB",
+      "currency_name": "원/태국바트",
+      "latest_value": "42.16",
+      "latest_date": "20250516"
+    },
+    "0000029": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "IDR",
+      "currency_name": "원/인도네시아루피아(100루피아)",
+      "latest_value": "8.47",
+      "latest_date": "20250516"
+    },
+    "0000031": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/대만달러",
+      "latest_value": "46.37",
+      "latest_date": "20250516"
+    },
+    "0000032": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/몽골투그릭",
+      "latest_value": "0.39",
+      "latest_date": "20250516"
+    },
+    "0000033": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/카자흐스탄텡게",
+      "latest_value": "2.74",
+      "latest_date": "20250516"
+    },
+    "0000034": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "PHP",
+      "currency_name": "원/필리핀페소",
+      "latest_value": "25.11",
+      "latest_date": "20250516"
+    },
+    "0000035": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/베트남동(100동)",
+      "latest_value": "5.39",
+      "latest_date": "20250516"
+    },
+    "0000036": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "USD",
+      "currency_name": "원/브루나이달러",
+      "latest_value": "1079.36",
+      "latest_date": "20250516"
+    },
+    "0000037": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "INR",
+      "currency_name": "원/인도루피",
+      "latest_value": "16.38",
+      "latest_date": "20250516"
+    },
+    "0000038": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/파키스탄루피",
+      "latest_value": "4.97",
+      "latest_date": "20250516"
+    },
+    "0000039": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/방글라데시타카",
+      "latest_value": "11.52",
+      "latest_date": "20250516"
+    },
+    "0000040": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "MXN",
+      "currency_name": "원/멕시코 페소",
+      "latest_value": "71.83",
+      "latest_date": "20250516"
+    },
+    "0000041": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "BRL",
+      "currency_name": "원/브라질 헤알",
+      "latest_value": "246.32",
+      "latest_date": "20250516"
+    },
+    "0000042": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/아르헨티나페소",
+      "latest_value": "1.23",
+      "latest_date": "20250516"
+    },
+    "0000043": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "RUB",
+      "currency_name": "원/러시아루블",
+      "latest_value": "17.5",
+      "latest_date": "20250516"
+    },
+    "0000044": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/헝가리포린트",
+      "latest_value": "3.89",
+      "latest_date": "20250516"
+    },
+    "0000045": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/폴란트즈워티",
+      "latest_value": "368.77",
+      "latest_date": "20250516"
+    },
+    "0000046": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/체코코루나",
+      "latest_value": "62.81",
+      "latest_date": "20250516"
+    },
+    "0000047": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/카타르리얄",
+      "latest_value": "383.93",
+      "latest_date": "20250516"
+    },
+    "0000048": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/이스라엘셰켈",
+      "latest_value": "393.69",
+      "latest_date": "20250516"
+    },
+    "0000049": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/요르단디나르",
+      "latest_value": "1974.05",
+      "latest_date": "20250516"
+    },
+    "0000050": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/튀르키예리라",
+      "latest_value": "36.05",
+      "latest_date": "20250516"
+    },
+    "0000051": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "",
+      "currency_name": "원/남아프리카공화국랜드",
+      "latest_value": "77.69",
+      "latest_date": "20250516"
+    },
+    "0000052": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "GBP",
+      "currency_name": "원/이집트파운드",
+      "latest_value": "27.91",
+      "latest_date": "20250516"
+    },
+    "0000053": {
+      "status": "OK",
+      "count": 243,
+      "currency_code": "CNY",
+      "currency_name": "원/위안(매매기준율)",
+      "latest_value": "194.03",
+      "latest_date": "20250516"
+    }
+  }
+}
