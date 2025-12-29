@@ -181,6 +181,27 @@ BOK_MAPPING = {
         "items": {},  # 동적 조회 (get_statistic_item_list 사용)
         "default_item": None  # 첫 번째 국가 또는 한국
     },
+    "export-international": {
+        "stat_code": "902Y012",  # 국제 주요국 수출
+        "name": "국제 주요국 수출",
+        "default_cycle": "M",
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "import-international": {
+        "stat_code": "902Y013",  # 국제 주요국 수입
+        "name": "국제 주요국 수입",
+        "default_cycle": "M",
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "gdp-growth-international": {
+        "stat_code": "902Y015",  # 국제 주요국 경제성장률
+        "name": "국제 주요국 경제성장률",
+        "default_cycle": "Q",  # 분기별
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
     "trade": {
         "stat_code": "301Y013",  # 수출입 통계
         "name": "수출입 통계",
@@ -459,8 +480,8 @@ def get_market_index(category, start_date, end_date, item_code=None, cycle=None,
         logger.error(error_msg)
         return {"error": error_msg}
     
-    # Interest-international 및 CPI-international의 경우 동적 국가 리스트 조회
-    if category == "interest-international" or category == "cpi-international":
+    # Interest-international, CPI-international, Export-international, Import-international, GDP-growth-international의 경우 동적 국가 리스트 조회
+    if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"]:
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
@@ -999,8 +1020,8 @@ def get_market_index_multi(category, start_date, end_date, item_codes=None, cycl
     if not cycle:
         cycle = mapping.get('default_cycle', 'D')
     
-    # interest-international 및 cpi-international의 경우 동적 국가 리스트 조회
-    if category == "interest-international" or category == "cpi-international":
+    # interest-international, cpi-international, export-international, import-international, gdp-growth-international의 경우 동적 국가 리스트 조회
+    if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"]:
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
@@ -1181,14 +1202,20 @@ def get_category_info(category=None):
         if not mapping:
             return {"error": f"Unknown category: {category}"}
         
-        # interest-international 및 cpi-international의 경우 items가 비어있으면 동적으로 로드
+        # interest-international, cpi-international, export-international, import-international, gdp-growth-international의 경우 items가 비어있으면 동적으로 로드
         stat_items = mapping.get('items', {})
-        if (category == "interest-international" or category == "cpi-international") and not stat_items:
+        if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"] and not stat_items:
             stat_code = mapping.get('stat_code')
             if category == "interest-international":
                 stat_code = stat_code or '902Y006'
             elif category == "cpi-international":
                 stat_code = stat_code or '902Y008'
+            elif category == "export-international":
+                stat_code = stat_code or '902Y012'
+            elif category == "import-international":
+                stat_code = stat_code or '902Y013'
+            elif category == "gdp-growth-international":
+                stat_code = stat_code or '902Y015'
             default_cycle = mapping.get('default_cycle', 'M')
             logger.info(f"Fetching items for {category} category (stat_code={stat_code}, cycle={default_cycle})")
             item_list_result = get_statistic_item_list(stat_code, start_index=1, end_index=300)
