@@ -201,6 +201,41 @@ BOK_MAPPING = {
         "items": {},  # 동적 조회 (get_statistic_item_list 사용)
         "default_item": None
     },
+    "gdp-international": {
+        "stat_code": "902Y016",  # 국제 주요국 국내총생산(GDP)
+        "name": "국제 주요국 국내총생산(GDP)",
+        "default_cycle": "A",  # 연간
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "gni-international": {
+        "stat_code": "902Y017",  # 국제 주요국 국민총소득(GNI)
+        "name": "국제 주요국 국민총소득(GNI)",
+        "default_cycle": "A",  # 연간
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "gdp-per-capita-international": {
+        "stat_code": "902Y018",  # 국제 주요국 1인당 GDP
+        "name": "국제 주요국 1인당 GDP",
+        "default_cycle": "A",  # 연간
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "unemployment-international": {
+        "stat_code": "902Y021",  # 국제 주요국 실업률(계절변동조정)
+        "name": "국제 주요국 실업률(계절변동조정)",
+        "default_cycle": "M",  # 월별
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
+    "stock-index-international": {
+        "stat_code": "902Y002",  # 국제 주요국 주가지수
+        "name": "국제 주요국 주가지수",
+        "default_cycle": "M",  # 월별
+        "items": {},  # 동적 조회 (get_statistic_item_list 사용)
+        "default_item": None
+    },
     "trade": {
         "stat_code": "301Y013",  # 수출입 통계
         "name": "수출입 통계",
@@ -479,8 +514,14 @@ def get_market_index(category, start_date, end_date, item_code=None, cycle=None,
         logger.error(error_msg)
         return {"error": error_msg}
     
-    # Interest-international, CPI-international, Export-international, Import-international, GDP-growth-international의 경우 동적 국가 리스트 조회
-    if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"]:
+    # International categories: 동적 국가 리스트 조회
+    INTERNATIONAL_CATEGORIES = [
+        "interest-international", "cpi-international", "export-international", 
+        "import-international", "gdp-growth-international", "gdp-international",
+        "gni-international", "gdp-per-capita-international", "unemployment-international",
+        "stock-index-international"
+    ]
+    if category in INTERNATIONAL_CATEGORIES:
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
@@ -1019,8 +1060,14 @@ def get_market_index_multi(category, start_date, end_date, item_codes=None, cycl
     if not cycle:
         cycle = mapping.get('default_cycle', 'D')
     
-    # interest-international, cpi-international, export-international, import-international, gdp-growth-international의 경우 동적 국가 리스트 조회
-    if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"]:
+    # International categories: 동적 국가 리스트 조회
+    INTERNATIONAL_CATEGORIES = [
+        "interest-international", "cpi-international", "export-international", 
+        "import-international", "gdp-growth-international", "gdp-international",
+        "gni-international", "gdp-per-capita-international", "unemployment-international",
+        "stock-index-international"
+    ]
+    if category in INTERNATIONAL_CATEGORIES:
         stat_code = mapping.get('stat_code', '902Y006')
         requested_cycle = cycle if cycle else mapping.get('default_cycle', 'M')
         stat_items = mapping.get('items', {})
@@ -1201,20 +1248,30 @@ def get_category_info(category=None):
         if not mapping:
             return {"error": f"Unknown category: {category}"}
         
-        # interest-international, cpi-international, export-international, import-international, gdp-growth-international의 경우 items가 비어있으면 동적으로 로드
+        # International categories: items가 비어있으면 동적으로 로드
+        INTERNATIONAL_CATEGORIES = [
+            "interest-international", "cpi-international", "export-international", 
+            "import-international", "gdp-growth-international", "gdp-international",
+            "gni-international", "gdp-per-capita-international", "unemployment-international",
+            "stock-index-international"
+        ]
         stat_items = mapping.get('items', {})
-        if category in ["interest-international", "cpi-international", "export-international", "import-international", "gdp-growth-international"] and not stat_items:
+        if category in INTERNATIONAL_CATEGORIES and not stat_items:
             stat_code = mapping.get('stat_code')
-            if category == "interest-international":
-                stat_code = stat_code or '902Y006'
-            elif category == "cpi-international":
-                stat_code = stat_code or '902Y008'
-            elif category == "export-international":
-                stat_code = stat_code or '902Y012'
-            elif category == "import-international":
-                stat_code = stat_code or '902Y013'
-            elif category == "gdp-growth-international":
-                stat_code = stat_code or '902Y015'
+            # Fallback stat_code mapping
+            stat_code_fallback = {
+                "interest-international": "902Y006",
+                "cpi-international": "902Y008",
+                "export-international": "902Y012",
+                "import-international": "902Y013",
+                "gdp-growth-international": "902Y015",
+                "gdp-international": "902Y016",
+                "gni-international": "902Y017",
+                "gdp-per-capita-international": "902Y018",
+                "unemployment-international": "902Y021",
+                "stock-index-international": "902Y002"
+            }
+            stat_code = stat_code or stat_code_fallback.get(category)
             default_cycle = mapping.get('default_cycle', 'M')
             logger.info(f"Fetching items for {category} category (stat_code={stat_code}, cycle={default_cycle})")
             item_list_result = get_statistic_item_list(stat_code, start_index=1, end_index=300)

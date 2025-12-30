@@ -25,14 +25,110 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 # GDELT Events CSV 컬럼 인덱스 (0-based)
-# 참고: https://blog.gdeltproject.org/gdelt-2-0-data-format-codebook/
-COL_GOLDSTEIN_SCALE = 30  # GoldsteinScale
-COL_ACTION_GEO_LAT = 56   # ActionGeo_Lat
-COL_ACTION_GEO_LONG = 57  # ActionGeo_Long
-COL_ACTOR1NAME = 6        # Actor1Name
-COL_ACTOR2NAME = 16       # Actor2NAME
-COL_EVENT_BASE_TEXT = 60  # EventBaseText (또는 다른 텍스트 필드)
-COL_SOURCEURL = 60        # SOURCEURL (실제 CSV는 61개 컬럼, 인덱스 0-60)
+# 참고: http://data.gdeltproject.org/documentation/GDELT-Event_Codebook-V2.0.pdf
+# 실제 CSV 파일 검증 완료 (2024-12-30)
+
+# 기본 정보
+COL_SQLDATE = 1              # SQLDATE (YYYYMMDD)
+COL_EVENT_CODE = 26          # EventCode (CAMEO 코드) - 수정됨 (27→26)
+COL_QUAD_CLASS = 29          # QuadClass (1-4) - 수정됨 (28→29)
+COL_GOLDSTEIN_SCALE = 30     # GoldsteinScale
+
+# 행위자 정보
+COL_ACTOR1NAME = 6           # Actor1Name
+COL_ACTOR1COUNTRYCODE = 7    # Actor1CountryCode
+COL_ACTOR2NAME = 16          # Actor2Name
+COL_ACTOR2COUNTRYCODE = 17   # Actor2CountryCode
+
+# 분석 지표
+COL_NUM_MENTIONS = 31        # NumMentions - 수정됨 (32→31)
+COL_NUM_SOURCES = 32         # NumSources - 수정됨 (31→32)
+COL_NUM_ARTICLES = 33        # NumArticles
+COL_AVG_TONE = 34            # AvgTone
+
+# 위치 정보
+COL_ACTION_GEO_TYPE = 51         # ActionGeo_Type (신규 추가)
+COL_ACTION_GEO_FULLNAME = 52     # ActionGeo_FullName - 수정됨 (58→52)
+COL_ACTION_GEO_COUNTRYCODE = 53  # ActionGeo_CountryCode - 수정됨 (51→53)
+COL_ACTION_GEO_ADM1CODE = 54     # ActionGeo_ADM1Code - 수정됨 (52→54)
+COL_ACTION_GEO_LAT = 56          # ActionGeo_Lat
+COL_ACTION_GEO_LONG = 57         # ActionGeo_Long
+COL_ACTION_GEO_FEATUREID = 58    # ActionGeo_FeatureID (신규 추가)
+
+# 출처
+COL_SOURCEURL = 60          # SOURCEURL (실제 CSV는 61개 컬럼, 인덱스 0-60)
+
+
+def get_event_category(event_code: str, quad_class: int) -> str:
+    """
+    CAMEO 이벤트 코드와 QuadClass를 기반으로 카테고리를 반환합니다.
+    
+    Args:
+        event_code: CAMEO 이벤트 코드 (예: "190", "100")
+        quad_class: QuadClass 값 (1-4)
+        
+    Returns:
+        카테고리 문자열
+    """
+    # QuadClass 기반 기본 분류
+    quad_class_map = {
+        1: "Verbal Cooperation",
+        2: "Material Cooperation",
+        3: "Verbal Conflict",
+        4: "Material Conflict"
+    }
+    
+    # QuadClass가 유효하면 기본 분류 사용
+    if quad_class in quad_class_map:
+        return quad_class_map[quad_class]
+    
+    # QuadClass가 없으면 이벤트 코드 기반 추정
+    if not event_code:
+        return "Unknown"
+    
+    # 이벤트 코드 범위 기반 분류 (CAMEO 코드 구조 참고)
+    try:
+        code_num = int(event_code)
+        if code_num >= 100 and code_num < 200:
+            return "Material Conflict"
+        elif code_num >= 200 and code_num < 300:
+            return "Verbal Conflict"
+        elif code_num >= 300 and code_num < 400:
+            return "Material Cooperation"
+        elif code_num >= 400 and code_num < 500:
+            return "Verbal Cooperation"
+        else:
+            return "Unknown"
+    except ValueError:
+        return "Unknown"
+
+
+def safe_float(value: str, default: float = None) -> Optional[float]:
+    """안전하게 float로 변환"""
+    if not value or value.strip() == '':
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_int(value: str, default: int = None) -> Optional[int]:
+    """안전하게 int로 변환"""
+    if not value or value.strip() == '':
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_str(value: str, default: str = '') -> str:
+    """안전하게 문자열 반환"""
+    if not value:
+        return default
+    return str(value).strip()
+
 
 # GDELT 다운로드 URL
 GDELT_BASE_URL = "http://data.gdeltproject.org/gdeltv2"
@@ -157,31 +253,86 @@ def _parse_csv_content(
         
         try:
             # GoldsteinScale 확인
-            goldstein_scale = float(row[COL_GOLDSTEIN_SCALE])
-            if goldstein_scale > goldstein_threshold:
+            goldstein_scale = safe_float(row[COL_GOLDSTEIN_SCALE] if len(row) > COL_GOLDSTEIN_SCALE else '')
+            if goldstein_scale is None or goldstein_scale > goldstein_threshold:
                 continue
             
             # 위도/경도 확인
-            lat = float(row[COL_ACTION_GEO_LAT]) if row[COL_ACTION_GEO_LAT] else None
-            lng = float(row[COL_ACTION_GEO_LONG]) if row[COL_ACTION_GEO_LONG] else None
+            lat = safe_float(row[COL_ACTION_GEO_LAT] if len(row) > COL_ACTION_GEO_LAT else '')
+            lng = safe_float(row[COL_ACTION_GEO_LONG] if len(row) > COL_ACTION_GEO_LONG else '')
             
             if lat is None or lng is None:
                 continue
             
+            # 기본 정보 추출
+            event_code = safe_str(row[COL_EVENT_CODE] if len(row) > COL_EVENT_CODE else '')
+            quad_class = safe_int(row[COL_QUAD_CLASS] if len(row) > COL_QUAD_CLASS else '')
+            event_date = safe_str(row[COL_SQLDATE] if len(row) > COL_SQLDATE else '')
+            
+            # 행위자 정보
+            actor1 = safe_str(row[COL_ACTOR1NAME] if len(row) > COL_ACTOR1NAME else '')
+            actor1_country = safe_str(row[COL_ACTOR1COUNTRYCODE] if len(row) > COL_ACTOR1COUNTRYCODE else '')
+            actor2 = safe_str(row[COL_ACTOR2NAME] if len(row) > COL_ACTOR2NAME else '')
+            actor2_country = safe_str(row[COL_ACTOR2COUNTRYCODE] if len(row) > COL_ACTOR2COUNTRYCODE else '')
+            
+            # 위치 정보
+            country_code = safe_str(row[COL_ACTION_GEO_COUNTRYCODE] if len(row) > COL_ACTION_GEO_COUNTRYCODE else '')
+            location = safe_str(row[COL_ACTION_GEO_FULLNAME] if len(row) > COL_ACTION_GEO_FULLNAME else '')
+            
+            # 분석 지표
+            num_sources = safe_int(row[COL_NUM_SOURCES] if len(row) > COL_NUM_SOURCES else '', 0)
+            num_mentions = safe_int(row[COL_NUM_MENTIONS] if len(row) > COL_NUM_MENTIONS else '', 0)
+            num_articles = safe_int(row[COL_NUM_ARTICLES] if len(row) > COL_NUM_ARTICLES else '', 0)
+            avg_tone = safe_float(row[COL_AVG_TONE] if len(row) > COL_AVG_TONE else '')
+            
+            # 출처
+            source_url = safe_str(row[COL_SOURCEURL] if len(row) > COL_SOURCEURL else '')
+            
+            # 카테고리 결정
+            category = get_event_category(event_code, quad_class)
+            
+            # 이벤트 이름 생성
+            name_parts = []
+            if actor1:
+                name_parts.append(actor1)
+            if actor2:
+                name_parts.append(actor2)
+            name = ' - '.join(name_parts) if name_parts else 'Event'
+            
             # 이벤트 정보 추출 (프론트엔드 형식에 맞춤)
             event = {
-                'name': f"{row[COL_ACTOR1NAME]} - {row[COL_ACTOR2NAME]}" if len(row) > COL_ACTOR2NAME else 'Event',
-                'actor1': row[COL_ACTOR1NAME] if len(row) > COL_ACTOR1NAME else '',
-                'actor2': row[COL_ACTOR2NAME] if len(row) > COL_ACTOR2NAME else '',
-                'scale': goldstein_scale,  # 프론트엔드가 기대하는 필드명
-                'goldstein_scale': goldstein_scale,  # 하위 호환성
-                'lat': lat,  # 프론트엔드가 기대하는 필드명
-                'lng': lng,  # 프론트엔드가 기대하는 필드명
+                # 기본 정보
+                'name': name,
+                'event_date': event_date,
+                'event_code': event_code,
+                'category': category,
+                'quad_class': quad_class,
+                
+                # 행위자 정보
+                'actor1': actor1,
+                'actor1_country': actor1_country,
+                'actor2': actor2,
+                'actor2_country': actor2_country,
+                
+                # 위치 정보
+                'lat': lat,
+                'lng': lng,
                 'latitude': lat,  # 하위 호환성
                 'longitude': lng,  # 하위 호환성
-                'url': row[COL_SOURCEURL] if len(row) > COL_SOURCEURL else '',  # 프론트엔드가 기대하는 필드명
-                'source_url': row[COL_SOURCEURL] if len(row) > COL_SOURCEURL else '',  # 하위 호환성
-                'event_date': row[1] if len(row) > 1 else '',  # SQLDATE
+                'location': location,
+                'country_code': country_code,
+                
+                # 분석 지표
+                'scale': goldstein_scale,  # 프론트엔드가 기대하는 필드명
+                'goldstein_scale': goldstein_scale,  # 하위 호환성
+                'avg_tone': avg_tone,
+                'num_articles': num_articles,
+                'num_mentions': num_mentions,
+                'num_sources': num_sources,
+                
+                # 출처
+                'url': source_url,  # 프론트엔드가 기대하는 필드명
+                'source_url': source_url,  # 하위 호환성
             }
             
             events.append(event)
@@ -191,15 +342,106 @@ def _parse_csv_content(
         
         except (ValueError, IndexError) as e:
             # 파싱 오류는 무시하고 계속 진행
+            logger.debug(f"Error parsing row: {e}")
             continue
     
     return events
 
 
+def filter_events(
+    events: List[Dict],
+    country: Optional[str] = None,
+    category: Optional[str] = None,
+    min_articles: Optional[int] = None
+) -> List[Dict]:
+    """
+    이벤트 리스트를 필터링합니다.
+    
+    Args:
+        events: 이벤트 리스트
+        country: 국가 코드 필터 (country_code, actor1_country, actor2_country 중 하나라도 일치)
+        category: 카테고리 필터
+        min_articles: 최소 기사 수 필터
+        
+    Returns:
+        필터링된 이벤트 리스트
+    """
+    filtered = events
+    
+    if country:
+        country_upper = country.upper()
+        filtered = [
+            e for e in filtered
+            if (e.get('country_code', '').upper() == country_upper or
+                e.get('actor1_country', '').upper() == country_upper or
+                e.get('actor2_country', '').upper() == country_upper)
+        ]
+    
+    if category:
+        filtered = [e for e in filtered if e.get('category', '') == category]
+    
+    if min_articles is not None:
+        filtered = [e for e in filtered if e.get('num_articles', 0) >= min_articles]
+    
+    return filtered
+
+
+def sort_events(
+    events: List[Dict],
+    sort_by: str = 'date'
+) -> List[Dict]:
+    """
+    이벤트 리스트를 정렬합니다.
+    
+    Args:
+        events: 이벤트 리스트
+        sort_by: 정렬 기준 ('importance', 'date', 'tone', 'scale')
+            - importance: num_articles + num_mentions 기준 (내림차순)
+            - date: event_date 기준 (내림차순)
+            - tone: avg_tone 기준 (오름차순, 음수가 먼저)
+            - scale: goldstein_scale 기준 (오름차순, 음수가 먼저)
+        
+    Returns:
+        정렬된 이벤트 리스트
+    """
+    if not events:
+        return events
+    
+    if sort_by == 'importance':
+        return sorted(
+            events,
+            key=lambda x: (x.get('num_articles', 0) + x.get('num_mentions', 0)),
+            reverse=True
+        )
+    elif sort_by == 'date':
+        return sorted(
+            events,
+            key=lambda x: x.get('event_date', ''),
+            reverse=True
+        )
+    elif sort_by == 'tone':
+        return sorted(
+            events,
+            key=lambda x: safe_float(str(x.get('avg_tone', 0)), 0)
+        )
+    elif sort_by == 'scale':
+        return sorted(
+            events,
+            key=lambda x: safe_float(str(x.get('goldstein_scale', 0)), 0)
+        )
+    else:
+        # 기본값: 날짜순
+        return sorted(events, key=lambda x: x.get('event_date', ''), reverse=True)
+
+
 def get_critical_alerts(
     goldstein_threshold: float = -5.0,
     max_alerts: int = 1000,
-    base_path: Path = None
+    base_path: Path = None,
+    country: Optional[str] = None,
+    category: Optional[str] = None,
+    min_articles: Optional[int] = None,
+    sort_by: str = 'date'
 ) -> Dict:
     """
     긴급 알림 데이터를 가져옵니다.
@@ -223,15 +465,31 @@ def get_critical_alerts(
             'last_updated': None
         }
     
-    # 이벤트 파싱
-    events = parse_gdelt_events(latest_file, goldstein_threshold, max_alerts)
+    # 이벤트 파싱 (필터링 전에는 더 많이 가져오기)
+    parse_limit = max_alerts * 2 if (country or category or min_articles) else max_alerts
+    events = parse_gdelt_events(latest_file, goldstein_threshold, parse_limit)
+    
+    # 필터링 적용
+    events = filter_events(events, country=country, category=category, min_articles=min_articles)
+    
+    # 정렬 적용
+    events = sort_events(events, sort_by=sort_by)
+    
+    # 최대 개수 제한
+    events = events[:max_alerts]
     
     return {
         'alerts': events,
         'count': len(events),
         'last_updated': datetime.now().isoformat(),
         'file_path': str(latest_file),
-        'threshold': goldstein_threshold
+        'threshold': goldstein_threshold,
+        'filters': {
+            'country': country,
+            'category': category,
+            'min_articles': min_articles,
+            'sort_by': sort_by
+        }
     }
 
 
@@ -273,7 +531,11 @@ def get_alerts_by_date_range(
     end_date: str,
     goldstein_threshold: float = -5.0,
     max_alerts: int = 1000,
-    base_path: Path = None
+    base_path: Path = None,
+    country: Optional[str] = None,
+    category: Optional[str] = None,
+    min_articles: Optional[int] = None,
+    sort_by: str = 'date'
 ) -> Dict:
     """
     날짜 범위 내의 긴급 알림을 가져옵니다.
@@ -307,8 +569,9 @@ def get_alerts_by_date_range(
     all_events = []
     current_date = start_dt
     
-    # 날짜별로 파일 찾아서 파싱
-    while current_date <= end_dt and len(all_events) < max_alerts:
+    # 날짜별로 파일 찾아서 파싱 (필터링 전에는 더 많이 가져오기)
+    parse_limit = max_alerts * 2 if (country or category or min_articles) else max_alerts
+    while current_date <= end_dt:
         date_str = current_date.strftime('%Y%m%d')
         file_path = find_gdelt_file_by_date(date_str, base_path)
         
@@ -316,11 +579,20 @@ def get_alerts_by_date_range(
             events = parse_gdelt_events(
                 file_path,
                 goldstein_threshold,
-                max_alerts - len(all_events)
+                parse_limit
             )
             all_events.extend(events)
         
         current_date += timedelta(days=1)
+    
+    # 필터링 적용
+    all_events = filter_events(all_events, country=country, category=category, min_articles=min_articles)
+    
+    # 정렬 적용
+    all_events = sort_events(all_events, sort_by=sort_by)
+    
+    # 최대 개수 제한
+    all_events = all_events[:max_alerts]
     
     return {
         'alerts': all_events,
@@ -330,7 +602,13 @@ def get_alerts_by_date_range(
             'end': end_date
         },
         'threshold': goldstein_threshold,
-        'last_updated': datetime.now().isoformat()
+        'last_updated': datetime.now().isoformat(),
+        'filters': {
+            'country': country,
+            'category': category,
+            'min_articles': min_articles,
+            'sort_by': sort_by
+        }
     }
 
 
@@ -509,6 +787,305 @@ def update_gdelt_data() -> Dict:
     except Exception as e:
         result['error'] = str(e)
         logger.error(f"Error updating GDELT data: {e}", exc_info=True)
+    
+    return result
+
+
+# ============================================================================
+# Phase 3: 통계 및 집계 API
+# ============================================================================
+
+def get_stats_by_country(
+    goldstein_threshold: float = -5.0,
+    max_alerts: int = 10000,
+    base_path: Path = None
+) -> Dict:
+    """
+    국가별 통계를 계산합니다.
+    
+    Args:
+        goldstein_threshold: GoldsteinScale 임계값
+        max_alerts: 최대 알림 수 (통계 계산용)
+        base_path: GDELT 데이터 경로
+        
+    Returns:
+        국가별 통계 딕셔너리
+    """
+    latest_file = find_latest_gdelt_file(base_path)
+    if not latest_file:
+        return {'error': 'No GDELT data file found', 'stats': {}}
+    
+    events = parse_gdelt_events(latest_file, goldstein_threshold, max_alerts)
+    
+    country_stats = {}
+    for event in events:
+        country = event.get('country_code', 'UNKNOWN')
+        if not country:
+            country = 'UNKNOWN'
+        
+        if country not in country_stats:
+            country_stats[country] = {
+                'count': 0,
+                'avg_goldstein': 0.0,
+                'avg_tone': 0.0,
+                'total_articles': 0,
+                'categories': {}
+            }
+        
+        stats = country_stats[country]
+        stats['count'] += 1
+        stats['avg_goldstein'] += event.get('goldstein_scale', 0)
+        stats['avg_tone'] += event.get('avg_tone', 0) or 0
+        stats['total_articles'] += event.get('num_articles', 0)
+        
+        category = event.get('category', 'Unknown')
+        stats['categories'][category] = stats['categories'].get(category, 0) + 1
+    
+    # 평균 계산
+    for country in country_stats:
+        stats = country_stats[country]
+        if stats['count'] > 0:
+            stats['avg_goldstein'] = round(stats['avg_goldstein'] / stats['count'], 2)
+            stats['avg_tone'] = round(stats['avg_tone'] / stats['count'], 2)
+    
+    # 정렬 (이벤트 수 기준)
+    sorted_stats = dict(sorted(
+        country_stats.items(),
+        key=lambda x: x[1]['count'],
+        reverse=True
+    ))
+    
+    return {
+        'stats': sorted_stats,
+        'total_countries': len(sorted_stats),
+        'total_events': len(events),
+        'last_updated': datetime.now().isoformat()
+    }
+
+
+def get_stats_by_category(
+    goldstein_threshold: float = -5.0,
+    max_alerts: int = 10000,
+    base_path: Path = None
+) -> Dict:
+    """
+    카테고리별 통계를 계산합니다.
+    
+    Args:
+        goldstein_threshold: GoldsteinScale 임계값
+        max_alerts: 최대 알림 수 (통계 계산용)
+        base_path: GDELT 데이터 경로
+        
+    Returns:
+        카테고리별 통계 딕셔너리
+    """
+    latest_file = find_latest_gdelt_file(base_path)
+    if not latest_file:
+        return {'error': 'No GDELT data file found', 'stats': {}}
+    
+    events = parse_gdelt_events(latest_file, goldstein_threshold, max_alerts)
+    
+    category_stats = {}
+    for event in events:
+        category = event.get('category', 'Unknown')
+        
+        if category not in category_stats:
+            category_stats[category] = {
+                'count': 0,
+                'avg_goldstein': 0.0,
+                'avg_tone': 0.0,
+                'total_articles': 0,
+                'countries': set()
+            }
+        
+        stats = category_stats[category]
+        stats['count'] += 1
+        stats['avg_goldstein'] += event.get('goldstein_scale', 0)
+        stats['avg_tone'] += event.get('avg_tone', 0) or 0
+        stats['total_articles'] += event.get('num_articles', 0)
+        
+        country = event.get('country_code', '')
+        if country:
+            stats['countries'].add(country)
+    
+    # 평균 계산 및 set을 list로 변환
+    for category in category_stats:
+        stats = category_stats[category]
+        if stats['count'] > 0:
+            stats['avg_goldstein'] = round(stats['avg_goldstein'] / stats['count'], 2)
+            stats['avg_tone'] = round(stats['avg_tone'] / stats['count'], 2)
+        stats['countries'] = list(stats['countries'])
+        stats['num_countries'] = len(stats['countries'])
+    
+    # 정렬 (이벤트 수 기준)
+    sorted_stats = dict(sorted(
+        category_stats.items(),
+        key=lambda x: x[1]['count'],
+        reverse=True
+    ))
+    
+    return {
+        'stats': sorted_stats,
+        'total_categories': len(sorted_stats),
+        'total_events': len(events),
+        'last_updated': datetime.now().isoformat()
+    }
+
+
+def get_trends(
+    start_date: str,
+    end_date: str,
+    goldstein_threshold: float = -5.0,
+    base_path: Path = None
+) -> Dict:
+    """
+    시간대별 트렌드를 분석합니다.
+    
+    Args:
+        start_date: 시작 날짜 (YYYY-MM-DD)
+        end_date: 종료 날짜 (YYYY-MM-DD)
+        goldstein_threshold: GoldsteinScale 임계값
+        base_path: GDELT 데이터 경로
+        
+    Returns:
+        트렌드 분석 딕셔너리
+    """
+    from datetime import datetime, timedelta
+    
+    if base_path is None:
+        base_path = get_gdelt_base_path()
+    
+    try:
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    except ValueError:
+        return {
+            'error': 'Invalid date format. Use YYYY-MM-DD',
+            'trends': {}
+        }
+    
+    daily_stats = {}
+    current_date = start_dt
+    
+    while current_date <= end_dt:
+        date_str = current_date.strftime('%Y%m%d')
+        file_path = find_gdelt_file_by_date(date_str, base_path)
+        
+        if file_path:
+            events = parse_gdelt_events(file_path, goldstein_threshold, 10000)
+            
+            if events:
+                daily_stats[date_str] = {
+                    'date': current_date.strftime('%Y-%m-%d'),
+                    'count': len(events),
+                    'avg_goldstein': round(
+                        sum(e.get('goldstein_scale', 0) for e in events) / len(events),
+                        2
+                    ),
+                    'avg_tone': round(
+                        sum(e.get('avg_tone', 0) or 0 for e in events) / len(events),
+                        2
+                    ),
+                    'total_articles': sum(e.get('num_articles', 0) for e in events),
+                    'categories': {}
+                }
+                
+                # 카테고리별 분포
+                for event in events:
+                    cat = event.get('category', 'Unknown')
+                    daily_stats[date_str]['categories'][cat] = \
+                        daily_stats[date_str]['categories'].get(cat, 0) + 1
+        
+        current_date += timedelta(days=1)
+    
+    # 정렬 (날짜순)
+    sorted_trends = dict(sorted(daily_stats.items()))
+    
+    return {
+        'trends': sorted_trends,
+        'date_range': {
+            'start': start_date,
+            'end': end_date
+        },
+        'total_days': len(sorted_trends),
+        'last_updated': datetime.now().isoformat()
+    }
+
+
+# ============================================================================
+# Phase 3: 캐싱 메커니즘 (간단한 메모리 캐시)
+# ============================================================================
+
+_cache = {}
+_cache_timestamps = {}
+CACHE_TTL = 300  # 5분
+
+
+def _get_cache_key(func_name: str, **kwargs) -> str:
+    """캐시 키 생성"""
+    key_parts = [func_name]
+    for k, v in sorted(kwargs.items()):
+        if v is not None:
+            key_parts.append(f"{k}:{v}")
+    return "|".join(key_parts)
+
+
+def _is_cache_valid(key: str) -> bool:
+    """캐시가 유효한지 확인"""
+    if key not in _cache:
+        return False
+    
+    timestamp = _cache_timestamps.get(key, 0)
+    elapsed = datetime.now().timestamp() - timestamp
+    return elapsed < CACHE_TTL
+
+
+def clear_cache():
+    """캐시 초기화"""
+    global _cache, _cache_timestamps
+    _cache.clear()
+    _cache_timestamps.clear()
+
+
+def get_cached_alerts(
+    goldstein_threshold: float = -5.0,
+    max_alerts: int = 1000,
+    base_path: Path = None,
+    country: Optional[str] = None,
+    category: Optional[str] = None,
+    min_articles: Optional[int] = None,
+    sort_by: str = 'date'
+) -> Dict:
+    """
+    캐싱을 사용하는 get_critical_alerts 래퍼 함수
+    """
+    cache_key = _get_cache_key(
+        'get_critical_alerts',
+        threshold=goldstein_threshold,
+        max_alerts=max_alerts,
+        country=country,
+        category=category,
+        min_articles=min_articles,
+        sort_by=sort_by
+    )
+    
+    if _is_cache_valid(cache_key):
+        logger.debug(f"Cache hit: {cache_key}")
+        return _cache[cache_key]
+    
+    logger.debug(f"Cache miss: {cache_key}")
+    result = get_critical_alerts(
+        goldstein_threshold=goldstein_threshold,
+        max_alerts=max_alerts,
+        base_path=base_path,
+        country=country,
+        category=category,
+        min_articles=min_articles,
+        sort_by=sort_by
+    )
+    
+    _cache[cache_key] = result
+    _cache_timestamps[cache_key] = datetime.now().timestamp()
     
     return result
 
