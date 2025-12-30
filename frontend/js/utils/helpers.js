@@ -366,6 +366,287 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ============================================================
+// INTEREST RATE DATE FUNCTIONS (공유 함수)
+// ============================================================
+
+/**
+ * 금리 날짜 문자열 파싱
+ * @param {string} dateStr - 날짜 문자열
+ * @param {string} cycle - 주기 ('M': 월별, 'Q': 분기별, 'A': 연도별)
+ * @returns {Date|null} - Date 객체 또는 null
+ */
+function parseInterestDate(dateStr, cycle) {
+    if (!dateStr) return null;
+    
+    if (cycle === 'M') {
+        // 월별: YYYYMM -> 해당 월의 첫째 날로 변환
+        if (dateStr.length === 6) {
+            const year = parseInt(dateStr.substring(0, 4), 10);
+            const month = parseInt(dateStr.substring(4, 6), 10) - 1;
+            return new Date(year, month, 1);
+        }
+    } else if (cycle === 'Q') {
+        // 분기별: YYYYQn (예: 2024Q1) -> 해당 분기 첫째 날로 변환
+        const match = dateStr.match(/^(\d{4})Q([1-4])$/);
+        if (match) {
+            const year = parseInt(match[1], 10);
+            const quarter = parseInt(match[2], 10);
+            const month = (quarter - 1) * 3; // Q1=0, Q2=3, Q3=6, Q4=9
+            return new Date(year, month, 1);
+        }
+    } else if (cycle === 'A') {
+        // 연도별: YYYY -> 해당 연도의 1월 1일로 변환
+        if (dateStr.length === 4) {
+            const year = parseInt(dateStr, 10);
+            return new Date(year, 0, 1);
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * 금리 날짜 포맷팅
+ * @param {Date} dateObj - Date 객체
+ * @param {string} cycle - 주기 ('M': 월별, 'Q': 분기별, 'A': 연도별)
+ * @returns {string} - 포맷된 문자열
+ */
+function formatInterestDate(dateObj, cycle) {
+    if (!dateObj) return '';
+    
+    if (cycle === 'M') {
+        // 월별: YYYY/MM
+        return `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+    } else if (cycle === 'Q') {
+        // 분기별: YYYY Qn
+        const quarter = Math.floor(dateObj.getMonth() / 3) + 1;
+        return `${dateObj.getFullYear()} Q${quarter}`;
+    } else if (cycle === 'A') {
+        // 연도별: YYYY
+        return String(dateObj.getFullYear());
+    }
+    
+    return '';
+}
+
+/**
+ * 금리 날짜 비교
+ * @param {string} a - 첫 번째 날짜 문자열
+ * @param {string} b - 두 번째 날짜 문자열
+ * @param {string} cycle - 주기
+ * @returns {number} - 비교 결과
+ */
+function compareInterestDates(a, b, cycle) {
+    const dateA = parseInterestDate(a, cycle);
+    const dateB = parseInterestDate(b, cycle);
+    
+    if (!dateA || !dateB) {
+        // 파싱 실패 시 문자열 비교
+        return a.localeCompare(b);
+    }
+    
+    return dateA.getTime() - dateB.getTime();
+}
+
+// ============================================================
+// CHART UTILITY FUNCTIONS (공유 함수)
+// ============================================================
+
+/**
+ * SVG viewBox 크기 가져오기
+ * @param {SVGElement} svgEl - SVG 요소
+ * @returns {object} - { width, height }
+ */
+function getSvgViewBoxSize(svgEl) {
+    try {
+        const vb = (svgEl && svgEl.getAttribute) ? svgEl.getAttribute('viewBox') : null;
+        if (vb) {
+            const parts = vb.trim().split(/\s+/).map(Number);
+            if (parts.length === 4 && parts.every(n => Number.isFinite(n))) {
+                return { width: parts[2], height: parts[3] };
+            }
+        }
+    } catch (e) {
+        // ignore
+    }
+    return { width: 800, height: 300 };
+}
+
+/**
+ * 정렬된 날짜 배열에서 가장 가까운 날짜 찾기 (이진 탐색)
+ * @param {Array} sortedDates - 정렬된 날짜 배열 (YYYYMMDD 형식)
+ * @param {string} targetDateStr - 찾을 날짜 (YYYYMMDD 형식)
+ * @returns {string|null} - 가장 가까운 날짜 또는 null
+ */
+function findClosestDate(sortedDates, targetDateStr) {
+    if (!sortedDates || sortedDates.length === 0) return null;
+    const target = parseInt(targetDateStr, 10);
+    let lo = 0;
+    let hi = sortedDates.length - 1;
+
+    while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const midVal = parseInt(sortedDates[mid], 10);
+        if (midVal === target) return sortedDates[mid];
+        if (midVal < target) lo = mid + 1;
+        else hi = mid - 1;
+    }
+
+    // lo는 삽입 위치. hi는 lo-1
+    const candA = sortedDates[Math.max(0, hi)];
+    const candB = sortedDates[Math.min(sortedDates.length - 1, lo)];
+    if (!candA) return candB || null;
+    if (!candB) return candA || null;
+
+    const diffA = Math.abs(parseInt(candA, 10) - target);
+    const diffB = Math.abs(parseInt(candB, 10) - target);
+    return diffA <= diffB ? candA : candB;
+}
+
+/**
+ * 타겟 배열 중복 제거 및 정렬
+ * @param {Array} targets - { idx, label } 객체 배열
+ * @returns {Array} - 중복 제거 및 정렬된 배열
+ */
+function dedupeAndSortTargets(targets) {
+    const map = new Map();
+    for (const t of targets) {
+        if (t && Number.isFinite(t.idx)) map.set(t.idx, t); // idx 기준 중복 제거
+    }
+    return Array.from(map.values()).sort((a, b) => a.idx - b.idx);
+}
+
+/**
+ * X축 타겟 위치 계산
+ * @param {string} rangeKey - 기간 키 ('1W', '1M', '3M', '1Y')
+ * @param {Array} dates - 날짜 배열 (YYYYMMDD 형식)
+ * @param {string} endDateOverride - 종료일 오버라이드 (YYYY-MM-DD 또는 YYYYMMDD)
+ * @returns {Array} - { idx, label } 객체 배열
+ */
+function buildXAxisTargets(rangeKey, dates, endDateOverride = null) {
+    // endDateOverride가 제공되면 사용, 없으면 실제 데이터의 마지막 날짜 사용
+    let endDateStr, endObj;
+    
+    if (endDateOverride) {
+        // YYYY-MM-DD 형식이면 YYYYMMDD로 변환
+        if (endDateOverride.includes('-')) {
+            endDateStr = endDateOverride.replace(/-/g, '');
+        } else {
+            endDateStr = endDateOverride;
+        }
+        endObj = parseYYYYMMDD(endDateStr);
+    } else {
+        // 기존 로직: 실제 데이터의 마지막 날짜 사용
+        const n = dates.length;
+        endDateStr = dates[n - 1];
+        endObj = parseYYYYMMDD(endDateStr);
+    }
+    
+    if (!endObj) return [];
+
+    const indexMap = {};
+    for (let i = 0; i < dates.length; i++) indexMap[dates[i]] = i;
+
+    const targets = []; // { idx, label }
+    const formatMD = (dObj) => {
+        const month = String(dObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dObj.getDate()).padStart(2, '0');
+        return `${month}.${day}`;
+    };
+
+    const snap = (targetStr) => {
+        const closest = findClosestDate(dates, targetStr);
+        if (!closest) return null;
+        const idx = indexMap[closest];
+        if (idx == null) return null;
+        return { closest, idx };
+    };
+
+    if (rangeKey === '1W') {
+        // 최신 날짜 기준 -6일 ~ 0일 (달력 기준) 타겟을 만들고 가장 가까운 데이터로 스냅
+        for (let dBack = 6; dBack >= 0; dBack--) {
+            const candidate = new Date(endObj.getFullYear(), endObj.getMonth(), endObj.getDate() - dBack);
+            const s = snap(toYYYYMMDD(candidate));
+            if (!s) continue;
+            const dObj = parseYYYYMMDD(s.closest);
+            if (!dObj) continue;
+            targets.push({ idx: s.idx, label: String(dObj.getDate()) });
+        }
+        // 마지막 레이블이 항상 오늘(종료일)이 되도록 보장
+        if (endDateOverride) {
+            const todayIdx = dates.length - 1; // 마지막 인덱스
+            const todayLabel = formatMD(endObj);
+            targets.push({ idx: todayIdx, label: todayLabel });
+        }
+        return dedupeAndSortTargets(targets);
+    }
+
+    if (rangeKey === '1M') {
+        // 최신 날짜 기준 4주차: -21, -14, -7, 0일
+        const offsets = [21, 14, 7, 0];
+        for (const off of offsets) {
+            const candidate = new Date(endObj.getFullYear(), endObj.getMonth(), endObj.getDate() - off);
+            const s = snap(toYYYYMMDD(candidate));
+            if (!s) continue;
+            const dObj = parseYYYYMMDD(s.closest);
+            if (!dObj) continue;
+            targets.push({ idx: s.idx, label: formatMD(dObj) });
+        }
+        // 마지막 레이블이 항상 오늘(종료일)이 되도록 보장
+        if (endDateOverride) {
+            const todayIdx = dates.length - 1;
+            const todayLabel = formatMD(endObj);
+            targets.push({ idx: todayIdx, label: todayLabel });
+        }
+        return dedupeAndSortTargets(targets);
+    }
+
+    if (rangeKey === '3M') {
+        // 최신 날짜의 "일"을 유지한 채 3개월: -2, -1, 0개월
+        for (let mBack = 2; mBack >= 0; mBack--) {
+            const year = endObj.getFullYear();
+            const monthIndex = endObj.getMonth() - mBack;
+            const candidate = makeDateSafe(year, monthIndex, endObj.getDate());
+            const s = snap(toYYYYMMDD(candidate));
+            if (!s) continue;
+            const dObj = parseYYYYMMDD(s.closest);
+            if (!dObj) continue;
+            targets.push({ idx: s.idx, label: formatMD(dObj) });
+        }
+        // 마지막 레이블이 항상 오늘(종료일)이 되도록 보장
+        if (endDateOverride) {
+            const todayIdx = dates.length - 1;
+            const todayLabel = formatMD(endObj);
+            targets.push({ idx: todayIdx, label: todayLabel });
+        }
+        return dedupeAndSortTargets(targets);
+    }
+
+    if (rangeKey === '1Y') {
+        // 최신 날짜의 "일"을 유지한 채 12개월: -11..0개월
+        for (let mBack = 11; mBack >= 0; mBack--) {
+            const year = endObj.getFullYear();
+            const monthIndex = endObj.getMonth() - mBack;
+            const candidate = makeDateSafe(year, monthIndex, endObj.getDate());
+            const s = snap(toYYYYMMDD(candidate));
+            if (!s) continue;
+            const dObj = parseYYYYMMDD(s.closest);
+            if (!dObj) continue;
+            targets.push({ idx: s.idx, label: formatMD(dObj) });
+        }
+        // 마지막 레이블이 항상 오늘(종료일)이 되도록 보장
+        if (endDateOverride) {
+            const todayIdx = dates.length - 1;
+            const todayLabel = formatMD(endObj);
+            targets.push({ idx: todayIdx, label: todayLabel });
+        }
+        return dedupeAndSortTargets(targets);
+    }
+
+    return [];
+}
+
 // Expose to window for backwards compatibility
 window.formatDateForAPI = formatDateForAPI;
 window.formatInterestDateForAPI = formatInterestDateForAPI;
@@ -386,6 +667,15 @@ window.getInflationMetricLabel = getInflationMetricLabel;
 window.calculateInflationIndexStats = calculateInflationIndexStats;
 window.buildYearLabel = buildYearLabel;
 window.escapeHtml = escapeHtml;
+
+// New shared functions
+window.parseInterestDate = parseInterestDate;
+window.formatInterestDate = formatInterestDate;
+window.compareInterestDates = compareInterestDates;
+window.getSvgViewBoxSize = getSvgViewBoxSize;
+window.findClosestDate = findClosestDate;
+window.dedupeAndSortTargets = dedupeAndSortTargets;
+window.buildXAxisTargets = buildXAxisTargets;
 
 console.log('✅ AAL Helpers loaded');
 
