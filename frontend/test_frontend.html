@@ -256,8 +256,27 @@
         
         // JS 파일 목록 (분리된 JS 모듈들)
         const jsFiles = [
+            // 1. 설정 & 유틸리티
             'js/config/constants.js',
             'js/utils/helpers.js',
+            // 2. Market Data - Economy
+            'js/features/market/economy/exchange-rate.js',
+            'js/features/market/economy/interest-rate.js',
+            'js/features/market/economy/inflation.js',
+            'js/features/market/economy/gdp.js',
+            'js/features/market/economy/trade.js',
+            'js/features/market/economy/employment.js',
+            'js/features/market/economy/gdp-growth.js',
+            // 3. Market Data - Logistics
+            'js/features/market/logistics/logistics.js',
+            // 4. Smart Tools
+            'js/features/tools/tools.js',
+            // 5. War Room
+            'js/features/war-room/global-alarm.js',
+            // 6. Headlines
+            'js/features/headlines/news.js',
+            // 7. Main
+            'js/main.js',
         ];
         
         // API 테스트 정의
