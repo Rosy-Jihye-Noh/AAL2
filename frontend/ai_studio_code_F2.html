@@ -1646,6 +1646,7 @@
                             <li onclick="switchProduct('inflation')">Inflation (물가)</li>
                             <li onclick="switchProduct('gdp')">주요 지표</li>
                             <li onclick="switchProduct('trade')">수출입 통계</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
                             <li onclick="switchProduct('employment')">고용 통계</li>
                             <li>Commodities</li>
                             <li>Global Stocks</li>
@@ -1724,15 +1725,15 @@
                             </div>
                             <div class="chart-stats" id="chart-stats">
                                 <div class="stat-item">
-                                    <span class="stat-label">고점</span>
+                                    <span class="stat-label">HIGH</span>
                                     <span class="stat-value" id="stat-high">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">저점</span>
+                                    <span class="stat-label">LOW</span>
                                     <span class="stat-value" id="stat-low">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">평균</span>
+                                    <span class="stat-label">AVERAGE</span>
                                     <span class="stat-value" id="stat-average">-</span>
                                 </div>
                             </div>
@@ -1829,6 +1830,7 @@
                             <li class="selected" onclick="switchProduct('inflation')">Inflation (물가) <i class="fas fa-chevron-right" style="font-size:0.7rem"></i></li>
                             <li onclick="switchProduct('gdp')">주요 지표</li>
                             <li onclick="switchProduct('trade')">수출입 통계</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
                             <li onclick="switchProduct('employment')">고용 통계</li>
                             <li>Commodities</li>
                             <li>Global Stocks</li>
@@ -1852,8 +1854,8 @@
                                 <span style="color:var(--text-sub)">~</span>
                                 <input type="date" class="date-input inflation-date-input" id="inflation-end-date">
                                 <div class="period-btns inflation-cycle-btns">
-                                    <button class="period-btn inflation-cycle-btn active" data-cycle="M" title="Monthly (월간): 월별 데이터">월별</button>
-                                    <button class="period-btn inflation-cycle-btn" data-cycle="Q" title="Quarterly (분기별): 분기별 데이터">분기별</button>
+                                    <button class="period-btn inflation-cycle-btn active" data-cycle="M" title="Monthly: Monthly data">Monthly</button>
+                                    <button class="period-btn inflation-cycle-btn" data-cycle="Q" title="Quarterly: Quarterly data">Quarterly</button>
                                 </div>
                             </div>
                             <div class="filter-group">
@@ -1870,6 +1872,12 @@
                                     </button>
                                 </div>
                             </div>
+                            <div class="filter-group">
+                                <span class="filter-label">국가 비교</span>
+                                <div class="country-chips" id="inflation-country-chips">
+                                    <!-- 동적으로 생성 -->
+                                </div>
+                            </div>
                         </div>
 
                         <div class="chart-header" id="inflation-chart-header">
@@ -1883,15 +1891,15 @@
                             </div>
                             <div class="chart-stats" id="inflation-chart-stats">
                                 <div class="stat-item">
-                                    <span class="stat-label">고점</span>
+                                    <span class="stat-label">High</span>
                                     <span class="stat-value" id="inflation-stat-high">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">저점</span>
+                                    <span class="stat-label">Low</span>
                                     <span class="stat-value" id="inflation-stat-low">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">평균</span>
+                                    <span class="stat-label">Average</span>
                                     <span class="stat-value" id="inflation-stat-average">-</span>
                                 </div>
                             </div>
@@ -1932,6 +1940,7 @@
                             <li onclick="switchProduct('inflation')">Inflation (물가)</li>
                             <li class="selected" onclick="switchProduct('gdp')">주요 지표 <i class="fas fa-chevron-right" style="font-size:0.7rem"></i></li>
                             <li onclick="switchProduct('trade')">수출입 통계</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
                             <li onclick="switchProduct('employment')">고용 통계</li>
                             <li>Commodities</li>
                             <li>Global Stocks</li>
@@ -2038,6 +2047,7 @@
                             <li onclick="switchProduct('inflation')">Inflation (물가)</li>
                             <li onclick="switchProduct('gdp')">주요 지표</li>
                             <li onclick="switchProduct('trade')">수출입 통계</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
                             <li onclick="switchProduct('employment')">고용 통계</li>
                             <li>Commodities</li>
                             <li>Global Stocks</li>
@@ -2059,12 +2069,12 @@
                             <!-- Date Range & Cycle Selection -->
                             <div class="filter-group">
                                 <span class="filter-label">Period</span>
-                                <input type="date" class="date-input interest-date-input" id="interest-start-date" value="2023-11-01">
+                                <input type="month" class="date-input interest-date-input" id="interest-start-date" value="2023-11">
                                 <span style="color:var(--text-sub)">~</span>
-                                <input type="date" class="date-input interest-date-input" id="interest-end-date" value="2024-05-20">
+                                <input type="month" class="date-input interest-date-input" id="interest-end-date" value="2024-05">
                                 <div class="period-btns interest-cycle-btns">
-                                    <button class="period-btn interest-cycle-btn active" data-cycle="M" title="Monthly (월간): 월별 데이터">월별</button>
-                                    <button class="period-btn interest-cycle-btn" data-cycle="Q" title="Quarterly (분기별): 분기별 데이터">분기별</button>
+                                    <button class="period-btn interest-cycle-btn active" data-cycle="M" title="Monthly: Monthly data">Monthly</button>
+                                    <button class="period-btn interest-cycle-btn" data-cycle="Q" title="Quarterly: Quarterly data">Quarterly</button>
                                 </div>
                             </div>
                             <!-- Country Selection Chips -->
@@ -2079,7 +2089,7 @@
                         <!-- Chart Header (Yahoo Finance Style) -->
                         <div class="chart-header" id="interest-chart-header">
                             <div class="chart-title-section">
-                                <h2 class="chart-main-title" id="interest-chart-main-title">기준금리</h2>
+                                <h2 class="chart-main-title" id="interest-chart-main-title">Interest Rate</h2>
                                 <div class="chart-main-value" id="interest-chart-main-value">-</div>
                                 <div class="chart-change" id="interest-chart-change">
                                     <span class="change-value" id="interest-change-value">-</span>
@@ -2088,15 +2098,15 @@
                             </div>
                             <div class="chart-stats" id="interest-chart-stats">
                                 <div class="stat-item">
-                                    <span class="stat-label">고점</span>
+                                    <span class="stat-label">High</span>
                                     <span class="stat-value" id="interest-stat-high">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">저점</span>
+                                    <span class="stat-label">Low</span>
                                     <span class="stat-value" id="interest-stat-low">-</span>
                                 </div>
                                 <div class="stat-item">
-                                    <span class="stat-label">평균</span>
+                                    <span class="stat-label">Average</span>
                                     <span class="stat-value" id="interest-stat-average">-</span>
                                 </div>
                             </div>
@@ -2186,6 +2196,12 @@
                                     <button class="chip" id="chip-trade-balance" data-indicator="BALANCE" onclick="toggleTradeIndicator('BALANCE')">
                                         <div class="chip-dot"></div>무역수지
                                     </button>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">Country</span>
+                                <div class="country-chips" id="trade-country-chips">
+                                    <!-- 동적으로 생성 -->
                                 </div>
                             </div>
                         </div>
@@ -2349,6 +2365,107 @@
                         <div class="chart-tooltip" id="employment-chart-tooltip">
                             <div class="chart-tooltip-date" id="employment-tooltip-date"></div>
                             <div id="employment-tooltip-content"></div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Economy Growth Rate Panel -->
+            <div id="gdp-growth-panel" class="market-content reveal" style="display: none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate <i class="fas fa-chevron-right" style="font-size:0.7rem"></i></li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation (물가)</li>
+                            <li onclick="switchProduct('gdp')">주요 지표</li>
+                            <li onclick="switchProduct('trade')">수출입 통계</li>
+                            <li class="selected" onclick="switchProduct('gdp-growth')">Economy Growth Rate <i class="fas fa-chevron-right" style="font-size:0.7rem"></i></li>
+                            <li onclick="switchProduct('employment')">고용 통계</li>
+                            <li>Commodities</li>
+                            <li>Global Stocks</li>
+                        </ul>
+                    </aside>
+
+                    <main class="tool-workspace">
+                        <div class="tool-header">
+                            <div>
+                                <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-color); text-transform: uppercase;">Economy / Economy Growth Rate</span>
+                                <h2>Economy Growth Rate</h2>
+                                <p>국제 주요국 경제성장률 추이 분석</p>
+                            </div>
+                            <div class="live-badge"><div class="live-dot"></div> Live Market</div>
+                        </div>
+
+                        <!-- Chart Controls -->
+                        <div class="chart-controls">
+                            <div class="filter-group">
+                                <span class="filter-label">Period</span>
+                                <input type="date" class="date-input gdp-growth-date-input" id="gdp-growth-start-date">
+                                <span style="color:var(--text-sub)">~</span>
+                                <input type="date" class="date-input gdp-growth-date-input" id="gdp-growth-end-date">
+                                <div class="period-btns gdp-growth-cycle-btns">
+                                    <button class="period-btn gdp-growth-cycle-btn active" data-cycle="Q" title="Quarterly: Quarterly data">Quarterly</button>
+                                </div>
+                            </div>
+                            <div class="filter-group">
+                                <span class="filter-label">Country</span>
+                                <div class="country-chips" id="gdp-growth-country-chips">
+                                    <!-- 동적으로 생성 -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chart Header -->
+                        <div class="chart-header" id="gdp-growth-chart-header">
+                            <div class="chart-title-section">
+                                <h2 class="chart-main-title" id="gdp-growth-chart-main-title">Economy Growth Rate</h2>
+                                <div class="chart-main-value" id="gdp-growth-chart-main-value">-</div>
+                            </div>
+                            <div class="chart-stats" id="gdp-growth-chart-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">High</span>
+                                    <span class="stat-value" id="gdp-growth-stat-high">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Low</span>
+                                    <span class="stat-value" id="gdp-growth-stat-low">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Average</span>
+                                    <span class="stat-value" id="gdp-growth-stat-average">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Chart -->
+                        <div class="chart-area" id="gdp-growth-chart-container">
+                            <svg class="chart-svg" id="gdp-growth-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                <!-- Grid Lines -->
+                                <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                
+                                <!-- Y-axis labels (generated via JS) -->
+                                <g id="gdp-growth-y-axis-labels"></g>
+                                
+                                <!-- Line chart paths -->
+                                <g id="gdp-growth-paths-group"></g>
+                                
+                                <!-- Data points (for line chart) -->
+                                <g id="gdp-growth-data-points"></g>
+
+                                <!-- X-axis labels (generated via JS) -->
+                                <g id="gdp-growth-x-axis-labels"></g>
+                            </svg>
+                        </div>
+                        <!-- Tooltip -->
+                        <div class="chart-tooltip" id="gdp-growth-chart-tooltip">
+                            <div class="chart-tooltip-date" id="gdp-growth-tooltip-date"></div>
+                            <div id="gdp-growth-tooltip-content"></div>
                         </div>
                     </main>
                 </div>
@@ -2699,6 +2816,8 @@
                     searchText = 'Inflation';
                 } else if (productName === 'gdp') {
                     searchText = '주요 지표';
+                } else if (productName === 'gdp-growth') {
+                    searchText = 'Economy Growth Rate';
                 }
                 
                 if (searchText && li.textContent.includes(searchText)) {
@@ -2713,7 +2832,8 @@
                 'inflation': document.getElementById('inflation-panel'),
                 'gdp': document.getElementById('gdp-panel'),
                 'trade': document.getElementById('trade-panel'),
-                'employment': document.getElementById('employment-panel')
+                'employment': document.getElementById('employment-panel'),
+                'gdp-growth': document.getElementById('gdp-growth-panel')
             };
             const gdpSubmenu = document.getElementById('gdp-submenu');
             
@@ -2735,7 +2855,8 @@
                 'inflation': 'Inflation',
                 'gdp': '주요 지표',
                 'trade': '수출입 통계',
-                'employment': '고용 통계'
+                'employment': '고용 통계',
+                'gdp-growth': 'Economy Growth Rate'
             };
             
             document.querySelectorAll('.product-menu li').forEach(li => {
@@ -2799,6 +2920,12 @@
                 panels['employment'].style.display = 'block';
                 if (!window.employmentDataLoaded) {
                     initEmployment();
+                }
+            } else if (productName === 'gdp-growth' && panels['gdp-growth']) {
+                if (gdpSubmenu) gdpSubmenu.classList.remove('show');
+                panels['gdp-growth'].style.display = 'block';
+                if (!window.gdpGrowthDataLoaded) {
+                    initGDPGrowth();
                 }
             } else {
                 // 다른 제품 선택 시 서브메뉴 숨김
@@ -2867,6 +2994,17 @@
 
         function formatDateForAPI(dateStr) {
             // YYYY-MM-DD -> YYYYMMDD
+            return dateStr.replace(/-/g, '');
+        }
+        
+        // Interest Rates 전용: YYYY-MM -> YYYYMM01 (백엔드는 YYYYMMDD 형식 기대)
+        function formatInterestDateForAPI(dateStr) {
+            if (!dateStr) return '';
+            // YYYY-MM 형식 (month input) -> YYYYMM01 (해당 월의 첫째 날)
+            const parts = dateStr.split('-');
+            if (parts.length === 2) {
+                return `${parts[0]}${parts[1]}01`;
+            }
             return dateStr.replace(/-/g, '');
         }
 
@@ -3094,6 +3232,14 @@
         let interestCountryMapping = {}; // item_code → {code, name} 매핑
         let interestCountryListLoaded = false; // 국가 리스트 로드 여부
         
+        // Economy Growth Rate Variables
+        let gdpGrowthCycle = 'Q'; // Current cycle (Q only)
+        let activeGDPGrowthCountries = []; // 활성화된 국가 목록 (item_code)
+        let gdpGrowthCountryData = {}; // 국가별 데이터 저장 { 'item_code': [{date, value}], ... }
+        let gdpGrowthCountryMapping = {}; // item_code → {code, name} 매핑
+        let gdpGrowthCountryListLoaded = false; // 국가 리스트 로드 여부
+        let gdpGrowthYAxisRange = { min: 0, max: 0 }; // Y-axis range for GDP growth
+        
         // Trade Statistics variables
         let tradeCycle = 'M'; // Current cycle (M, Q)
         let tradeCurrency = 'USD'; // 항상 USD 모드 (원화 환산값도 함께 표시)
@@ -3102,6 +3248,11 @@
         let tradeDataKRW = { EXPORT: [], IMPORT: [] }; // Trade data storage (KRW 변환값)
         let tradeExchangeRates = {}; // 환율 데이터 저장 { 'YYYYMM': rate } (수출입 통계용)
         let tradeYAxisRange = { min: 0, max: 0 }; // Y-axis range for trade
+        
+        // International Trade Statistics variables
+        let activeTradeCountry = null; // 선택된 국가 (1개만)
+        let tradeCountryMapping = {}; // 국가 매핑 { 'item_code': {code, name} }
+        let tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] }; // 선택된 국가의 수출/수입/무역수지 데이터
         
         // Employment Statistics variables
         let employmentCycle = 'M'; // Current cycle (M, Q)
@@ -3121,61 +3272,56 @@
                 start.setMonth(end.getMonth() - 11); // 12개월 (현재월 포함)
                 start.setDate(1); // 해당 월의 1일로 설정
                 
-                startDateInput.value = start.toISOString().split('T')[0];
-                endDateInput.value = end.toISOString().split('T')[0];
+                // YYYY-MM 형식으로 설정 (month input 타입)
+                const startYear = start.getFullYear();
+                const startMonth = String(start.getMonth() + 1).padStart(2, '0');
+                const endYear = end.getFullYear();
+                const endMonth = String(end.getMonth() + 1).padStart(2, '0');
+                
+                startDateInput.value = `${startYear}-${startMonth}`;
+                endDateInput.value = `${endYear}-${endMonth}`;
                 startDateInput.max = endDateInput.value;
                 endDateInput.max = endDateInput.value;
                 
                 // Add event listeners for date inputs
                 startDateInput.addEventListener('change', () => {
                     if (validateInterestDateRange()) {
-                        fetchInterestRateData();
+                        if (activeInterestCountries.length > 0) {
+                            fetchInterestRateDataMulti();
+                        } else {
+                            fetchInterestRateData();
+                        }
                     }
                 });
                 endDateInput.addEventListener('change', () => {
                     if (validateInterestDateRange()) {
-                        fetchInterestRateData();
+                        if (activeInterestCountries.length > 0) {
+                            fetchInterestRateDataMulti();
+                        } else {
+                            fetchInterestRateData();
+                        }
                     }
                 });
             }
             
-            // Initialize cycle buttons (M, Q, A)
+            // Initialize cycle buttons (M, Q)
+            // 기존 이벤트 리스너 제거 후 새로 추가 (중복 방지)
             document.querySelectorAll('.interest-cycle-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
+                // 기존 클릭 이벤트 제거를 위해 클론 후 재추가
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                newBtn.addEventListener('click', function() {
+                    // 모든 버튼에서 active 제거
                     document.querySelectorAll('.interest-cycle-btn').forEach(b => b.classList.remove('active'));
+                    // 클릭한 버튼에 active 추가
                     this.classList.add('active');
+                    // interestCycle 변수 업데이트
                     interestCycle = this.getAttribute('data-cycle');
                     
-                    const endDateInput = document.getElementById('interest-end-date');
-                    const startDateInput = document.getElementById('interest-start-date');
+                    console.log('Cycle changed to:', interestCycle);
                     
-                    if (!endDateInput || !startDateInput) {
-                        fetchInterestRateData();
-                        return;
-                    }
-                    
-                    // 월별(M) 선택 시 현재 월을 포함해서 과거 12개월
-                    if (interestCycle === 'M') {
-                        const end = new Date();
-                        const start = new Date();
-                        start.setMonth(end.getMonth() - 11); // 12개월 (현재월 포함)
-                        start.setDate(1); // 해당 월의 1일로 설정
-                        
-                        startDateInput.value = start.toISOString().split('T')[0];
-                        endDateInput.value = end.toISOString().split('T')[0];
-                        startDateInput.max = endDateInput.value;
-                        endDateInput.max = endDateInput.value;
-                        
-                        // date input을 다시 표시
-                        startDateInput.type = 'date';
-                        endDateInput.type = 'date';
-                    }
-                    // 분기별(Q)는 기존 date input 유지
-                    else {
-                        startDateInput.type = 'date';
-                        endDateInput.type = 'date';
-                    }
-                    
+                    // 데이터 재조회 (날짜는 변경하지 않음)
                     if (activeInterestCountries.length > 0) {
                         fetchInterestRateDataMulti();
                     } else {
@@ -3411,14 +3557,40 @@
                 chip.setAttribute('data-item-code', itemCode);
                 chip.setAttribute('title', countryInfo.name);
                 
-                if (activeInterestCountries.includes(itemCode)) {
+                const isActive = activeInterestCountries.includes(itemCode);
+                if (isActive) {
                     chip.classList.add('active');
                 }
                 
-                chip.innerHTML = `
-                    <div class="chip-dot"></div>
-                    ${countryInfo.name}
-                `;
+                // 국가별 그래프 색상 가져오기
+                const countryColor = getInterestCountryColor(itemCode);
+                
+                const chipDot = document.createElement('div');
+                chipDot.className = 'chip-dot';
+                // active 상태일 때만 색상 적용
+                if (isActive) {
+                    chipDot.style.background = countryColor;
+                    chip.style.borderColor = countryColor;
+                    chip.style.color = countryColor;
+                    // CSS 변수를 실제 색상으로 변환하여 배경색 설정
+                    const tempEl = document.createElement('div');
+                    tempEl.style.color = countryColor;
+                    document.body.appendChild(tempEl);
+                    const computedColor = window.getComputedStyle(tempEl).color;
+                    document.body.removeChild(tempEl);
+                    // RGB 값을 추출하여 투명도 적용
+                    const rgbMatch = computedColor.match(/\d+/g);
+                    if (rgbMatch && rgbMatch.length >= 3) {
+                        chip.style.background = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.2)`;
+                    }
+                } else {
+                    chipDot.style.background = 'currentColor';
+                }
+                
+                chip.appendChild(chipDot);
+                // 국가 이름을 영어로 표시
+                const englishName = getInterestCountryNameEnglish(countryInfo.name);
+                chip.appendChild(document.createTextNode(englishName));
                 
                 chip.addEventListener('click', () => toggleInterestCountry(itemCode));
                 
@@ -3429,28 +3601,58 @@
         function toggleInterestCountry(itemCode) {
             const index = activeInterestCountries.indexOf(itemCode);
             
-            // 최소 1개 국가는 항상 선택되어야 함
+            // 토글: 있으면 제거, 없으면 추가
             if (index === -1) {
                 activeInterestCountries.push(itemCode);
-            } else if (activeInterestCountries.length > 1) {
-                activeInterestCountries.splice(index, 1);
             } else {
-                // 마지막 국가는 제거할 수 없음
-                return;
+                activeInterestCountries.splice(index, 1);
             }
             
             // UI 업데이트
             const chip = document.querySelector(`#interest-country-chips [data-item-code="${itemCode}"]`);
             if (chip) {
-                if (activeInterestCountries.includes(itemCode)) {
+                const chipDot = chip.querySelector('.chip-dot');
+                const isActive = activeInterestCountries.includes(itemCode);
+                
+                if (isActive) {
                     chip.classList.add('active');
+                    // active 상태일 때만 색상 적용
+                    const countryColor = getInterestCountryColor(itemCode);
+                    if (chipDot) {
+                        chipDot.style.background = countryColor;
+                    }
+                    // chip의 배경색과 테두리 색상도 설정
+                    chip.style.borderColor = countryColor;
+                    chip.style.color = countryColor;
+                    // CSS 변수를 실제 색상으로 변환하여 배경색 설정
+                    const tempEl = document.createElement('div');
+                    tempEl.style.color = countryColor;
+                    document.body.appendChild(tempEl);
+                    const computedColor = window.getComputedStyle(tempEl).color;
+                    document.body.removeChild(tempEl);
+                    // RGB 값을 추출하여 투명도 적용
+                    const rgbMatch = computedColor.match(/\d+/g);
+                    if (rgbMatch && rgbMatch.length >= 3) {
+                        chip.style.background = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.2)`;
+                    }
                 } else {
                     chip.classList.remove('active');
+                    // 비활성화 시 색상 제거
+                    if (chipDot) {
+                        chipDot.style.background = 'currentColor';
+                    }
+                    // chip 스타일 초기화
+                    chip.style.borderColor = '';
+                    chip.style.color = '';
+                    chip.style.background = '';
                 }
             }
             
-            // 데이터 재조회
-            if (validateInterestDateRange()) {
+            // 데이터 재조회 (또는 그래프 업데이트)
+            if (activeInterestCountries.length === 0) {
+                // 모든 국가가 해제되면 그래프 비우기
+                updateInterestChartMulti();
+            } else if (validateInterestDateRange()) {
                 fetchInterestRateDataMulti();
             }
         }
@@ -3464,13 +3666,15 @@
             if (!startDateInputEl || !endDateInputEl) return;
             
             if (activeInterestCountries.length === 0) {
-                console.warn('No countries selected');
+                // 모든 국가가 해제되면 그래프 비우기
+                updateInterestChartMulti();
                 return;
             }
             
-            const startDate = formatDateForAPI(startDateInputEl.value);
-            const endDate = formatDateForAPI(endDateInputEl.value);
-            const cycle = 'M'; // interest-international은 M 고정
+            const startDate = formatInterestDateForAPI(startDateInputEl.value);
+            const endDate = formatInterestDateForAPI(endDateInputEl.value);
+            // 백엔드에는 항상 월별(M)로 요청하고, 프론트엔드에서 분기별로 그룹화
+            const cycle = 'M'; // 항상 월별 데이터를 받아서 프론트엔드에서 처리
             
             const chartContainer = document.getElementById('interest-chart-container');
             if (chartContainer) {
@@ -3508,6 +3712,51 @@
         function processInterestRateDataMulti(results) {
             interestCountryData = {};
             
+            // 선택한 기간 가져오기
+            const startDateInputEl = document.getElementById('interest-start-date');
+            const endDateInputEl = document.getElementById('interest-end-date');
+            const startDateStr = startDateInputEl ? formatInterestDateForAPI(startDateInputEl.value) : '';
+            const endDateStr = endDateInputEl ? formatInterestDateForAPI(endDateInputEl.value) : '';
+            
+            // 월별 데이터를 분기별로 그룹화하는 함수
+            function groupMonthlyToQuarterly(monthlyData) {
+                const quarterlyMap = new Map();
+                
+                monthlyData.forEach(item => {
+                    if (item.date && item.date.length === 6) {
+                        // YYYYMM 형식
+                        const year = item.date.substring(0, 4);
+                        const month = parseInt(item.date.substring(4, 6), 10);
+                        let quarter;
+                        
+                        if (month >= 1 && month <= 3) quarter = 1;
+                        else if (month >= 4 && month <= 6) quarter = 2;
+                        else if (month >= 7 && month <= 9) quarter = 3;
+                        else if (month >= 10 && month <= 12) quarter = 4;
+                        else return; // 유효하지 않은 월
+                        
+                        const quarterKey = `${year}Q${quarter}`;
+                        
+                        if (!quarterlyMap.has(quarterKey)) {
+                            quarterlyMap.set(quarterKey, []);
+                        }
+                        quarterlyMap.get(quarterKey).push(item.value);
+                    }
+                });
+                
+                // 각 분기의 평균값 계산
+                const quarterlyData = [];
+                quarterlyMap.forEach((values, quarterKey) => {
+                    const avgValue = values.reduce((sum, v) => sum + v, 0) / values.length;
+                    quarterlyData.push({
+                        date: quarterKey,
+                        value: avgValue
+                    });
+                });
+                
+                return quarterlyData;
+            }
+            
             results.forEach(({ itemCode, data }) => {
                 if (data.error || !data.StatisticSearch) {
                     console.error(`Error processing ${itemCode}:`, data.error || 'Invalid data format');
@@ -3515,16 +3764,47 @@
                 }
                 
                 const rows = data.StatisticSearch.row || [];
-                const values = rows.map(row => ({
+                let values = rows.map(row => ({
                     date: row.TIME,
                     value: parseFloat(row.DATA_VALUE)
                 })).filter(item => !isNaN(item.value) && item.value > 0);
                 
-                // 날짜 정렬 (YYYYMM 형식)
+                // 분기별 선택 시 월별 데이터를 분기별로 그룹화
+                if (interestCycle === 'Q') {
+                    // 먼저 월별 데이터를 분기별로 그룹화
+                    values = groupMonthlyToQuarterly(values);
+                }
+                
+                // 선택한 기간의 데이터만 필터링
+                if (startDateStr && endDateStr) {
+                    // startDateStr과 endDateStr은 YYYYMM01 형식이므로 YYYYMM만 추출
+                    const startMonth = startDateStr.substring(0, 6); // YYYYMM
+                    const endMonth = endDateStr.substring(0, 6); // YYYYMM
+                    
+                    values = values.filter(item => {
+                        if (!item.date) return false;
+                        
+                        let itemDateStr = item.date;
+                        
+                        // YYYYQn 형식을 YYYYMM으로 변환하여 비교
+                        if (itemDateStr.includes('Q')) {
+                            const year = itemDateStr.substring(0, 4);
+                            const quarter = parseInt(itemDateStr.substring(5), 10);
+                            const month = (quarter - 1) * 3 + 1; // 분기의 첫 번째 월
+                            itemDateStr = `${year}${String(month).padStart(2, '0')}`;
+                        } else if (itemDateStr.length === 8) {
+                            // YYYYMMDD 형식인 경우 YYYYMM만 추출
+                            itemDateStr = itemDateStr.substring(0, 6);
+                        }
+                        
+                        // YYYYMM 형식으로 비교
+                        return itemDateStr >= startMonth && itemDateStr <= endMonth;
+                    });
+                }
+                
+                // 날짜 정렬 (YYYYMM 또는 YYYYQn 형식 지원)
                 values.sort((a, b) => {
-                    const dateA = parseInt(a.date) || 0;
-                    const dateB = parseInt(b.date) || 0;
-                    return dateA - dateB;
+                    return compareInterestDates(a.date, b.date, interestCycle || 'M');
                 });
                 
                 interestCountryData[itemCode] = values;
@@ -3532,6 +3812,8 @@
             
             console.log('Processed interest rate data (multi):', {
                 countries: Object.keys(interestCountryData),
+                cycle: interestCycle,
+                dateRange: { start: startDateStr, end: endDateStr },
                 dataCounts: Object.fromEntries(
                     Object.entries(interestCountryData).map(([code, data]) => [code, data.length])
                 )
@@ -3613,29 +3895,86 @@
             return data.length;
         }
 
+        // 국가 정보 매핑 (한국어명 → {englishName, color})
+        const interestCountryInfoMap = [
+            { keywords: ['호주', 'aus', 'australia'], englishName: 'Australia', color: 'var(--c-interest-aus)' },
+            { keywords: ['브라질', 'bra', 'brazil'], englishName: 'Brazil', color: 'var(--c-interest-bra)' },
+            { keywords: ['캐나다', 'can', 'canada'], englishName: 'Canada', color: 'var(--c-interest-can)' },
+            { keywords: ['스위스', 'che', 'switzerland'], englishName: 'Switzerland', color: 'var(--accent-color)' },
+            { keywords: ['칠레', 'chl', 'chile'], englishName: 'Chile', color: 'var(--accent-color)' },
+            { keywords: ['중국', 'chn', 'china'], englishName: 'China', color: 'var(--c-interest-chn)' },
+            { keywords: ['체코', 'cze', 'czech'], englishName: 'Czech Republic', color: 'var(--accent-color)' },
+            { keywords: ['덴마크', 'dnk', 'denmark'], englishName: 'Denmark', color: 'var(--accent-color)' },
+            { keywords: ['영국', 'gbr', 'uk', 'united kingdom'], englishName: 'UK', color: 'var(--c-interest-gbr)' },
+            { keywords: ['헝가리', 'hun', 'hungary'], englishName: 'Hungary', color: 'var(--accent-color)' },
+            { keywords: ['인도네시아', 'idn', 'indonesia'], englishName: 'Indonesia', color: 'var(--accent-color)' },
+            { keywords: ['이스라엘', 'isr', 'israel'], englishName: 'Israel', color: 'var(--accent-color)' },
+            { keywords: ['인도', 'ind', 'india'], englishName: 'India', color: 'var(--c-interest-ind)' },
+            { keywords: ['아이슬란드', 'isl', 'iceland'], englishName: 'Iceland', color: 'var(--accent-color)' },
+            { keywords: ['일본', 'jpn', 'japan'], englishName: 'Japan', color: 'var(--c-interest-jpn)' },
+            { keywords: ['한국', 'kor', 'korea'], englishName: 'Korea', color: 'var(--c-interest-kor)' },
+            { keywords: ['멕시코', 'mex', 'mexico'], englishName: 'Mexico', color: 'var(--accent-color)' },
+            { keywords: ['노르웨이', 'nor', 'norway'], englishName: 'Norway', color: 'var(--accent-color)' },
+            { keywords: ['뉴질랜드', 'nzl', 'zealand'], englishName: 'New Zealand', color: 'var(--c-interest-nzl)' },
+            { keywords: ['폴란드', 'pol', 'poland'], englishName: 'Poland', color: 'var(--accent-color)' },
+            { keywords: ['러시아', 'rus', 'russia'], englishName: 'Russia', color: 'var(--c-interest-rus)' },
+            { keywords: ['스웨덴', 'swe', 'sweden'], englishName: 'Sweden', color: 'var(--accent-color)' },
+            { keywords: ['튀르키예', 'tur', 'turkey'], englishName: 'Turkey', color: 'var(--accent-color)' },
+            { keywords: ['미국', 'usa', 'us ', 'united states'], englishName: 'USA', color: 'var(--c-interest-usa)' },
+            { keywords: ['유로', 'eur', 'eurozone', 'euro area'], englishName: 'Eurozone', color: 'var(--accent-color)' },
+            { keywords: ['남아프리카', 'zaf', 'south africa'], englishName: 'South Africa', color: 'var(--accent-color)' },
+            { keywords: ['독일', 'deu', 'germany'], englishName: 'Germany', color: 'var(--c-interest-deu)' },
+            { keywords: ['프랑스', 'fra', 'france'], englishName: 'France', color: 'var(--c-interest-fra)' },
+            { keywords: ['이탈리아', 'ita', 'italy'], englishName: 'Italy', color: 'var(--c-interest-ita)' },
+            { keywords: ['스페인', 'esp', 'spain'], englishName: 'Spain', color: 'var(--c-interest-esp)' }
+        ];
+        
+        // 국가 정보 찾기 (한국어명 기반)
+        function findInterestCountryInfo(koreanName) {
+            if (!koreanName) return null;
+            
+            const name = koreanName.toLowerCase();
+            
+            for (const info of interestCountryInfoMap) {
+                if (info.keywords.some(keyword => name.includes(keyword))) {
+                    return info;
+                }
+            }
+            
+            return null;
+        }
+        
+        // 국가 이름을 영어로 변환하는 함수
+        function getInterestCountryNameEnglish(koreanName) {
+            const info = findInterestCountryInfo(koreanName);
+            return info ? info.englishName : koreanName;
+        }
+        
         // 국가별 색상 매핑 (item_code → CSS 변수)
         function getInterestCountryColor(itemCode) {
             const countryInfo = interestCountryMapping[itemCode];
-            if (!countryInfo) return 'var(--accent-color)';
+            if (!countryInfo) {
+                // 기본 색상 (item_code 기반 해시)
+                const colors = [
+                    'var(--c-interest-kor)', 'var(--c-interest-usa)', 'var(--c-interest-jpn)',
+                    'var(--c-interest-chn)', 'var(--c-interest-gbr)', 'var(--c-interest-deu)',
+                    'var(--c-interest-fra)', 'var(--c-interest-ita)', 'var(--c-interest-esp)',
+                    'var(--c-interest-can)', 'var(--c-interest-aus)', 'var(--c-interest-nzl)'
+                ];
+                let hash = 0;
+                for (let i = 0; i < itemCode.length; i++) {
+                    hash = ((hash << 5) - hash) + itemCode.charCodeAt(i);
+                    hash = hash & hash;
+                }
+                return colors[Math.abs(hash) % colors.length];
+            }
             
-            const name = countryInfo.name.toLowerCase();
-            if (name.includes('한국') || name.includes('kor')) return 'var(--c-interest-kor)';
-            if (name.includes('미국') || name.includes('usa') || name.includes('us ')) return 'var(--c-interest-usa)';
-            if (name.includes('일본') || name.includes('jpn') || name.includes('japan')) return 'var(--c-interest-jpn)';
-            if (name.includes('중국') || name.includes('chn') || name.includes('china')) return 'var(--c-interest-chn)';
-            if (name.includes('영국') || name.includes('gbr') || name.includes('uk')) return 'var(--c-interest-gbr)';
-            if (name.includes('독일') || name.includes('deu') || name.includes('germany')) return 'var(--c-interest-deu)';
-            if (name.includes('프랑스') || name.includes('fra') || name.includes('france')) return 'var(--c-interest-fra)';
-            if (name.includes('이탈리아') || name.includes('ita') || name.includes('italy')) return 'var(--c-interest-ita)';
-            if (name.includes('스페인') || name.includes('esp') || name.includes('spain')) return 'var(--c-interest-esp)';
-            if (name.includes('캐나다') || name.includes('can') || name.includes('canada')) return 'var(--c-interest-can)';
-            if (name.includes('호주') || name.includes('aus') || name.includes('australia')) return 'var(--c-interest-aus)';
-            if (name.includes('뉴질랜드') || name.includes('nzl') || name.includes('zealand')) return 'var(--c-interest-nzl)';
-            if (name.includes('브라질') || name.includes('bra') || name.includes('brazil')) return 'var(--c-interest-bra)';
-            if (name.includes('인도') || name.includes('ind') || name.includes('india')) return 'var(--c-interest-ind)';
-            if (name.includes('러시아') || name.includes('rus') || name.includes('russia')) return 'var(--c-interest-rus)';
+            const info = findInterestCountryInfo(countryInfo.name);
+            if (info) {
+                return info.color;
+            }
             
-            // 기본 색상 (item_code 기반 해시)
+            // 매핑되지 않은 경우 기본 색상 (item_code 기반 해시)
             const colors = [
                 'var(--c-interest-kor)', 'var(--c-interest-usa)', 'var(--c-interest-jpn)',
                 'var(--c-interest-chn)', 'var(--c-interest-gbr)', 'var(--c-interest-deu)',
@@ -3673,15 +4012,21 @@
                 path.classList.remove('visible');
             });
             
+            // 활성화된 국가가 없으면 그래프 비우기
+            if (activeInterestCountries.length === 0) {
+                renderInterestYAxisLabelsMulti([]);
+                renderInterestXAxisLabelsMulti([]);
+                pointsGroup.innerHTML = '';
+                return;
+            }
+            
             // 모든 국가 데이터 병합하여 공통 날짜 목록 생성
             const allDates = new Set();
             Object.values(interestCountryData).forEach(data => {
                 data.forEach(item => allDates.add(item.date));
             });
             const sortedDates = Array.from(allDates).sort((a, b) => {
-                const dateA = parseInt(a) || 0;
-                const dateB = parseInt(b) || 0;
-                return dateA - dateB;
+                return compareInterestDates(a, b, interestCycle || 'M');
             });
             
             if (sortedDates.length === 0) {
@@ -3826,7 +4171,7 @@
             const padding = { left: 40, right: 20 };
             const chartWidth = width - padding.left - padding.right;
             
-            // 월별 데이터이므로 매 2개월마다 표시
+            // 주기에 따라 라벨 간격 조정
             const labelInterval = Math.max(1, Math.floor(sortedDates.length / 8));
             
             sortedDates.forEach((date, index) => {
@@ -3835,12 +4180,18 @@
                 const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
                 const y = 370; // 400 - 30 = 370
                 
-                // YYYYMM 형식을 YY.MM 형식으로 변환
+                // 날짜 형식 변환 (YYYYMM 또는 YYYYQn)
                 let labelText = '';
-                if (date.length === 6) {
+                if (date.length === 6 && !date.includes('Q')) {
+                    // YYYYMM 형식
                     const year = date.substring(0, 4);
                     const month = date.substring(4, 6);
                     labelText = `${year.substring(2)}.${month}`;
+                } else if (date.includes('Q')) {
+                    // YYYYQn 형식 (예: 2024Q1)
+                    const year = date.substring(0, 4);
+                    const quarter = date.substring(5);
+                    labelText = `${year.substring(2)}Q${quarter}`;
                 } else {
                     labelText = date;
                 }
@@ -3911,14 +4262,21 @@
             const svg = document.getElementById('interest-chart-svg');
             if (!chartContainer || !svg) return;
             
+            // 툴팁을 body로 이동 (exchange rate 스타일)
             const tooltip = document.getElementById('interest-chart-tooltip');
-            if (tooltip && tooltip.parentElement !== document.body) {
-                document.body.appendChild(tooltip);
+            if (tooltip) {
+                if (tooltip.parentElement !== document.body) {
+                    document.body.appendChild(tooltip);
+                }
             }
             
             // 기존 이벤트 리스너 제거
-            chartContainer.removeEventListener('mousemove', interestMouseMoveHandler);
-            chartContainer.removeEventListener('mouseleave', interestMouseLeaveHandler);
+            if (interestMouseMoveHandler) {
+                chartContainer.removeEventListener('mousemove', interestMouseMoveHandler);
+            }
+            if (interestMouseLeaveHandler) {
+                chartContainer.removeEventListener('mouseleave', interestMouseLeaveHandler);
+            }
             
             let rafId = null;
             
@@ -3955,8 +4313,8 @@
             const y = event.clientY - rect.top;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { left: 40, right: 20 };
-            const chartWidth = width - padding.left - padding.right;
+            const chartPadding = { left: 40, right: 20 };
+            const chartWidth = width - chartPadding.left - chartPadding.right;
             
             // 모든 국가 데이터 병합하여 공통 날짜 목록 생성
             const allDates = new Set();
@@ -3964,50 +4322,84 @@
                 data.forEach(item => allDates.add(item.date));
             });
             const sortedDates = Array.from(allDates).sort((a, b) => {
-                const dateA = parseInt(a) || 0;
-                const dateB = parseInt(b) || 0;
-                return dateA - dateB;
+                return compareInterestDates(a, b, interestCycle || 'M');
             });
             
             if (sortedDates.length === 0) return;
             
             // X 좌표로 날짜 찾기
-            const dateIndex = Math.round(((x - padding.left) / chartWidth) * (sortedDates.length - 1));
+            const dateIndex = Math.round(((x - chartPadding.left) / chartWidth) * (sortedDates.length - 1));
             const dateIndexClamped = Math.max(0, Math.min(sortedDates.length - 1, dateIndex));
             const date = sortedDates[dateIndexClamped];
             
-            // 툴팁 내용 생성
+            // 날짜 포맷팅
             let dateLabel = date;
-            if (date.length === 6) {
+            if (date.length === 6 && !date.includes('Q')) {
+                // YYYYMM 형식
                 const year = date.substring(0, 4);
                 const month = date.substring(4, 6);
                 dateLabel = `${year}.${month}`;
+            } else if (date.includes('Q')) {
+                // YYYYQn 형식 (예: 2024Q1 -> 24Q1)
+                const year = date.substring(0, 4);
+                const quarter = date.substring(5);
+                dateLabel = `${year.substring(2)}Q${quarter}`;
             }
             
-            let tooltipContent = `<div style="font-weight: 600; margin-bottom: 8px;">${dateLabel}</div>`;
-            
+            // Exchange rate 스타일의 툴팁 생성
+            let content = '';
             activeInterestCountries.forEach(itemCode => {
                 const data = interestCountryData[itemCode];
                 if (!data) return;
                 
-                const item = data.find(d => d.date === date);
+                // 정확한 날짜 매칭 시도
+                let item = data.find(d => d.date === date);
+                
+                // 정확한 매칭이 없으면 가장 가까운 날짜 찾기
+                if (!item && sortedDates.length > 0) {
+                    const currentIndex = sortedDates.indexOf(date);
+                    if (currentIndex > 0) {
+                        const prevDate = sortedDates[currentIndex - 1];
+                        item = data.find(d => d.date === prevDate);
+                    }
+                    if (!item && currentIndex < sortedDates.length - 1) {
+                        const nextDate = sortedDates[currentIndex + 1];
+                        item = data.find(d => d.date === nextDate);
+                    }
+                }
+                
                 if (!item) return;
                 
                 const countryInfo = interestCountryMapping[itemCode];
-                const countryName = countryInfo ? countryInfo.name : itemCode;
+                const countryName = countryInfo ? getInterestCountryNameEnglish(countryInfo.name) : itemCode;
                 const color = getInterestCountryColor(itemCode);
                 
-                tooltipContent += `
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${color};"></div>
-                        <span>${countryName}: <strong>${item.value.toFixed(2)}%</strong></span>
+                // CSS 변수를 실제 색상으로 변환
+                const tempEl = document.createElement('div');
+                tempEl.style.color = color;
+                document.body.appendChild(tempEl);
+                const computedColor = window.getComputedStyle(tempEl).color;
+                document.body.removeChild(tempEl);
+                
+                content += `
+                    <div class="chart-tooltip-item">
+                        <div class="chart-tooltip-currency">
+                            <div class="chart-tooltip-dot" style="background: ${computedColor}"></div>
+                            <span>${countryName}</span>
+                        </div>
+                        <span class="chart-tooltip-value">${item.value.toFixed(2)}%</span>
                     </div>
                 `;
             });
             
+            if (!content) {
+                hideInterestTooltip();
+                return;
+            }
+            
             const tooltipContentEl = document.getElementById('interest-tooltip-content');
             if (tooltipContentEl) {
-                tooltipContentEl.innerHTML = tooltipContent;
+                tooltipContentEl.innerHTML = content;
             }
             
             const tooltipDateEl = document.getElementById('interest-tooltip-date');
@@ -4015,55 +4407,88 @@
                 tooltipDateEl.textContent = dateLabel;
             }
             
-            // 툴팁 위치 조정
-            tooltip.style.display = 'block';
+            // 툴팁을 먼저 표시해서 크기를 측정 (exchange rate 스타일)
+            tooltip.style.visibility = 'hidden';
+            tooltip.classList.add('visible');
+            
             const tooltipRect = tooltip.getBoundingClientRect();
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
+            const tooltipPadding = 15;
             
-            let left = event.clientX + 10;
-            let top = event.clientY + 10;
+            // 기본 위치 (마우스 오른쪽 아래)
+            let left = event.clientX + tooltipPadding;
+            let top = event.clientY + tooltipPadding;
             
-            if (left + tooltipRect.width > viewportWidth) {
-                left = event.clientX - tooltipRect.width - 10;
+            // 우측 경계 체크 및 조정
+            if (left + tooltipRect.width > viewportWidth - tooltipPadding) {
+                left = event.clientX - tooltipRect.width - tooltipPadding;
             }
-            if (top + tooltipRect.height > viewportHeight) {
-                top = event.clientY - tooltipRect.height - 10;
+            
+            // 좌측 경계 체크 및 조정
+            if (left < tooltipPadding) {
+                if (event.clientX + tooltipRect.width + tooltipPadding <= viewportWidth - tooltipPadding) {
+                    left = event.clientX + tooltipPadding;
+                } else {
+                    left = tooltipPadding;
+                }
+            }
+            
+            // 하단 경계 체크 및 조정
+            if (top + tooltipRect.height > viewportHeight - tooltipPadding) {
+                top = event.clientY - tooltipRect.height - tooltipPadding;
+            }
+            
+            // 상단 경계 체크 및 조정
+            if (top < tooltipPadding) {
+                if (event.clientY + tooltipRect.height + tooltipPadding <= viewportHeight - tooltipPadding) {
+                    top = event.clientY + tooltipPadding;
+                } else {
+                    top = tooltipPadding;
+                }
+            }
+            
+            // 최종 검증 및 강제 조정
+            if (left < tooltipPadding) left = tooltipPadding;
+            if (left + tooltipRect.width > viewportWidth - tooltipPadding) {
+                left = viewportWidth - tooltipPadding - tooltipRect.width;
+            }
+            if (top < tooltipPadding) top = tooltipPadding;
+            if (top + tooltipRect.height > viewportHeight - tooltipPadding) {
+                top = viewportHeight - tooltipPadding - tooltipRect.height;
             }
             
             tooltip.style.left = left + 'px';
             tooltip.style.top = top + 'px';
+            tooltip.style.visibility = 'visible';
         }
         
         function hideInterestTooltip() {
             const tooltip = document.getElementById('interest-chart-tooltip');
             if (tooltip) {
-                tooltip.style.display = 'none';
+                tooltip.classList.remove('visible');
+                tooltip.style.visibility = 'hidden';
             }
         }
         
         function updateInterestChartHeaderMulti() {
             if (activeInterestCountries.length === 0) return;
             
-            // 모든 국가 데이터에서 통계 계산
-            const allValues = [];
-            Object.values(interestCountryData).forEach(data => {
-                data.forEach(item => allValues.push(item.value));
-            });
-            
-            if (allValues.length === 0) return;
-            
-            const high = Math.max(...allValues);
-            const low = Math.min(...allValues);
-            const average = allValues.reduce((sum, v) => sum + v, 0) / allValues.length;
-            
-            // 첫 번째 국가의 최신값
+            // 첫 번째 국가의 데이터만 사용 (대표 기준금리)
             const firstCountryCode = activeInterestCountries[0];
             const firstCountryData = interestCountryData[firstCountryCode];
-            const current = firstCountryData && firstCountryData.length > 0 
-                ? firstCountryData[firstCountryData.length - 1].value 
-                : 0;
-            const previous = firstCountryData && firstCountryData.length > 1
+            
+            if (!firstCountryData || firstCountryData.length === 0) return;
+            
+            // 첫 번째 국가의 현재 선택된 기간의 값들만 사용
+            const values = firstCountryData.map(item => item.value);
+            const high = Math.max(...values);
+            const low = Math.min(...values);
+            const average = values.reduce((sum, v) => sum + v, 0) / values.length;
+            
+            // 첫 번째 국가의 최신값
+            const current = firstCountryData[firstCountryData.length - 1].value;
+            const previous = firstCountryData.length > 1
                 ? firstCountryData[firstCountryData.length - 2].value
                 : current;
             
@@ -4072,25 +4497,27 @@
             
             // 헤더 업데이트
             const countryInfo = interestCountryMapping[firstCountryCode];
-            const countryName = countryInfo ? countryInfo.name : firstCountryCode;
+            const countryName = countryInfo ? getInterestCountryNameEnglish(countryInfo.name) : firstCountryCode;
             
             const titleEl = document.getElementById('interest-chart-main-title');
-            if (titleEl) titleEl.textContent = countryName + ' 기준금리';
+            if (titleEl) titleEl.textContent = countryName + ' Interest Rate';
             
             const valueEl = document.getElementById('interest-chart-main-value');
             if (valueEl) valueEl.textContent = current.toFixed(2) + '%';
             
+            // 변화율 표시 숨김
+            const changeContainer = document.getElementById('interest-chart-change');
+            if (changeContainer) {
+                changeContainer.style.display = 'none';
+            }
             const changeValueEl = document.getElementById('interest-change-value');
             const changePercentEl = document.getElementById('interest-change-percent');
             if (changeValueEl && changePercentEl) {
-                const changeText = change >= 0 ? `+${change.toFixed(2)}%` : `${change.toFixed(2)}%`;
-                const changePercentText = `(${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(2)}%)`;
-                
-                changeValueEl.textContent = changeText;
-                changePercentEl.textContent = changePercentText;
-                changeValueEl.style.color = change >= 0 ? '#ef4444' : '#22c55e';
+                changeValueEl.textContent = '';
+                changePercentEl.textContent = '';
             }
             
+            // 통계 업데이트 (첫 번째 국가의 현재 선택된 기간만)
             const highEl = document.getElementById('interest-stat-high');
             const lowEl = document.getElementById('interest-stat-low');
             const avgEl = document.getElementById('interest-stat-average');
@@ -4793,6 +5220,12 @@
         // 표시 메트릭: 지수 레벨(원자료) + 전월비/전기비(변화량/변화율)
         let inflationYAxisRange = { min: 0, max: 0 };
         let inflationCycle = 'M'; // Current cycle (M, Q)
+        
+        // International CPI Variables
+        let activeInflationCountries = []; // 활성화된 국가 목록 (item_code)
+        let inflationCountryData = {}; // 국가별 데이터 저장 { 'item_code': [{date, value}], ... }
+        let inflationCountryMapping = {}; // item_code → {code, name} 매핑
+        let inflationCountryListLoaded = false; // 국가 리스트 로드 여부
 
         const INFLATION_ITEM_NAMES = {
             'CPI_TOTAL': '총지수',
@@ -4960,7 +5393,171 @@
             });
             
             fetchInflationData();
+            // 국가 리스트 로드
+            fetchInflationCountryList().then(() => {
+                initInflationCountryChips();
+            }).catch(err => {
+                console.error('Failed to load inflation country list:', err);
+            });
             window.inflationDataLoaded = true;
+        }
+        
+        // International CPI Functions
+        async function fetchInflationCountryList() {
+            if (inflationCountryListLoaded && Object.keys(inflationCountryMapping).length > 0) {
+                return inflationCountryMapping;
+            }
+            
+            try {
+                const url = `${API_BASE}/market/categories?category=cpi-international`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.items && Object.keys(data.items).length > 0) {
+                        inflationCountryMapping = data.items;
+                        inflationCountryListLoaded = true;
+                        return inflationCountryMapping;
+                    }
+                }
+                
+                throw new Error('Failed to fetch country list from categories endpoint');
+                
+            } catch (err) {
+                console.error('Failed to fetch inflation country list:', err);
+                throw err;
+            }
+        }
+        
+        function initInflationCountryChips() {
+            const chipsContainer = document.getElementById('inflation-country-chips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            const itemCodes = Object.keys(inflationCountryMapping);
+            if (itemCodes.length === 0) {
+                chipsContainer.innerHTML = '<span style="color: var(--text-sub); font-size: 0.8rem;">국가 리스트 로딩 중...</span>';
+                return;
+            }
+            
+            itemCodes.forEach(itemCode => {
+                const countryInfo = inflationCountryMapping[itemCode];
+                // 한국 버튼 제거
+                const name = countryInfo.name.toLowerCase();
+                if (name.includes('한국') || name.includes('kor') || name.includes('korea')) {
+                    return; // 한국은 건너뛰기
+                }
+                
+                const chip = document.createElement('button');
+                chip.className = 'chip';
+                chip.setAttribute('data-item-code', itemCode);
+                chip.setAttribute('title', countryInfo.name);
+                
+                const isActive = activeInflationCountries.includes(itemCode);
+                if (isActive) {
+                    chip.classList.add('active');
+                }
+                
+                // 국가별 그래프 색상 가져오기
+                const countryColor = getInflationCountryColor(itemCode);
+                
+                const chipDot = document.createElement('div');
+                chipDot.className = 'chip-dot';
+                // active 상태일 때만 색상 적용
+                if (isActive) {
+                    chipDot.style.background = countryColor;
+                    chip.style.borderColor = countryColor;
+                    chip.style.color = countryColor;
+                    // CSS 변수를 실제 색상으로 변환하여 배경색 설정
+                    const tempEl = document.createElement('div');
+                    tempEl.style.color = countryColor;
+                    document.body.appendChild(tempEl);
+                    const computedColor = window.getComputedStyle(tempEl).color;
+                    document.body.removeChild(tempEl);
+                    // RGB 값을 추출하여 투명도 적용
+                    const rgbMatch = computedColor.match(/\d+/g);
+                    if (rgbMatch && rgbMatch.length >= 3) {
+                        chip.style.background = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.2)`;
+                    }
+                } else {
+                    chipDot.style.background = 'currentColor';
+                }
+                
+                chip.appendChild(chipDot);
+                chip.appendChild(document.createTextNode(countryInfo.name));
+                
+                chip.addEventListener('click', () => toggleInflationCountry(itemCode));
+                
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function getInflationCountryColor(itemCode) {
+            // 국가별 색상 매핑 (exchange rate나 interest rate와 유사한 색상 사용)
+            const colorMap = {
+                '0000001': 'var(--c-usd)', // 미국
+                '0000002': 'var(--c-jpy)', // 일본
+                '0000003': 'var(--c-eur)', // 유로
+                '0000004': 'var(--c-gbp)', // 영국
+                '0000005': 'var(--c-cny)', // 중국
+            };
+            // 기본 색상 팔레트
+            const defaultColors = [
+                'var(--c-usd)', 'var(--c-jpy)', 'var(--c-eur)', 'var(--c-gbp)', 'var(--c-cny)',
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE'
+            ];
+            return colorMap[itemCode] || defaultColors[Object.keys(inflationCountryMapping).indexOf(itemCode) % defaultColors.length];
+        }
+        
+        function toggleInflationCountry(itemCode) {
+            const index = activeInflationCountries.indexOf(itemCode);
+            
+            // 토글: 있으면 제거, 없으면 추가
+            if (index === -1) {
+                activeInflationCountries.push(itemCode);
+            } else {
+                activeInflationCountries.splice(index, 1);
+            }
+            
+            // UI 업데이트
+            const chip = document.querySelector(`#inflation-country-chips [data-item-code="${itemCode}"]`);
+            if (chip) {
+                const chipDot = chip.querySelector('.chip-dot');
+                const isActive = activeInflationCountries.includes(itemCode);
+                
+                if (isActive) {
+                    chip.classList.add('active');
+                    const countryColor = getInflationCountryColor(itemCode);
+                    if (chipDot) {
+                        chipDot.style.background = countryColor;
+                    }
+                    chip.style.borderColor = countryColor;
+                    chip.style.color = countryColor;
+                    const tempEl = document.createElement('div');
+                    tempEl.style.color = countryColor;
+                    document.body.appendChild(tempEl);
+                    const computedColor = window.getComputedStyle(tempEl).color;
+                    document.body.removeChild(tempEl);
+                    const rgbMatch = computedColor.match(/\d+/g);
+                    if (rgbMatch && rgbMatch.length >= 3) {
+                        chip.style.background = `rgba(${rgbMatch[0]}, ${rgbMatch[1]}, ${rgbMatch[2]}, 0.2)`;
+                    }
+                } else {
+                    chip.classList.remove('active');
+                    if (chipDot) {
+                        chipDot.style.background = 'currentColor';
+                    }
+                    chip.style.borderColor = '';
+                    chip.style.color = '';
+                    chip.style.background = '';
+                }
+            }
+            
+            // 데이터 재조회
+            if (validateInflationDateRange()) {
+                fetchInflationData();
+            }
         }
 
         function validateInflationDateRange() {
@@ -5027,7 +5624,8 @@
                 startDate,
                 endDate,
                 cycle: inflationCycle,
-                apiCycle: apiCycle
+                apiCycle: apiCycle,
+                countries: activeInflationCountries
             });
             
             const chartContainer = document.getElementById('inflation-chart-container');
@@ -5036,35 +5634,73 @@
             }
             
             try {
-                const url = `${API_BASE}/market/indices?type=inflation&itemCode=${selectedItem}&startDate=${startDate}&endDate=${endDate}&cycle=${apiCycle}`;
-                    console.log(`Fetching inflation data from: ${url}`);
-                const res = await fetch(url);
-                            if (!res.ok) {
-                                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                            }
-                const data = await res.json();
-                    if (data.error) {
-                    throw new Error(String(data.error));
+                // 1. 한국 데이터 조회 (기존 로직)
+                const koreaUrl = `${API_BASE}/market/indices?type=inflation&itemCode=${selectedItem}&startDate=${startDate}&endDate=${endDate}&cycle=${apiCycle}`;
+                console.log(`Fetching Korean inflation data from: ${koreaUrl}`);
+                const koreaRes = await fetch(koreaUrl);
+                if (!koreaRes.ok) {
+                    throw new Error(`HTTP ${koreaRes.status}: ${koreaRes.statusText}`);
                 }
-                if (!data.StatisticSearch || !Array.isArray(data.StatisticSearch.row)) {
+                const koreaData = await koreaRes.json();
+                if (koreaData.error) {
+                    throw new Error(String(koreaData.error));
+                }
+                if (!koreaData.StatisticSearch || !Array.isArray(koreaData.StatisticSearch.row)) {
                     throw new Error('Invalid API response (missing StatisticSearch.row)');
                 }
 
-                const processed = data.StatisticSearch.row.map(row => ({
-                            date: row.TIME,
+                const koreaProcessed = koreaData.StatisticSearch.row.map(row => ({
+                    date: row.TIME,
                     value: parseFloat(row.DATA_VALUE)
                 })).filter(item => Number.isFinite(item.value) && item.value > 0);
 
-                inflationData = { [selectedItem]: processed };
+                inflationData = { [selectedItem]: koreaProcessed };
+                
+                // 2. 선택된 국가들의 데이터 조회
+                if (activeInflationCountries.length > 0) {
+                    const countryFetchPromises = activeInflationCountries.map(async (itemCode) => {
+                        const url = `${API_BASE}/market/indices?type=cpi-international&itemCode=${itemCode}&startDate=${startDate}&endDate=${endDate}&cycle=${apiCycle}`;
+                        try {
+                            const res = await fetch(url);
+                            if (!res.ok) {
+                                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                            }
+                            const data = await res.json();
+                            if (data.error) {
+                                throw new Error(String(data.error));
+                            }
+                            if (!data.StatisticSearch || !Array.isArray(data.StatisticSearch.row)) {
+                                throw new Error('Invalid API response (missing StatisticSearch.row)');
+                            }
+                            
+                            const processed = data.StatisticSearch.row.map(row => ({
+                                date: row.TIME,
+                                value: parseFloat(row.DATA_VALUE)
+                            })).filter(item => Number.isFinite(item.value) && item.value > 0);
+                            
+                            return { itemCode, data: processed };
+                        } catch (err) {
+                            console.error(`Failed to fetch CPI data for country ${itemCode}:`, err);
+                            return { itemCode, data: [] };
+                        }
+                    });
+                    
+                    const countryResults = await Promise.all(countryFetchPromises);
+                    countryResults.forEach(({ itemCode, data }) => {
+                        inflationCountryData[itemCode] = data;
+                    });
+                } else {
+                    inflationCountryData = {};
+                }
 
                 // Update chart (지수 레벨 기준 렌더링)
                 updateInflationChart();
                 
-                // 헤더/통계는 원 지수값 기준 + 전월비/전기비(변화량/변화율) 계산
-                const stats = calculateInflationIndexStats(processed, inflationCycle);
+                // 헤더/통계는 한국 데이터 기준 + 전월비/전기비(변화량/변화율) 계산
+                const stats = calculateInflationIndexStats(koreaProcessed, inflationCycle);
                 if (stats && stats.hasData) {
                     updateInflationChartHeader(stats, selectedItem);
-                        } else {
+                } else {
                     updateInflationChartHeader({ current: 0, change: 0, changePercent: 0, high: 0, low: 0, average: 0, hasData: false }, selectedItem);
                 }
                 
@@ -5079,7 +5715,13 @@
         }
 
         function updateInflationChart() {
-            // 단일 선택 + MoM/QoQ(%)
+            const svg = document.getElementById('inflation-chart-svg');
+            const pointsGroup = document.getElementById('inflation-data-points');
+            const barGroup = document.getElementById('inflation-bar-chart');
+            
+            if (!svg || !pointsGroup) return;
+            
+            // 한국 항목 path 정리
             const allItems = ['CPI_TOTAL', 'CPI_FRESH', 'CPI_INDUSTRIAL'];
             allItems.forEach(itemCode => {
                 const path = document.getElementById(`path-inflation-${itemCode}`);
@@ -5088,42 +5730,163 @@
                     path.classList.remove('visible');
                 }
             });
-            const barGroup = document.getElementById('inflation-bar-chart');
-            const pointsGroup = document.getElementById('inflation-data-points');
+            
+            // 국가 path 정리
+            Object.keys(inflationCountryMapping).forEach(itemCode => {
+                let path = document.getElementById(`path-inflation-country-${itemCode}`);
+                if (path) {
+                    path.setAttribute('d', '');
+                    path.classList.remove('visible');
+                }
+            });
+            
             if (barGroup) barGroup.innerHTML = '';
             if (pointsGroup) pointsGroup.innerHTML = '';
 
             const selectedItem = activeInflationItems && activeInflationItems.length > 0 ? activeInflationItems[0] : null;
-            const rawSeriesUnsorted = selectedItem ? (inflationData[selectedItem] || []) : [];
-            const rawSeries = [...rawSeriesUnsorted].sort((a, b) => compareInflationDates(a.date, b.date, inflationCycle));
-
-            // 축/그래프는 지수 레벨(rawSeries) 기준
-            renderInflationYAxisLabels(rawSeries);
-
-            if (!selectedItem || rawSeries.length === 0) {
+            const koreaDataUnsorted = selectedItem ? (inflationData[selectedItem] || []) : [];
+            const koreaData = [...koreaDataUnsorted].sort((a, b) => compareInflationDates(a.date, b.date, inflationCycle));
+            
+            // 모든 데이터 병합 (한국 + 선택된 국가들)
+            const allData = [];
+            if (koreaData.length > 0) {
+                allData.push(...koreaData);
+            }
+            activeInflationCountries.forEach(itemCode => {
+                const countryData = inflationCountryData[itemCode] || [];
+                allData.push(...countryData);
+            });
+            
+            // 공통 날짜 목록 생성
+            const allDates = new Set();
+            if (koreaData.length > 0) {
+                koreaData.forEach(item => allDates.add(item.date));
+            }
+            activeInflationCountries.forEach(itemCode => {
+                const countryData = inflationCountryData[itemCode] || [];
+                countryData.forEach(item => allDates.add(item.date));
+            });
+            const sortedDates = Array.from(allDates).sort((a, b) => compareInflationDates(a, b, inflationCycle));
+            
+            // Y축 범위 계산 (모든 데이터 기반)
+            const allValues = allData.map(d => d.value).filter(v => Number.isFinite(v) && v > 0);
+            if (allValues.length > 0) {
+                const minValue = Math.min(...allValues);
+                const maxValue = Math.max(...allValues);
+                const range = maxValue - minValue || 1;
+                const paddingPercent = 0.05;
+                inflationYAxisRange = {
+                    min: Math.max(0, minValue - range * paddingPercent),
+                    max: maxValue + range * paddingPercent
+                };
+            } else {
+                inflationYAxisRange = { min: 0, max: 0 };
+            }
+            
+            // Y축 라벨 렌더링
+            renderInflationYAxisLabels(allData.length > 0 ? allData : koreaData);
+            
+            if (sortedDates.length === 0 && koreaData.length === 0) {
                 renderInflationXAxisLabels([], true);
                 setupInflationChartInteractivity();
                 return;
             }
             
-            const isLessThanTwo = rawSeries.length < 2;
+            // 한국 데이터 렌더링
+            if (koreaData.length > 0) {
+                const isLessThanTwo = koreaData.length < 2;
+                
+                if (isLessThanTwo) {
+                    // 1개: 막대 그래프
+                    renderInflationBarChart(koreaData, selectedItem);
+                } else {
+                    // 2개 이상: 라인 + 포인트
+                    const path = document.getElementById(`path-inflation-${selectedItem}`);
+                    if (path) {
+                        const pathData = generateInflationSVGPath(koreaData);
+                        path.setAttribute('d', pathData);
+                        path.classList.add('visible');
+                    }
+                    renderInflationDataPoints(koreaData, selectedItem);
+                }
+            }
             
-            if (isLessThanTwo) {
-                // 1개: 막대 그래프
-                renderInflationBarChart(rawSeries, selectedItem);
-            } else {
-                // 2개 이상: 라인 + 포인트
-                const path = document.getElementById(`path-inflation-${selectedItem}`);
-                if (path) {
-                    const pathData = generateInflationSVGPath(rawSeries);
+            // 국가 데이터 렌더링
+            activeInflationCountries.forEach(itemCode => {
+                const countryData = inflationCountryData[itemCode] || [];
+                if (countryData.length === 0) return;
+                
+                let path = document.getElementById(`path-inflation-country-${itemCode}`);
+                if (!path) {
+                    // path 요소 생성
+                    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.id = `path-inflation-country-${itemCode}`;
+                    path.classList.add('chart-path');
+                    path.setAttribute('stroke', getInflationCountryColor(itemCode));
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('stroke-dasharray', '5,5'); // 국가 데이터는 점선으로 구분
+                    path.setAttribute('fill', 'none');
+                    svg.insertBefore(path, pointsGroup);
+                }
+                
+                // 데이터를 공통 날짜 기준으로 정렬
+                const sortedData = sortedDates.map(date => {
+                    const found = countryData.find(item => item.date === date);
+                    return found || { date, value: null };
+                }).filter(item => item.value !== null);
+                
+                if (sortedData.length > 0) {
+                    const pathData = generateInflationSVGPath(sortedData);
                     path.setAttribute('d', pathData);
                     path.classList.add('visible');
                 }
-                renderInflationDataPoints(rawSeries, selectedItem);
-            }
-
-            renderInflationXAxisLabels(rawSeries, isLessThanTwo);
+                
+                // 국가 데이터 포인트 렌더링
+                renderInflationCountryDataPoints(countryData, itemCode);
+            });
+            
+            // X축 라벨 렌더링 (공통 날짜 사용)
+            const displayDates = sortedDates.length > 0 ? sortedDates : (koreaData.length > 0 ? koreaData.map(d => d.date) : []);
+            renderInflationXAxisLabels(displayDates, displayDates.length < 2);
             setupInflationChartInteractivity();
+        }
+        
+        function renderInflationCountryDataPoints(data, itemCode) {
+            const pointsGroup = document.getElementById('inflation-data-points');
+            if (!pointsGroup || !data || data.length === 0) return;
+            
+            const svg = document.getElementById('inflation-chart-svg');
+            if (!svg) return;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const minValue = inflationYAxisRange.min;
+            const maxValue = inflationYAxisRange.max;
+            const valueRange = maxValue - minValue || 1;
+            
+            const countryColor = getInflationCountryColor(itemCode);
+            
+            data.forEach((point, index) => {
+                const x = padding.left + (index / (data.length - 1 || 1)) * chartWidth;
+                const normalizedValue = (point.value - minValue) / valueRange;
+                const y = padding.top + (1 - normalizedValue) * chartHeight;
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', '4');
+                circle.setAttribute('fill', countryColor);
+                circle.setAttribute('stroke', '#fff');
+                circle.setAttribute('stroke-width', '1.5');
+                circle.setAttribute('data-date', point.date);
+                circle.setAttribute('data-value', point.value);
+                circle.setAttribute('data-country', itemCode);
+                circle.classList.add('data-point');
+                pointsGroup.appendChild(circle);
+            });
         }
 
         function generateInflationSVGPath(data) {
@@ -5391,7 +6154,31 @@
                     if (dataIndex >= 0 && dataIndex < data.length) {
                         const dataPoint = data[dataIndex];
                         const prevPoint = dataIndex > 0 ? data[dataIndex - 1] : null;
-                        showInflationTooltip(e, dataPoint, firstItem, prevPoint);
+                        
+                        // 활성화된 국가들의 데이터도 찾기
+                        const countryDataPoints = {};
+                        activeInflationCountries.forEach(itemCode => {
+                            const countryData = inflationCountryData[itemCode] || [];
+                            const sortedCountryData = [...countryData].sort((a, b) => compareInflationDates(a.date, b.date, inflationCycle));
+                            if (sortedCountryData.length > 0) {
+                                // 가장 가까운 날짜 찾기
+                                let closestPoint = sortedCountryData.find(d => d.date === dataPoint.date);
+                                if (!closestPoint && sortedCountryData.length > 0) {
+                                    // 정확한 매칭이 없으면 가장 가까운 날짜 찾기
+                                    const dateIndex = sortedCountryData.findIndex(d => compareInflationDates(d.date, dataPoint.date, inflationCycle) >= 0);
+                                    if (dateIndex >= 0) {
+                                        closestPoint = sortedCountryData[dateIndex];
+                                    } else {
+                                        closestPoint = sortedCountryData[sortedCountryData.length - 1];
+                                    }
+                                }
+                                if (closestPoint) {
+                                    countryDataPoints[itemCode] = closestPoint;
+                                }
+                            }
+                        });
+                        
+                        showInflationTooltip(e, dataPoint, firstItem, prevPoint, countryDataPoints);
                     } else {
                         hideInflationTooltip();
                     }
@@ -5406,7 +6193,7 @@
             chartContainer.addEventListener('mouseleave', inflationMouseLeaveHandler);
         }
 
-        function showInflationTooltip(event, dataPoint, itemCode, prevPoint = null) {
+        function showInflationTooltip(event, dataPoint, itemCode, prevPoint = null, countryDataPoints = {}) {
             const tooltip = document.getElementById('inflation-chart-tooltip');
             const tooltipDate = document.getElementById('inflation-tooltip-date');
             const tooltipContent = document.getElementById('inflation-tooltip-content');
@@ -5438,6 +6225,33 @@
                 `;
             }
             
+            // 활성화된 국가들의 지수 표시
+            let countryRows = '';
+            Object.keys(countryDataPoints).forEach(itemCode => {
+                const countryPoint = countryDataPoints[itemCode];
+                const countryInfo = inflationCountryMapping[itemCode];
+                const countryName = countryInfo ? countryInfo.name : itemCode;
+                const countryColor = getInflationCountryColor(itemCode);
+                
+                // CSS 변수를 실제 색상으로 변환
+                const tempEl = document.createElement('div');
+                tempEl.style.color = countryColor;
+                document.body.appendChild(tempEl);
+                const computedColor = window.getComputedStyle(tempEl).color;
+                document.body.removeChild(tempEl);
+                
+                const countryValueText = Number(countryPoint.value).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                countryRows += `
+                    <div class="chart-tooltip-item">
+                        <div class="chart-tooltip-currency">
+                            <div class="chart-tooltip-dot" style="background: ${computedColor};"></div>
+                            <span>${countryName}</span>
+                        </div>
+                        <span class="chart-tooltip-value">${countryValueText}</span>
+                    </div>
+                `;
+            });
+            
             tooltipContent.innerHTML = `
                 <div class="chart-tooltip-item">
                     <div class="chart-tooltip-currency">
@@ -5447,6 +6261,7 @@
                     <span class="chart-tooltip-value">${valueText}</span>
                 </div>
                 ${changeRow}
+                ${countryRows}
             `;
             
             // Position tooltip
@@ -7386,6 +8201,691 @@
         });
 
         // ============================================
+        // Economy Growth Rate Functions
+        // ============================================
+        
+        function initGDPGrowth() {
+            const startDateInput = document.getElementById('gdp-growth-start-date');
+            const endDateInput = document.getElementById('gdp-growth-end-date');
+            
+            if (startDateInput && endDateInput) {
+                const end = new Date();
+                const start = new Date();
+                // 분기별 기본값: 현재 분기를 포함해서 과거 8분기
+                start.setFullYear(end.getFullYear() - 2);
+                start.setMonth(0); // 1월
+                start.setDate(1);
+                
+                endDateInput.value = end.toISOString().split('T')[0];
+                startDateInput.value = start.toISOString().split('T')[0];
+                startDateInput.max = endDateInput.value;
+                endDateInput.max = endDateInput.value;
+                
+                startDateInput.addEventListener('change', () => {
+                    if (validateGDPGrowthDateRange()) {
+                        fetchGDPGrowthData();
+                    }
+                });
+                
+                endDateInput.addEventListener('change', () => {
+                    if (validateGDPGrowthDateRange()) {
+                        fetchGDPGrowthData();
+                    }
+                });
+            }
+            
+            // 국가 리스트 로드
+            fetchGDPGrowthCountryList().then(() => {
+                initGDPGrowthCountryChips();
+            }).catch(err => {
+                console.error('Failed to load GDP growth country list:', err);
+            });
+            
+            // Initial data fetch
+            fetchGDPGrowthData();
+            window.gdpGrowthDataLoaded = true;
+        }
+        
+        async function fetchGDPGrowthCountryList() {
+            try {
+                const url = `${API_BASE}/market/categories?category=gdp-growth-international`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.items && Object.keys(data.items).length > 0) {
+                        gdpGrowthCountryMapping = data.items;
+                        gdpGrowthCountryListLoaded = true;
+                        return gdpGrowthCountryMapping;
+                    }
+                }
+                
+                throw new Error('Failed to fetch country list from categories endpoint');
+                
+            } catch (err) {
+                console.error('Failed to fetch GDP growth country list:', err);
+                throw err;
+            }
+        }
+        
+        function initGDPGrowthCountryChips() {
+            const chipsContainer = document.getElementById('gdp-growth-country-chips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            const itemCodes = Object.keys(gdpGrowthCountryMapping);
+            if (itemCodes.length === 0) {
+                chipsContainer.innerHTML = '<span style="color: var(--text-sub); font-size: 0.8rem;">국가 리스트 로딩 중...</span>';
+                return;
+            }
+            
+            itemCodes.forEach(itemCode => {
+                const countryInfo = gdpGrowthCountryMapping[itemCode];
+                const chip = document.createElement('button');
+                chip.className = 'chip';
+                chip.setAttribute('data-item-code', itemCode);
+                chip.setAttribute('title', countryInfo.name);
+                
+                const isActive = activeGDPGrowthCountries.includes(itemCode);
+                if (isActive) {
+                    chip.classList.add('active');
+                }
+                
+                chip.appendChild(document.createTextNode(countryInfo.name));
+                chip.addEventListener('click', () => toggleGDPGrowthCountry(itemCode));
+                
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function toggleGDPGrowthCountry(itemCode) {
+            const index = activeGDPGrowthCountries.indexOf(itemCode);
+            if (index > -1) {
+                activeGDPGrowthCountries.splice(index, 1);
+            } else {
+                activeGDPGrowthCountries.push(itemCode);
+            }
+            
+            // UI 업데이트
+            const chip = document.querySelector(`#gdp-growth-country-chips [data-item-code="${itemCode}"]`);
+            if (chip) {
+                if (activeGDPGrowthCountries.includes(itemCode)) {
+                    chip.classList.add('active');
+                } else {
+                    chip.classList.remove('active');
+                }
+            }
+            
+            // 데이터 재조회
+            if (validateGDPGrowthDateRange()) {
+                fetchGDPGrowthData();
+            } else {
+                updateGDPGrowthChart();
+            }
+        }
+        
+        function validateGDPGrowthDateRange() {
+            const startDateInput = document.getElementById('gdp-growth-start-date');
+            const endDateInput = document.getElementById('gdp-growth-end-date');
+            
+            if (!startDateInput || !endDateInput) return false;
+            
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            if (startDate > endDate) {
+                alert('시작일은 종료일보다 앞서야 합니다.');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        async function fetchGDPGrowthData() {
+            if (!validateGDPGrowthDateRange()) return;
+            
+            const startDateInput = document.getElementById('gdp-growth-start-date');
+            const endDateInput = document.getElementById('gdp-growth-end-date');
+            
+            if (!startDateInput || !endDateInput) return;
+            
+            const startDate = formatDateForAPI(startDateInput.value);
+            const endDate = formatDateForAPI(endDateInput.value);
+            
+            const chartContainer = document.getElementById('gdp-growth-chart-container');
+            if (chartContainer) {
+                chartContainer.style.opacity = '0.5';
+            }
+            
+            try {
+                gdpGrowthCountryData = {};
+                
+                if (activeGDPGrowthCountries.length === 0) {
+                    updateGDPGrowthChart();
+                    if (chartContainer) {
+                        chartContainer.style.opacity = '1';
+                    }
+                    return;
+                }
+                
+                // 각 국가별로 API 호출
+                const fetchPromises = activeGDPGrowthCountries.map(async (itemCode) => {
+                    const url = `${API_BASE}/market/indices?type=gdp-growth-international&itemCode=${itemCode}&startDate=${startDate}&endDate=${endDate}&cycle=${gdpGrowthCycle}`;
+                    
+                    try {
+                        const response = await fetch(url);
+                        const json = await response.json();
+                        return { itemCode, data: json };
+                    } catch (err) {
+                        console.error(`Failed to fetch ${itemCode}:`, err);
+                        return { itemCode, data: { error: err.message } };
+                    }
+                });
+                
+                const results = await Promise.all(fetchPromises);
+                
+                results.forEach(({ itemCode, data }) => {
+                    if (!data.error && data.StatisticSearch?.row) {
+                        gdpGrowthCountryData[itemCode] = data.StatisticSearch.row.map(row => ({
+                            date: row.TIME,
+                            value: parseFloat(row.DATA_VALUE)
+                        })).filter(item => !isNaN(item.value));
+                    } else {
+                        gdpGrowthCountryData[itemCode] = [];
+                    }
+                });
+                
+                // 데이터 정렬 및 차트 업데이트
+                Object.keys(gdpGrowthCountryData).forEach(itemCode => {
+                    gdpGrowthCountryData[itemCode].sort((a, b) => {
+                        // YYYYQn 형식 정렬
+                        const aMatch = a.date.match(/^(\d{4})Q([1-4])$/);
+                        const bMatch = b.date.match(/^(\d{4})Q([1-4])$/);
+                        if (aMatch && bMatch) {
+                            const aYear = parseInt(aMatch[1]);
+                            const aQ = parseInt(aMatch[2]);
+                            const bYear = parseInt(bMatch[1]);
+                            const bQ = parseInt(bMatch[2]);
+                            if (aYear !== bYear) return aYear - bYear;
+                            return aQ - bQ;
+                        }
+                        return a.date.localeCompare(b.date);
+                    });
+                });
+                
+                updateGDPGrowthChart();
+                updateGDPGrowthChartHeader();
+                
+            } catch (err) {
+                console.error('Failed to fetch GDP growth data:', err);
+            } finally {
+                if (chartContainer) {
+                    chartContainer.style.opacity = '1';
+                }
+            }
+        }
+        
+        function updateGDPGrowthChart() {
+            const svg = document.getElementById('gdp-growth-chart-svg');
+            const pathsGroup = document.getElementById('gdp-growth-paths-group');
+            const pointsGroup = document.getElementById('gdp-growth-data-points');
+            
+            if (!svg || !pathsGroup || !pointsGroup) return;
+            
+            pathsGroup.innerHTML = '';
+            pointsGroup.innerHTML = '';
+            
+            if (activeGDPGrowthCountries.length === 0) {
+                renderGDPGrowthYAxisLabels();
+                renderGDPGrowthXAxisLabels();
+                return;
+            }
+            
+            // 모든 국가 데이터 병합하여 공통 날짜 목록 생성
+            const allDates = new Set();
+            Object.values(gdpGrowthCountryData).forEach(data => {
+                data.forEach(item => allDates.add(item.date));
+            });
+            const sortedDates = Array.from(allDates).sort((a, b) => {
+                const aMatch = a.match(/^(\d{4})Q([1-4])$/);
+                const bMatch = b.match(/^(\d{4})Q([1-4])$/);
+                if (aMatch && bMatch) {
+                    const aYear = parseInt(aMatch[1]);
+                    const aQ = parseInt(aMatch[2]);
+                    const bYear = parseInt(bMatch[1]);
+                    const bQ = parseInt(bMatch[2]);
+                    if (aYear !== bYear) return aYear - bYear;
+                    return aQ - bQ;
+                }
+                return a.localeCompare(b);
+            });
+            
+            if (sortedDates.length === 0) {
+                renderGDPGrowthYAxisLabels();
+                renderGDPGrowthXAxisLabels();
+                return;
+            }
+            
+            // Y축 범위 계산
+            const allValues = [];
+            Object.values(gdpGrowthCountryData).forEach(data => {
+                data.forEach(item => {
+                    if (!isNaN(item.value)) {
+                        allValues.push(item.value);
+                    }
+                });
+            });
+            
+            if (allValues.length > 0) {
+                const minValue = Math.min(...allValues);
+                const maxValue = Math.max(...allValues);
+                const range = maxValue - minValue || 1;
+                const paddingPercent = 0.1;
+                gdpGrowthYAxisRange = {
+                    min: minValue - range * paddingPercent,
+                    max: maxValue + range * paddingPercent
+                };
+            }
+            
+            // Y축 라벨 렌더링
+            renderGDPGrowthYAxisLabels();
+            
+            // 각 국가별 경로 렌더링
+            activeGDPGrowthCountries.forEach(itemCode => {
+                const countryData = gdpGrowthCountryData[itemCode] || [];
+                if (countryData.length === 0) return;
+                
+                // 데이터를 공통 날짜 기준으로 정렬
+                const sortedData = sortedDates.map(date => {
+                    const found = countryData.find(item => item.date === date);
+                    return found || { date, value: null };
+                }).filter(item => item.value !== null);
+                
+                if (sortedData.length > 0) {
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.classList.add('chart-path');
+                    path.setAttribute('stroke', getGDPGrowthCountryColor(itemCode));
+                    path.setAttribute('stroke-width', '2.5');
+                    path.setAttribute('fill', 'none');
+                    
+                    const pathData = generateGDPGrowthSVGPath(sortedData);
+                    path.setAttribute('d', pathData);
+                    path.classList.add('visible');
+                    
+                    pathsGroup.appendChild(path);
+                }
+            });
+            
+            // 데이터 포인트 렌더링
+            renderGDPGrowthDataPoints(sortedDates);
+            
+            // X축 라벨 렌더링
+            renderGDPGrowthXAxisLabels(sortedDates);
+            
+            // 인터랙티브 기능 설정
+            setupGDPGrowthChartInteractivity();
+        }
+        
+        function generateGDPGrowthSVGPath(data) {
+            if (!data || data.length === 0) return '';
+            
+            const svg = document.getElementById('gdp-growth-chart-svg');
+            if (!svg) return '';
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const minValue = gdpGrowthYAxisRange.min;
+            const maxValue = gdpGrowthYAxisRange.max;
+            const valueRange = maxValue - minValue || 1;
+            
+            let pathData = '';
+            data.forEach((point, index) => {
+                const x = padding.left + (index / (data.length - 1 || 1)) * chartWidth;
+                const normalizedValue = (point.value - minValue) / valueRange;
+                const y = padding.top + (1 - normalizedValue) * chartHeight;
+                
+                if (index === 0) {
+                    pathData = `M ${x},${y}`;
+                } else {
+                    pathData += ` L ${x},${y}`;
+                }
+            });
+            
+            return pathData;
+        }
+        
+        function renderGDPGrowthYAxisLabels() {
+            const yAxisGroup = document.getElementById('gdp-growth-y-axis-labels');
+            if (!yAxisGroup) return;
+            
+            yAxisGroup.innerHTML = '';
+            
+            const minValue = gdpGrowthYAxisRange.min;
+            const maxValue = gdpGrowthYAxisRange.max;
+            const steps = 5;
+            
+            for (let i = 0; i <= steps; i++) {
+                const value = maxValue - (i / steps) * (maxValue - minValue);
+                const y = 20 + (i / steps) * 330;
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', '30');
+                label.setAttribute('y', y);
+                label.setAttribute('class', 'chart-yaxis-label');
+                label.setAttribute('text-anchor', 'end');
+                label.setAttribute('dominant-baseline', 'middle');
+                label.textContent = value.toFixed(2) + '%';
+                
+                yAxisGroup.appendChild(label);
+            }
+        }
+        
+        function renderGDPGrowthXAxisLabels(sortedDates) {
+            const xAxisGroup = document.getElementById('gdp-growth-x-axis-labels');
+            if (!xAxisGroup || !sortedDates || sortedDates.length === 0) return;
+            
+            xAxisGroup.innerHTML = '';
+            
+            const svg = document.getElementById('gdp-growth-chart-svg');
+            if (!svg) return;
+            
+            const { width } = getSvgViewBoxSize(svg);
+            const padding = { left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            
+            const labelInterval = Math.max(1, Math.floor(sortedDates.length / 8));
+            
+            sortedDates.forEach((date, index) => {
+                if (index % labelInterval !== 0 && index !== sortedDates.length - 1) return;
+                
+                const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
+                const y = 370;
+                
+                let labelText = '';
+                const match = date.match(/^(\d{4})Q([1-4])$/);
+                if (match) {
+                    const year = match[1];
+                    const quarter = match[2];
+                    labelText = `${year.substring(2)}Q${quarter}`;
+                } else {
+                    labelText = date;
+                }
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', x);
+                label.setAttribute('y', y);
+                label.setAttribute('class', 'chart-xaxis-label');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('dominant-baseline', 'middle');
+                label.textContent = labelText;
+                
+                xAxisGroup.appendChild(label);
+            });
+        }
+        
+        function renderGDPGrowthDataPoints(sortedDates) {
+            const pointsGroup = document.getElementById('gdp-growth-data-points');
+            if (!pointsGroup) return;
+            
+            const svg = document.getElementById('gdp-growth-chart-svg');
+            if (!svg) return;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const minValue = gdpGrowthYAxisRange.min;
+            const maxValue = gdpGrowthYAxisRange.max;
+            const valueRange = maxValue - minValue || 1;
+            
+            activeGDPGrowthCountries.forEach(itemCode => {
+                const countryData = gdpGrowthCountryData[itemCode] || [];
+                const countryColor = getGDPGrowthCountryColor(itemCode);
+                
+                const sortedData = sortedDates.map(date => {
+                    const found = countryData.find(item => item.date === date);
+                    return found || { date, value: null };
+                }).filter(item => item.value !== null);
+                
+                sortedData.forEach((point, index) => {
+                    const x = padding.left + (index / (sortedData.length - 1 || 1)) * chartWidth;
+                    const normalizedValue = (point.value - minValue) / valueRange;
+                    const y = padding.top + (1 - normalizedValue) * chartHeight;
+                    
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', x);
+                    circle.setAttribute('cy', y);
+                    circle.setAttribute('r', '4');
+                    circle.setAttribute('fill', countryColor);
+                    circle.setAttribute('stroke', '#fff');
+                    circle.setAttribute('stroke-width', '1.5');
+                    circle.setAttribute('data-date', point.date);
+                    circle.setAttribute('data-value', point.value);
+                    circle.setAttribute('data-country', itemCode);
+                    circle.classList.add('data-point');
+                    pointsGroup.appendChild(circle);
+                });
+            });
+        }
+        
+        function getGDPGrowthCountryColor(itemCode) {
+            // 간단한 색상 매핑 (필요시 확장)
+            const colors = [
+                'var(--c-interest-kor)', 'var(--c-interest-usa)', 'var(--c-interest-jpn)',
+                'var(--c-interest-chn)', 'var(--c-interest-gbr)', 'var(--c-interest-deu)',
+                'var(--c-interest-fra)', 'var(--c-interest-ita)', 'var(--c-interest-can)',
+                'var(--c-interest-aus)', 'var(--c-interest-bra)', 'var(--c-interest-ind)'
+            ];
+            const index = Object.keys(gdpGrowthCountryMapping).indexOf(itemCode);
+            return colors[index % colors.length] || 'var(--accent-color)';
+        }
+        
+        function updateGDPGrowthChartHeader() {
+            if (activeGDPGrowthCountries.length === 0) {
+                const titleEl = document.getElementById('gdp-growth-chart-main-title');
+                const valueEl = document.getElementById('gdp-growth-chart-main-value');
+                if (titleEl) titleEl.textContent = 'Economy Growth Rate';
+                if (valueEl) valueEl.textContent = '-';
+                return;
+            }
+            
+            // 첫 번째 국가의 데이터 사용
+            const firstCountry = activeGDPGrowthCountries[0];
+            const firstCountryData = gdpGrowthCountryData[firstCountry] || [];
+            
+            if (firstCountryData.length === 0) {
+                const titleEl = document.getElementById('gdp-growth-chart-main-title');
+                const valueEl = document.getElementById('gdp-growth-chart-main-value');
+                const countryInfo = gdpGrowthCountryMapping[firstCountry];
+                const countryName = countryInfo ? countryInfo.name : firstCountry;
+                if (titleEl) titleEl.textContent = `${countryName} Economy Growth Rate`;
+                if (valueEl) valueEl.textContent = '-';
+                return;
+            }
+            
+            const values = firstCountryData.map(item => item.value).filter(v => !isNaN(v));
+            if (values.length === 0) return;
+            
+            const current = values[values.length - 1];
+            const high = Math.max(...values);
+            const low = Math.min(...values);
+            const average = values.reduce((sum, v) => sum + v, 0) / values.length;
+            
+            const countryInfo = gdpGrowthCountryMapping[firstCountry];
+            const countryName = countryInfo ? countryInfo.name : firstCountry;
+            
+            const titleEl = document.getElementById('gdp-growth-chart-main-title');
+            const valueEl = document.getElementById('gdp-growth-chart-main-value');
+            const highEl = document.getElementById('gdp-growth-stat-high');
+            const lowEl = document.getElementById('gdp-growth-stat-low');
+            const avgEl = document.getElementById('gdp-growth-stat-average');
+            
+            if (titleEl) titleEl.textContent = `${countryName} Economy Growth Rate`;
+            if (valueEl) valueEl.textContent = current.toFixed(2) + '%';
+            if (highEl) highEl.textContent = high.toFixed(2) + '%';
+            if (lowEl) lowEl.textContent = low.toFixed(2) + '%';
+            if (avgEl) avgEl.textContent = average.toFixed(2) + '%';
+        }
+        
+        let gdpGrowthMouseMoveHandler = null;
+        let gdpGrowthMouseLeaveHandler = null;
+        
+        function setupGDPGrowthChartInteractivity() {
+            const chartContainer = document.getElementById('gdp-growth-chart-container');
+            const svg = document.getElementById('gdp-growth-chart-svg');
+            
+            if (!chartContainer || !svg) return;
+            
+            const tooltip = document.getElementById('gdp-growth-chart-tooltip');
+            if (tooltip && tooltip.parentElement !== document.body) {
+                document.body.appendChild(tooltip);
+            }
+            
+            if (gdpGrowthMouseMoveHandler) {
+                chartContainer.removeEventListener('mousemove', gdpGrowthMouseMoveHandler);
+            }
+            if (gdpGrowthMouseLeaveHandler) {
+                chartContainer.removeEventListener('mouseleave', gdpGrowthMouseLeaveHandler);
+            }
+            
+            let rafId = null;
+            
+            gdpGrowthMouseMoveHandler = (e) => {
+                if (rafId) return;
+                rafId = requestAnimationFrame(() => {
+                    rafId = null;
+                    
+                    const allDates = new Set();
+                    Object.values(gdpGrowthCountryData).forEach(data => {
+                        data.forEach(item => allDates.add(item.date));
+                    });
+                    const sortedDates = Array.from(allDates).sort((a, b) => {
+                        const aMatch = a.match(/^(\d{4})Q([1-4])$/);
+                        const bMatch = b.match(/^(\d{4})Q([1-4])$/);
+                        if (aMatch && bMatch) {
+                            const aYear = parseInt(aMatch[1]);
+                            const aQ = parseInt(aMatch[2]);
+                            const bYear = parseInt(bMatch[1]);
+                            const bQ = parseInt(bMatch[2]);
+                            if (aYear !== bYear) return aYear - bYear;
+                            return aQ - bQ;
+                        }
+                        return a.localeCompare(b);
+                    });
+                    
+                    if (sortedDates.length === 0) {
+                        hideGDPGrowthTooltip();
+                        return;
+                    }
+                    
+                    const rect = chartContainer.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const svgX = (x / rect.width) * 1200;
+                    
+                    const padding = { left: 40, right: 20 };
+                    const chartWidth = 1200 - padding.left - padding.right;
+                    const dataIndex = Math.round(((svgX - padding.left) / chartWidth) * (sortedDates.length - 1));
+                    
+                    if (dataIndex >= 0 && dataIndex < sortedDates.length) {
+                        const date = sortedDates[dataIndex];
+                        showGDPGrowthTooltip(e, date);
+                    } else {
+                        hideGDPGrowthTooltip();
+                    }
+                });
+            };
+            
+            gdpGrowthMouseLeaveHandler = () => {
+                hideGDPGrowthTooltip();
+            };
+            
+            chartContainer.addEventListener('mousemove', gdpGrowthMouseMoveHandler);
+            chartContainer.addEventListener('mouseleave', gdpGrowthMouseLeaveHandler);
+        }
+        
+        function showGDPGrowthTooltip(event, date) {
+            const tooltip = document.getElementById('gdp-growth-chart-tooltip');
+            const tooltipDate = document.getElementById('gdp-growth-tooltip-date');
+            const tooltipContent = document.getElementById('gdp-growth-tooltip-content');
+            
+            if (!tooltip || !tooltipDate || !tooltipContent) return;
+            
+            const match = date.match(/^(\d{4})Q([1-4])$/);
+            let formattedDate = date;
+            if (match) {
+                const year = match[1];
+                const quarter = match[2];
+                formattedDate = `Q${quarter}-${year}`;
+            }
+            
+            tooltipDate.textContent = formattedDate;
+            
+            let contentHtml = '';
+            activeGDPGrowthCountries.forEach(itemCode => {
+                const countryData = gdpGrowthCountryData[itemCode];
+                if (!countryData) return;
+                
+                const item = countryData.find(d => d.date === date);
+                if (item) {
+                    const countryInfo = gdpGrowthCountryMapping[itemCode];
+                    const countryName = countryInfo ? countryInfo.name : itemCode;
+                    const countryColor = getGDPGrowthCountryColor(itemCode);
+                    
+                    const tempEl = document.createElement('div');
+                    tempEl.style.color = countryColor;
+                    document.body.appendChild(tempEl);
+                    const computedColor = window.getComputedStyle(tempEl).color;
+                    document.body.removeChild(tempEl);
+                    
+                    contentHtml += `
+                        <div class="chart-tooltip-item">
+                            <div class="chart-tooltip-currency">
+                                <div class="chart-tooltip-dot" style="background: ${computedColor};"></div>
+                                <span>${countryName}</span>
+                            </div>
+                            <span class="chart-tooltip-value">${item.value.toFixed(2)}%</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            tooltipContent.innerHTML = contentHtml;
+            
+            // Position tooltip
+            const rect = tooltip.getBoundingClientRect();
+            const tooltipWidth = rect.width;
+            const tooltipHeight = rect.height;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let left = event.clientX + 10;
+            let top = event.clientY + 10;
+            
+            if (left + tooltipWidth > viewportWidth) {
+                left = event.clientX - tooltipWidth - 10;
+            }
+            if (top + tooltipHeight > viewportHeight) {
+                top = event.clientY - tooltipHeight - 10;
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            tooltip.style.display = 'block';
+        }
+        
+        function hideGDPGrowthTooltip() {
+            const tooltip = document.getElementById('gdp-growth-chart-tooltip');
+            if (tooltip) {
+                tooltip.style.display = 'none';
+            }
+        }
+
+        // ============================================
         // Trade Statistics Functions
         // ============================================
 
@@ -7480,9 +8980,102 @@
             if (exportChip) exportChip.classList.add('active');
             if (importChip) importChip.classList.add('active');
             
+            // 국가 리스트 로드
+            fetchTradeCountryList().then(() => {
+                initTradeCountryChips();
+            }).catch(err => {
+                console.error('Failed to load trade country list:', err);
+            });
+            
             // Initial data fetch
             fetchTradeData();
             window.tradeDataLoaded = true;
+        }
+        
+        // International Trade Functions
+        async function fetchTradeCountryList() {
+            try {
+                // 수출 카테고리에서 국가 리스트 가져오기
+                const url = `${API_BASE}/market/categories?category=export-international`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.items && Object.keys(data.items).length > 0) {
+                        tradeCountryMapping = data.items;
+                        return tradeCountryMapping;
+                    }
+                }
+                
+                throw new Error('Failed to fetch country list from categories endpoint');
+                
+            } catch (err) {
+                console.error('Failed to fetch trade country list:', err);
+                throw err;
+            }
+        }
+        
+        function initTradeCountryChips() {
+            const chipsContainer = document.getElementById('trade-country-chips');
+            if (!chipsContainer) return;
+            
+            chipsContainer.innerHTML = '';
+            
+            const itemCodes = Object.keys(tradeCountryMapping);
+            if (itemCodes.length === 0) {
+                chipsContainer.innerHTML = '<span style="color: var(--text-sub); font-size: 0.8rem;">국가 리스트 로딩 중...</span>';
+                return;
+            }
+            
+            itemCodes.forEach(itemCode => {
+                const countryInfo = tradeCountryMapping[itemCode];
+                const chip = document.createElement('button');
+                chip.className = 'chip';
+                chip.setAttribute('data-item-code', itemCode);
+                chip.setAttribute('title', countryInfo.name);
+                
+                const isActive = activeTradeCountry === itemCode;
+                if (isActive) {
+                    chip.classList.add('active');
+                }
+                
+                chip.appendChild(document.createTextNode(countryInfo.name));
+                chip.addEventListener('click', () => toggleTradeCountry(itemCode));
+                
+                chipsContainer.appendChild(chip);
+            });
+        }
+        
+        function toggleTradeCountry(itemCode) {
+            // 단일 선택: 이전 선택 해제 후 새로 선택
+            if (activeTradeCountry === itemCode) {
+                // 같은 국가를 다시 클릭하면 해제
+                activeTradeCountry = null;
+                tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] };
+            } else {
+                activeTradeCountry = itemCode;
+            }
+            
+            // UI 업데이트
+            document.querySelectorAll('#trade-country-chips .chip').forEach(chip => {
+                const chipItemCode = chip.getAttribute('data-item-code');
+                if (chipItemCode === itemCode) {
+                    if (activeTradeCountry === itemCode) {
+                        chip.classList.add('active');
+                    } else {
+                        chip.classList.remove('active');
+                    }
+                } else {
+                    chip.classList.remove('active');
+                }
+            });
+            
+            // 데이터 재조회
+            if (validateTradeDateRange()) {
+                fetchTradeData();
+            } else {
+                updateTradeChart();
+            }
         }
 
         function validateTradeDateRange() {
@@ -7591,6 +9184,59 @@
                 
                 // 무역수지 계산
                 calculateTradeBalance();
+                
+                // 선택된 국가의 데이터 가져오기
+                if (activeTradeCountry) {
+                    try {
+                        const countryExportUrl = `${API_BASE}/market/indices?type=export-international&itemCode=${activeTradeCountry}&startDate=${startDate}&endDate=${endDate}&cycle=${tradeCycle}`;
+                        const countryImportUrl = `${API_BASE}/market/indices?type=import-international&itemCode=${activeTradeCountry}&startDate=${startDate}&endDate=${endDate}&cycle=${tradeCycle}`;
+                        
+                        const [countryExportResponse, countryImportResponse] = await Promise.all([
+                            fetch(countryExportUrl),
+                            fetch(countryImportUrl)
+                        ]);
+                        
+                        tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] };
+                        
+                        if (countryExportResponse.ok) {
+                            const countryExportData = await countryExportResponse.json();
+                            if (!countryExportData.error && countryExportData.StatisticSearch?.row) {
+                                tradeCountryData.EXPORT = countryExportData.StatisticSearch.row.map(row => ({
+                                    date: row.TIME,
+                                    value: parseFloat(row.DATA_VALUE)
+                                })).filter(item => !isNaN(item.value) && item.value > 0);
+                            }
+                        }
+                        
+                        if (countryImportResponse.ok) {
+                            const countryImportData = await countryImportResponse.json();
+                            if (!countryImportData.error && countryImportData.StatisticSearch?.row) {
+                                tradeCountryData.IMPORT = countryImportData.StatisticSearch.row.map(row => ({
+                                    date: row.TIME,
+                                    value: parseFloat(row.DATA_VALUE)
+                                })).filter(item => !isNaN(item.value) && item.value > 0);
+                            }
+                        }
+                        
+                        // 국가 무역수지 계산
+                        const exportMap = new Map();
+                        tradeCountryData.EXPORT.forEach(item => exportMap.set(item.date, item.value));
+                        const importMap = new Map();
+                        tradeCountryData.IMPORT.forEach(item => importMap.set(item.date, item.value));
+                        
+                        const allDates = new Set([...exportMap.keys(), ...importMap.keys()]);
+                        tradeCountryData.BALANCE = Array.from(allDates).map(date => ({
+                            date: date,
+                            value: (exportMap.get(date) || 0) - (importMap.get(date) || 0)
+                        })).sort((a, b) => a.date.localeCompare(b.date));
+                        
+                    } catch (err) {
+                        console.error('Failed to fetch country trade data:', err);
+                        tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] };
+                    }
+                } else {
+                    tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] };
+                }
                 
                 // 통화에 따라 차트 및 헤더 업데이트
                 updateTradeChart();
@@ -7959,11 +9605,23 @@
             barsGroup.innerHTML = '';
             pointsGroup.innerHTML = '';
             
-            // Get active data (통화에 따라 다른 데이터 사용)
-            const activeData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
-            const hasExport = activeTradeIndicators.includes('EXPORT') && activeData.EXPORT.length > 0;
-            const hasImport = activeTradeIndicators.includes('IMPORT') && activeData.IMPORT.length > 0;
-            const hasBalance = activeTradeIndicators.includes('BALANCE') && activeData.BALANCE && activeData.BALANCE.length > 0;
+            // 국가가 선택된 경우 국가 데이터 사용, 아니면 한국 데이터 사용
+            let displayData;
+            if (activeTradeCountry && tradeCountryData.EXPORT.length > 0) {
+                // 국가 데이터 사용
+                displayData = {
+                    EXPORT: tradeCountryData.EXPORT,
+                    IMPORT: tradeCountryData.IMPORT,
+                    BALANCE: tradeCountryData.BALANCE
+                };
+            } else {
+                // 한국 데이터 사용
+                displayData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
+            }
+            
+            const hasExport = activeTradeIndicators.includes('EXPORT') && displayData.EXPORT.length > 0;
+            const hasImport = activeTradeIndicators.includes('IMPORT') && displayData.IMPORT.length > 0;
+            const hasBalance = activeTradeIndicators.includes('BALANCE') && displayData.BALANCE && displayData.BALANCE.length > 0;
             
             if (!hasExport && !hasImport && !hasBalance) {
                 renderTradeYAxisLabelsLeft();
@@ -7972,42 +9630,229 @@
                 return;
             }
             
+            // Y축 범위 계산 (표시할 데이터 기반)
+            const allAmountValues = [];
+            if (hasExport) displayData.EXPORT.forEach(item => allAmountValues.push(item.value));
+            if (hasImport) displayData.IMPORT.forEach(item => allAmountValues.push(item.value));
+            
+            if (allAmountValues.length > 0) {
+                const minValue = Math.min(...allAmountValues);
+                const maxValue = Math.max(...allAmountValues);
+                const range = maxValue - minValue || 1;
+                const paddingPercent = range < 10 ? 0.1 : (range < 50 ? 0.05 : 0.03);
+                tradeYAxisRange = {
+                    min: Math.max(0, minValue - range * paddingPercent),
+                    max: maxValue + range * paddingPercent
+                };
+            }
+            
             // Render Y-axis labels (이중 Y축)
             renderTradeYAxisLabelsLeft();
             renderTradeYAxisLabelsRight();
             
             // Render bar charts (수출/수입 금액 - 왼쪽 Y축)
-            renderTradeBars();
+            renderTradeBarsForData(displayData);
             
-            // Render line charts (증감률 - 오른쪽 Y축)
-            const growthRates = calculateTradeGrowthRates();
-            if (hasExport && growthRates.length >= 2) {
-                const exportGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'export');
-                exportGrowthPath.setAttribute('d', exportGrowthPathData);
-                exportGrowthPath.classList.add('visible');
+            // Render line charts (증감률 - 오른쪽 Y축) - 한국 데이터만
+            if (!activeTradeCountry) {
+                const growthRates = calculateTradeGrowthRates();
+                if (hasExport && growthRates.length >= 2) {
+                    const exportGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'export');
+                    exportGrowthPath.setAttribute('d', exportGrowthPathData);
+                    exportGrowthPath.classList.add('visible');
+                } else {
+                    exportGrowthPath.classList.remove('visible');
+                }
+                
+                if (hasImport && growthRates.length >= 2) {
+                    const importGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'import');
+                    importGrowthPath.setAttribute('d', importGrowthPathData);
+                    importGrowthPath.classList.add('visible');
+                } else {
+                    importGrowthPath.classList.remove('visible');
+                }
+                
+                // Render data points for line chart
+                renderTradeGrowthDataPoints(growthRates);
             } else {
                 exportGrowthPath.classList.remove('visible');
-            }
-            
-            if (hasImport && growthRates.length >= 2) {
-                const importGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'import');
-                importGrowthPath.setAttribute('d', importGrowthPathData);
-                importGrowthPath.classList.add('visible');
-            } else {
                 importGrowthPath.classList.remove('visible');
             }
             
-            // Render data points for line chart
-            renderTradeGrowthDataPoints(growthRates);
-            
             // Render trade balance line
-            renderTradeBalance();
+            renderTradeBalanceForData(displayData);
             
             // Render X-axis labels
-            renderTradeXAxisLabels();
+            renderTradeXAxisLabelsForData(displayData);
             
             // Setup interactivity
             setupTradeChartInteractivity();
+        }
+        
+        function renderTradeBarsForData(data) {
+            const barsGroup = document.getElementById('trade-bars-group');
+            if (!barsGroup) return;
+            
+            barsGroup.innerHTML = '';
+            
+            const hasExport = activeTradeIndicators.includes('EXPORT') && data.EXPORT.length > 0;
+            const hasImport = activeTradeIndicators.includes('IMPORT') && data.IMPORT.length > 0;
+            
+            if (!hasExport && !hasImport) return;
+            
+            const svg = document.getElementById('trade-chart-svg');
+            if (!svg) return;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            // 모든 날짜 수집
+            const allDates = new Set([
+                ...data.EXPORT.map(item => item.date),
+                ...data.IMPORT.map(item => item.date)
+            ]);
+            const sortedDates = Array.from(allDates).sort();
+            
+            const valueRange = tradeYAxisRange.max - tradeYAxisRange.min || 1;
+            const barWidth = Math.min(30, chartWidth / sortedDates.length * 0.3);
+            const barSpacing = chartWidth / sortedDates.length;
+            
+            sortedDates.forEach((date, index) => {
+                const x = padding.left + (index * barSpacing) + (barSpacing / 2) - (barWidth / 2);
+                const exportItem = data.EXPORT.find(item => item.date === date);
+                const importItem = data.IMPORT.find(item => item.date === date);
+                
+                if (hasExport && exportItem) {
+                    const exportHeight = (exportItem.value / tradeYAxisRange.max) * chartHeight;
+                    const exportY = padding.top + chartHeight - exportHeight;
+                    
+                    const exportBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    exportBar.setAttribute('x', x);
+                    exportBar.setAttribute('y', exportY);
+                    exportBar.setAttribute('width', barWidth);
+                    exportBar.setAttribute('height', exportHeight);
+                    exportBar.setAttribute('fill', 'var(--c-trade-export)');
+                    exportBar.setAttribute('opacity', '0.8');
+                    exportBar.setAttribute('data-date', date);
+                    exportBar.setAttribute('data-value', exportItem.value);
+                    exportBar.setAttribute('data-type', 'EXPORT');
+                    barsGroup.appendChild(exportBar);
+                }
+                
+                if (hasImport && importItem) {
+                    const importX = hasExport ? x + barWidth : x;
+                    const importHeight = (importItem.value / tradeYAxisRange.max) * chartHeight;
+                    const importY = padding.top + chartHeight - importHeight;
+                    
+                    const importBar = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    importBar.setAttribute('x', importX);
+                    importBar.setAttribute('y', importY);
+                    importBar.setAttribute('width', barWidth);
+                    importBar.setAttribute('height', importHeight);
+                    importBar.setAttribute('fill', 'var(--c-trade-import)');
+                    importBar.setAttribute('opacity', '0.8');
+                    importBar.setAttribute('data-date', date);
+                    importBar.setAttribute('data-value', importItem.value);
+                    importBar.setAttribute('data-type', 'IMPORT');
+                    barsGroup.appendChild(importBar);
+                }
+            });
+        }
+        
+        function renderTradeBalanceForData(data) {
+            const balancePath = document.getElementById('path-trade-balance');
+            if (!balancePath || !activeTradeIndicators.includes('BALANCE') || !data.BALANCE || data.BALANCE.length === 0) {
+                if (balancePath) balancePath.style.display = 'none';
+                return;
+            }
+            
+            balancePath.style.display = 'block';
+            
+            const svg = document.getElementById('trade-chart-svg');
+            if (!svg) return;
+            
+            const { width, height } = getSvgViewBoxSize(svg);
+            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            // 무역수지 범위 계산
+            const balanceValues = data.BALANCE.map(item => item.value);
+            const minBalance = Math.min(...balanceValues);
+            const maxBalance = Math.max(...balanceValues);
+            const balanceRange = maxBalance - minBalance || 1;
+            
+            let pathData = '';
+            data.BALANCE.forEach((point, index) => {
+                const x = padding.left + (index / (data.BALANCE.length - 1 || 1)) * chartWidth;
+                const normalizedValue = (point.value - minBalance) / balanceRange;
+                const y = padding.top + (1 - normalizedValue) * chartHeight;
+                
+                if (index === 0) {
+                    pathData = `M ${x},${y}`;
+                } else {
+                    pathData += ` L ${x},${y}`;
+                }
+            });
+            
+            balancePath.setAttribute('d', pathData);
+            balancePath.setAttribute('stroke', 'var(--c-trade-balance-surplus)');
+        }
+        
+        function renderTradeXAxisLabelsForData(data) {
+            const xAxisGroup = document.getElementById('trade-x-axis-labels');
+            if (!xAxisGroup) return;
+            
+            xAxisGroup.innerHTML = '';
+            
+            const allDates = new Set([
+                ...data.EXPORT.map(item => item.date),
+                ...data.IMPORT.map(item => item.date)
+            ]);
+            const sortedDates = Array.from(allDates).sort();
+            
+            if (sortedDates.length === 0) return;
+            
+            const svg = document.getElementById('trade-chart-svg');
+            if (!svg) return;
+            
+            const { width } = getSvgViewBoxSize(svg);
+            const padding = { left: 40, right: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            
+            const labelInterval = Math.max(1, Math.floor(sortedDates.length / 8));
+            
+            sortedDates.forEach((date, index) => {
+                if (index % labelInterval !== 0 && index !== sortedDates.length - 1) return;
+                
+                const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
+                const y = 370;
+                
+                let labelText = '';
+                if (tradeCycle === 'M' && date.length === 6) {
+                    const year = date.substring(0, 4);
+                    const month = date.substring(4, 6);
+                    labelText = `${year.substring(2)}.${month}`;
+                } else if (tradeCycle === 'Q' && date.includes('Q')) {
+                    const year = date.substring(0, 4);
+                    const quarter = date.substring(5);
+                    labelText = `${year.substring(2)}Q${quarter}`;
+                } else {
+                    labelText = date;
+                }
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', x);
+                label.setAttribute('y', y);
+                label.setAttribute('class', 'chart-xaxis-label');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('dominant-baseline', 'middle');
+                label.textContent = labelText;
+                
+                xAxisGroup.appendChild(label);
+            });
         }
 
         function generateTradeSVGPath(data) {
@@ -8105,8 +9950,11 @@
             
             yAxisGroup.innerHTML = '';
             
-            const ranges = calculateDualYAxisRanges();
-            tradeYAxisRange = ranges.left;
+            // 국가 데이터가 있으면 tradeYAxisRange 사용, 없으면 calculateDualYAxisRanges 사용
+            if (!activeTradeCountry || tradeCountryData.EXPORT.length === 0) {
+                const ranges = calculateDualYAxisRanges();
+                tradeYAxisRange = ranges.left;
+            }
             
             const steps = 5;
             const { width, height } = getSvgViewBoxSize(document.getElementById('trade-chart-svg'));
@@ -8528,7 +10376,13 @@
             // 헤더는 제목만 표시
             const titleEl = document.getElementById('trade-chart-main-title');
             if (titleEl) {
-                titleEl.textContent = '수출입실적';
+                if (activeTradeCountry) {
+                    const countryInfo = tradeCountryMapping[activeTradeCountry];
+                    const countryName = countryInfo ? countryInfo.name : activeTradeCountry;
+                    titleEl.textContent = `${countryName} 수출입실적`;
+                } else {
+                    titleEl.textContent = '수출입실적';
+                }
             }
         }
 
@@ -8561,14 +10415,20 @@
                 rafId = requestAnimationFrame(() => {
                     rafId = null;
                     
-                    // 통화에 따라 다른 데이터 사용
-                    const activeData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
-                    const allData = [];
-                    if (activeTradeIndicators.includes('EXPORT') && activeData.EXPORT.length > 0) {
-                        allData.push(...activeData.EXPORT.map(item => ({...item, type: 'EXPORT'})));
+                    // 국가가 선택된 경우 국가 데이터 사용, 아니면 한국 데이터 사용
+                    let displayData;
+                    if (activeTradeCountry && tradeCountryData.EXPORT.length > 0) {
+                        displayData = tradeCountryData;
+                    } else {
+                        displayData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
                     }
-                    if (activeTradeIndicators.includes('IMPORT') && activeData.IMPORT.length > 0) {
-                        allData.push(...activeData.IMPORT.map(item => ({...item, type: 'IMPORT'})));
+                    
+                    const allData = [];
+                    if (activeTradeIndicators.includes('EXPORT') && displayData.EXPORT.length > 0) {
+                        allData.push(...displayData.EXPORT.map(item => ({...item, type: 'EXPORT'})));
+                    }
+                    if (activeTradeIndicators.includes('IMPORT') && displayData.IMPORT.length > 0) {
+                        allData.push(...displayData.IMPORT.map(item => ({...item, type: 'IMPORT'})));
                     }
                     
                     if (allData.length === 0) {
@@ -8585,8 +10445,8 @@
                     
                     // 모든 날짜 수집
                     const allDates = new Set([
-                        ...activeData.EXPORT.map(item => item.date),
-                        ...activeData.IMPORT.map(item => item.date)
+                        ...displayData.EXPORT.map(item => item.date),
+                        ...displayData.IMPORT.map(item => item.date)
                     ]);
                     const sortedDates = Array.from(allDates).sort();
                     
@@ -8599,10 +10459,11 @@
                     
                     if (dataIndex >= 0 && dataIndex < sortedDates.length) {
                         const date = sortedDates[dataIndex];
-                        const exportPoint = activeData.EXPORT.find(p => p.date === date);
-                        const importPoint = activeData.IMPORT.find(p => p.date === date);
+                        const exportPoint = displayData.EXPORT.find(p => p.date === date);
+                        const importPoint = displayData.IMPORT.find(p => p.date === date);
+                        const balancePoint = displayData.BALANCE?.find(p => p.date === date);
                         
-                        showTradeTooltip(e, { date, exportPoint, importPoint });
+                        showTradeTooltip(e, { date, exportPoint, importPoint, balancePoint, isCountry: !!activeTradeCountry });
                     } else {
                         hideTradeTooltip();
                     }
@@ -8637,14 +10498,19 @@
             // Build content - 막대 그래프(금액) + 선 그래프(증감률) + 무역수지
             let contentHtml = '';
             
-            const activeData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
-            const growthRates = calculateTradeGrowthRates();
-            const growthData = growthRates.find(item => item.date === data.date);
-            const yoyRates = calculateTradeYoYGrowthRates();
-            const yoyData = yoyRates.find(item => item.date === data.date);
+            // 국가 데이터인 경우 증감률 계산 생략
+            let growthData = null;
+            let yoyData = null;
+            if (!data.isCountry) {
+                const activeData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
+                const growthRates = calculateTradeGrowthRates();
+                growthData = growthRates.find(item => item.date === data.date);
+                const yoyRates = calculateTradeYoYGrowthRates();
+                yoyData = yoyRates.find(item => item.date === data.date);
+            }
             
-            // 무역수지 데이터
-            const balanceData = activeData.BALANCE?.find(item => item.date === data.date);
+            // 무역수지 데이터 (국가 데이터 또는 한국 데이터)
+            const balanceData = data.balancePoint || (tradeCurrency === 'USD' ? tradeData : tradeDataKRW).BALANCE?.find(item => item.date === data.date);
             
             // 막대 그래프 데이터 (금액) - 구분선 추가
             let hasAmountData = false;
@@ -8681,9 +10547,10 @@
                 if (hasAmountData) {
                     contentHtml += `<div style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 8px 0 4px 0;"></div>`;
                 }
-                const balanceColor = balanceData.status === 'SURPLUS' ? 'var(--c-trade-balance-surplus)' : 'var(--c-trade-balance-deficit)';
+                const balanceColor = (balanceData.status === 'SURPLUS' || balanceData.value >= 0) ? 'var(--c-trade-balance-surplus)' : 'var(--c-trade-balance-deficit)';
                 const balanceSign = balanceData.value >= 0 ? '+' : '';
-                const formattedBalance = formatTradeNumberWithEasyUnit(Math.abs(balanceData.value), tradeCurrency);
+                const currency = data.isCountry ? 'USD' : tradeCurrency;
+                const formattedBalance = formatTradeNumberWithEasyUnit(Math.abs(balanceData.value), currency);
                 const balanceText = formattedBalance.easyUnit
                     ? `${balanceSign}${formattedBalance.formatted} ${formattedBalance.easyUnit}`
                     : `${balanceSign}${formattedBalance.formatted}`;
