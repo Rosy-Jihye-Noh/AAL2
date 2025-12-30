@@ -200,7 +200,8 @@ async function fetchExchangeRateStats(currency, startDate, endDate) {
         const itemCode = CURRENCY_MAPPING[currency];
         if (!itemCode) return null;
         
-        const url = `${API_BASE}/market/indices/stats?type=exchange&itemCode=${currency}&startDate=${startDate}&endDate=${endDate}`;
+        // itemCode를 사용해야 함 (CURRENCY_MAPPING에서 가져온 ECOS 항목 코드)
+        const url = `${API_BASE}/market/indices/stats?type=exchange&itemCode=${itemCode}&startDate=${startDate}&endDate=${endDate}`;
         const response = await fetch(url);
         const data = await response.json();
         
@@ -1052,10 +1053,97 @@ function calculate() {
  * @param {object} stats - 통계 데이터
  */
 function updateChartHeader(currency, stats) {
-    // 기존 인라인 스크립트의 updateChartHeader 함수가 호출됨
-    // 해당 함수가 인라인에 남아있으므로 직접 호출
-    if (typeof window.updateChartHeader === 'function' && window.updateChartHeader !== updateChartHeader) {
-        window.updateChartHeader(currency, stats);
+    const titleEl = document.getElementById('chart-main-title');
+    const valueEl = document.getElementById('chart-main-value');
+    const changeValueEl = document.getElementById('change-value');
+    const changePercentEl = document.getElementById('change-percent');
+    const statHighEl = document.getElementById('stat-high');
+    const statLowEl = document.getElementById('stat-low');
+    const statAverageEl = document.getElementById('stat-average');
+    
+    // 타이틀 업데이트
+    if (titleEl) {
+        titleEl.textContent = `${currency}/KRW`;
+    }
+    
+    // 에러 또는 데이터 없음 처리
+    if (!stats || stats.error) {
+        if (valueEl) valueEl.textContent = '-';
+        if (changeValueEl) changeValueEl.textContent = '-';
+        if (changePercentEl) changePercentEl.textContent = '(-)';
+        if (statHighEl) statHighEl.textContent = '-';
+        if (statLowEl) statLowEl.textContent = '-';
+        if (statAverageEl) statAverageEl.textContent = '-';
+        return;
+    }
+    
+    // 현재 값 업데이트 (애니메이션 적용)
+    if (valueEl && stats.current != null) {
+        const targetValue = stats.current;
+        const currentValue = parseFloat(valueEl.textContent.replace(/,/g, '')) || 0;
+        if (currentValue !== targetValue && typeof animateValue === 'function') {
+            animateValue(valueEl, currentValue, targetValue, 800);
+        } else {
+            valueEl.textContent = targetValue.toLocaleString('ko-KR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    }
+    
+    // 변동 정보 업데이트
+    const change = stats.change || 0;
+    const changePercent = stats.changePercent || 0;
+    const isUp = change >= 0;
+    
+    if (changeValueEl) {
+        changeValueEl.textContent = `${isUp ? '+' : ''}${change.toFixed(2)}`;
+        changeValueEl.className = `change-value ${isUp ? 'up' : 'down'}`;
+    }
+    
+    if (changePercentEl) {
+        changePercentEl.textContent = `(${isUp ? '+' : ''}${changePercent.toFixed(2)}%)`;
+        changePercentEl.className = `change-percent ${isUp ? 'up' : 'down'}`;
+    }
+    
+    // 통계 정보 업데이트 (애니메이션 적용)
+    if (statHighEl && stats.high != null) {
+        const targetHigh = stats.high;
+        const currentHigh = parseFloat(statHighEl.textContent.replace(/,/g, '')) || 0;
+        if (currentHigh !== targetHigh && typeof animateValue === 'function') {
+            animateValue(statHighEl, currentHigh, targetHigh, 600);
+        } else {
+            statHighEl.textContent = targetHigh.toLocaleString('ko-KR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    }
+    
+    if (statLowEl && stats.low != null) {
+        const targetLow = stats.low;
+        const currentLow = parseFloat(statLowEl.textContent.replace(/,/g, '')) || 0;
+        if (currentLow !== targetLow && typeof animateValue === 'function') {
+            animateValue(statLowEl, currentLow, targetLow, 600);
+        } else {
+            statLowEl.textContent = targetLow.toLocaleString('ko-KR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+    }
+    
+    if (statAverageEl && stats.average != null) {
+        const targetAvg = stats.average;
+        const currentAvg = parseFloat(statAverageEl.textContent.replace(/,/g, '')) || 0;
+        if (currentAvg !== targetAvg && typeof animateValue === 'function') {
+            animateValue(statAverageEl, currentAvg, targetAvg, 600);
+        } else {
+            statAverageEl.textContent = targetAvg.toLocaleString('ko-KR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
     }
 }
 
