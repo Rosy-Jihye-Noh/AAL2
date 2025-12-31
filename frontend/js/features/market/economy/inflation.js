@@ -612,10 +612,16 @@ async function fetchInflationData() {
         // Update chart (지수 레벨 기준 렌더링)
         updateInflationChart();
         
-        // 헤더/통계는 한국 데이터 기준 + 전월비/전기비(변화량/변화율) 계산
-        const stats = calculateInflationIndexStats(koreaProcessed, inflationCycle);
-        if (stats && stats.hasData) {
-            updateInflationChartHeader(stats, selectedItem);
+        // 헤더/통계는 첫 번째 선택된 국가 데이터 기준
+        if (activeInflationCountries.length > 0) {
+            const firstCountry = activeInflationCountries[0];
+            const firstCountryData = inflationCountryData[firstCountry] || [];
+            const stats = calculateInflationIndexStats(firstCountryData, inflationCycle);
+            if (stats && stats.hasData) {
+                updateInflationChartHeader(stats, selectedItem, firstCountry);
+            } else {
+                updateInflationChartHeader({ current: 0, change: 0, changePercent: 0, high: 0, low: 0, average: 0, hasData: false }, selectedItem);
+            }
         } else {
             updateInflationChartHeader({ current: 0, change: 0, changePercent: 0, high: 0, low: 0, average: 0, hasData: false }, selectedItem);
         }
@@ -664,14 +670,9 @@ function updateInflationChart() {
     if (pointsGroup) pointsGroup.innerHTML = '';
 
     const selectedItem = activeInflationItems && activeInflationItems.length > 0 ? activeInflationItems[0] : null;
-    const koreaDataUnsorted = selectedItem ? (inflationData[selectedItem] || []) : [];
-    const koreaData = [...koreaDataUnsorted].sort((a, b) => compareInflationDates(a.date, b.date, inflationCycle));
     
-    // 모든 데이터 병합 (한국 + 선택된 국가들)
+    // Only use country data from activeInflationCountries (no separate Korea domestic data)
     const allData = [];
-    if (koreaData.length > 0) {
-        allData.push(...koreaData);
-    }
     activeInflationCountries.forEach(itemCode => {
         const countryData = inflationCountryData[itemCode] || [];
         allData.push(...countryData);
@@ -679,9 +680,6 @@ function updateInflationChart() {
     
     // 공통 날짜 목록 생성
     const allDates = new Set();
-    if (koreaData.length > 0) {
-        koreaData.forEach(item => allDates.add(item.date));
-    }
     activeInflationCountries.forEach(itemCode => {
         const countryData = inflationCountryData[itemCode] || [];
         countryData.forEach(item => allDates.add(item.date));
@@ -704,34 +702,15 @@ function updateInflationChart() {
     }
     
     // Y축 라벨 렌더링
-    renderInflationYAxisLabels(allData.length > 0 ? allData : koreaData);
+    renderInflationYAxisLabels(allData);
     
-    if (sortedDates.length === 0 && koreaData.length === 0) {
+    if (sortedDates.length === 0) {
         renderInflationXAxisLabels([], true);
         setupInflationChartInteractivity();
         return;
     }
     
-    // 한국 데이터 렌더링
-    if (koreaData.length > 0) {
-        const isLessThanTwo = koreaData.length < 2;
-        
-        if (isLessThanTwo) {
-            // 1개: 막대 그래프
-            renderInflationBarChart(koreaData, selectedItem);
-        } else {
-            // 2개 이상: 라인 + 포인트
-            const path = document.getElementById(`path-inflation-${selectedItem}`);
-            if (path) {
-                const pathData = generateInflationSVGPath(koreaData);
-                path.setAttribute('d', pathData);
-                path.classList.add('visible');
-            }
-            renderInflationDataPoints(koreaData, selectedItem);
-        }
-    }
-    
-    // 국가 데이터 렌더링
+    // 국가 데이터 렌더링 (Only render data for countries in activeInflationCountries)
     activeInflationCountries.forEach(itemCode => {
         const countryData = inflationCountryData[itemCode] || [];
         if (countryData.length === 0) return;
@@ -766,8 +745,7 @@ function updateInflationChart() {
     });
     
     // X축 라벨 렌더링 (공통 날짜 사용)
-    const displayDates = sortedDates.length > 0 ? sortedDates : (koreaData.length > 0 ? koreaData.map(d => d.date) : []);
-    renderInflationXAxisLabels(displayDates, displayDates.length < 2);
+    renderInflationXAxisLabels(sortedDates, sortedDates.length < 2);
     setupInflationChartInteractivity();
 }
 
@@ -1119,7 +1097,7 @@ function hideInflationTooltip() {
 // CHART HEADER UPDATE
 // ============================================================
 
-function updateInflationChartHeader(stats, itemCode) {
+function updateInflationChartHeader(stats, itemCode, countryCode = null) {
     const titleEl = document.getElementById('inflation-chart-main-title');
     const valueEl = document.getElementById('inflation-chart-main-value');
     const changeValueEl = document.getElementById('inflation-change-value');
@@ -1128,9 +1106,13 @@ function updateInflationChartHeader(stats, itemCode) {
     const statLowEl = document.getElementById('inflation-stat-low');
     const statAverageEl = document.getElementById('inflation-stat-average');
     
-    const name = INFLATION_ITEM_NAMES[itemCode] || '소비자물가지수';
-    const metricLabel = getInflationMetricLabel(inflationCycle);
-    if (titleEl) titleEl.textContent = `${name} (지수)`;
+    // Show country name in title if available
+    let titleText = 'Consumer Price Index';
+    if (countryCode && inflationCountryMapping[countryCode]) {
+        const countryName = getInflationCountryNameEnglish(inflationCountryMapping[countryCode].name, countryCode);
+        titleText = `${countryName} CPI`;
+    }
+    if (titleEl) titleEl.textContent = titleText;
 
     const has = stats && stats.hasData;
     if (!has) {
