@@ -439,6 +439,11 @@ def serve_js(filename):
     """JavaScript 파일 서빙"""
     return send_from_directory(str(BASE_DIR / 'frontend' / 'js'), filename)
 
+@app.route('/pages/<path:filename>')
+def serve_pages(filename):
+    """Pages 폴더 파일 서빙 (quotation.html 등)"""
+    return send_from_directory(str(BASE_DIR / 'frontend' / 'pages'), filename)
+
 
 # GDELT 데이터 자동 업데이트 스케줄러
 scheduler = BackgroundScheduler(daemon=True)

@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo Helios - Quick Quote Request</title>
+    <link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #0b0b0d;
+            --text-main: #ffffff;
+            --text-sub: #9ca3af;
+            --accent-color: #3b82f6;
+            --card-bg: #141416;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: #1c1c1f;
+            --font-main: 'Pretendard', sans-serif;
+            --transition: all 0.2s ease;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg-color); color: var(--text-main); font-family: var(--font-main); font-size: 14px; }
+        
+        /* Layout - Header matching main page */
+        header {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            padding: 1.5rem 5%; 
+            position: fixed; 
+            width: 100%; 
+            top: 0; 
+            z-index: 1000;
+            background: rgba(11, 11, 13, 0.85); 
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .logo { 
+            font-size: 2rem; 
+            font-weight: 900; 
+            letter-spacing: -0.05em; 
+            display: flex; 
+            align-items: center; 
+        }
+        .logo span { color: var(--accent-color); }
+        .logo .full-name {
+            font-size: 0.75rem; 
+            font-weight: 500; 
+            color: var(--text-sub); 
+            margin-left: 12px;
+            letter-spacing: 0.1em; 
+            text-transform: uppercase; 
+            opacity: 0.8;
+            border-left: 1px solid var(--border-color); 
+            padding-left: 12px; 
+            line-height: 1;
+        }
+        nav ul { 
+            display: flex; 
+            gap: 2.5rem; 
+            list-style: none;
+        }
+        nav li a { 
+            font-size: 0.95rem; 
+            color: var(--text-sub); 
+            transition: var(--transition); 
+            font-weight: 500; 
+            text-decoration: none;
+        }
+        nav li a:hover, nav li a.active { color: var(--text-main); }
+        .nav-highlight { color: var(--accent-color) !important; }
+
+        @media (max-width: 768px) {
+            nav { display: none; }
+            .logo .full-name { display: none; }
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; padding: 2rem; padding-top: 100px; display: grid; grid-template-columns: 1fr 320px; gap: 2rem; }
+        
+        /* Main Form Area */
+        h2 { font-size: 1.5rem; margin-bottom: 2rem; font-weight: 700; }
+        
+        .section { margin-bottom: 2.5rem; }
+        .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600; }
+        .info-icon { color: var(--text-sub); font-size: 0.9rem; cursor: pointer; }
+
+        /* Grid Systems */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+        /* Custom Cards */
+        .option-card {
+            background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px;
+            padding: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; transition: var(--transition); color: var(--text-sub); min-height: 80px;
+        }
+        .option-card:hover { border-color: var(--accent-color); }
+        .option-card.active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent-color); color: var(--accent-color); font-weight: 600; }
+        .option-card i { font-size: 1.2rem; }
+        
+        .icon-box {
+            width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+            background: #333; color: white; font-weight: bold; border-radius: 4px; font-size: 0.8rem;
+        }
+        .active .icon-box { background: var(--accent-color); }
+
+        /* Inputs */
+        .input-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
+        .input-group label { font-size: 0.85rem; color: var(--text-sub); }
+        .form-input {
+            background: var(--input-bg); border: 1px solid var(--border-color); color: white;
+            padding: 10px; border-radius: 4px; font-family: inherit; width: 100%;
+        }
+        .form-input:focus { outline: none; border-color: var(--accent-color); }
+        .form-input[readonly] { color: #777; cursor: not-allowed; }
+        
+        .icon-input-wrapper { position: relative; }
+        .icon-input-wrapper i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-sub); }
+        .icon-input-wrapper input { padding-left: 35px; }
+
+        /* Date Input Group Styles */
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 10px;
+            padding-left: 35px;
+        }
+        .date-input-group:focus-within {
+            border-color: var(--accent-color);
+        }
+        .date-input-group input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-family: inherit;
+            font-size: inherit;
+            text-align: center;
+            padding: 4px 0;
+        }
+        .date-input-group input:focus {
+            outline: none;
+            background: rgba(59, 130, 246, 0.15);
+            border-radius: 3px;
+        }
+        .date-input-group input::placeholder {
+            color: #555;
+        }
+        .date-input-group .date-year {
+            width: 50px;
+        }
+        .date-input-group .date-month,
+        .date-input-group .date-day {
+            width: 32px;
+        }
+        .date-input-group .date-separator {
+            color: var(--text-sub);
+            font-weight: 400;
+            user-select: none;
+        }
+        .date-input-group .date-hour,
+        .date-input-group .date-minute {
+            width: 32px;
+        }
+        .time-fields {
+            display: none;
+        }
+
+        /* Incoterms */
+        .incoterm-card {
+            border: 1px solid var(--border-color); border-radius: 6px; padding: 1.5rem;
+            text-align: center; cursor: pointer; display: flex; flex-direction: column; gap: 10px;
+            align-items: center; min-height: 140px; justify-content: center;
+        }
+        .incoterm-card.active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent-color); }
+        .incoterm-card .title { font-weight: 700; font-size: 1.1rem; color: var(--text-main); }
+        .incoterm-card.active .title { color: var(--accent-color); }
+        .incoterm-card .desc { font-size: 0.8rem; color: var(--text-sub); line-height: 1.4; }
+        .incoterm-card.active .desc { color: #93c5fd; }
+
+        /* Cargo Details */
+        .cargo-row { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr 40px; gap: 10px; margin-bottom: 10px; align-items: flex-end; position: relative; }
+        .cargo-row .row-delete { 
+            color: #666; 
+            cursor: pointer; 
+            align-self: center; 
+            margin-top: 20px; 
+            transition: color 0.2s;
+            font-size: 1.1rem;
+        }
+        .cargo-row .row-delete:hover { color: #ef4444; }
+        .cargo-row .row-delete.disabled { color: #333; cursor: not-allowed; opacity: 0.3; }
+        .cargo-row-number {
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            color: #666;
+            font-weight: 600;
+        }
+        .btn-add-row {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+        }
+        .btn-add-row:hover { 
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+        }
+        .btn-add-row:disabled {
+            background: #374151;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.5;
+        }
+        .btn-add-row i { font-size: 0.7rem; }
+        .row-counter {
+            font-size: 0.75rem;
+            color: #888;
+            margin-left: 10px;
+        }
+        
+        /* Checkbox & Radio */
+        .checkbox-wrapper { display: flex; align-items: center; gap: 8px; margin: 15px 0; font-size: 0.9rem; }
+        .radio-group { display: flex; gap: 15px; align-items: center; }
+        .radio-label { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-sub); }
+        .radio-label input { accent-color: var(--accent-color); }
+        .radio-label.checked { color: var(--text-main); }
+        .text-red { color: #ef4444; font-weight: 600; }
+
+        /* Additional Details */
+        .detail-row { display: grid; grid-template-columns: 200px 1fr; gap: 20px; margin-bottom: 15px; align-items: center; }
+        .detail-row label { color: var(--text-sub); }
+
+        /* Sidebar */
+        .summary-card { position: sticky; top: 20px; }
+        .mode-toggle { text-align: right; margin-bottom: 20px; font-size: 0.9rem; color: var(--text-sub); }
+        .mode-toggle span.active { color: var(--accent-color); font-weight: bold; }
+        .summary-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; color: var(--text-main); }
+        .summary-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .summary-list { list-style: none; font-size: 0.85rem; }
+        .summary-list li { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+        .s-label { color: var(--text-sub); font-size: 0.8rem; }
+        .s-value { font-weight: 500; color: var(--accent-color); line-height: 1.4; min-height: 1.4em; }
+        
+        .action-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--border-color); grid-column: span 2; }
+        .btn { padding: 10px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+        .btn-secondary { background: #eff6ff; color: var(--accent-color); }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-primary:hover { background: #2563eb; }
+
+        /* Remark Helper Styles */
+        .remark-helper {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: var(--accent-color);
+            line-height: 1.5;
+        }
+        #remark-section.highlighted .section-header {
+            color: var(--accent-color);
+        }
+        #remark-section.highlighted textarea {
+            border-color: var(--accent-color);
+        }
+
+        /* Validation Error Styles */
+        .validation-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .validation-error.show {
+            display: block;
+        }
+        .validation-error-title {
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .validation-error-list {
+            color: #fca5a5;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            list-style: none;
+            padding-left: 20px;
+        }
+        .validation-error-list li::before {
+            content: "•";
+            color: #ef4444;
+            margin-right: 8px;
+        }
+        .form-input.error {
+            border-color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.05);
+        }
+        
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .loading-overlay.show {
+            display: flex;
+        }
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast Message */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            display: none;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.show {
+            display: block;
+        }
+        .toast.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Autocomplete Styles */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--accent-color);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.15s ease;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background: rgba(59, 130, 246, 0.15);
+        }
+        .autocomplete-item .port-code {
+            font-weight: 700;
+            color: var(--accent-color);
+            font-size: 0.95rem;
+        }
+        .autocomplete-item .port-name {
+            color: var(--text-main);
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+        .autocomplete-item .port-country {
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            display: block;
+            margin-top: 2px;
+        }
+        .autocomplete-item .port-type {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 6px;
+        }
+        .autocomplete-item .port-type.air {
+            background: rgba(139, 92, 246, 0.2);
+            color: #a78bfa;
+        }
+        .autocomplete-item .port-type.ocean {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        .autocomplete-no-results {
+            padding: 15px;
+            text-align: center;
+            color: var(--text-sub);
+            font-size: 0.85rem;
+        }
+        .autocomplete-loading {
+            padding: 15px;
+            text-align: center;
+            color: var(--text-sub);
+        }
+        .autocomplete-loading::after {
+            content: '';
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--text-sub);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 1200px) {
+            .container { grid-template-columns: 1fr; }
+            .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .cargo-row { grid-template-columns: 1fr; gap: 5px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div>Submitting your quote request...</div>
+        </div>
+    </div>
+    
+    <!-- Toast Message -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="../ai_studio_code_F2.html#quotation" class="active">Quotation</a></li>
+                <li><a href="../ai_studio_code_F2.html#market">Market Data</a></li>
+                <li><a href="../ai_studio_code_F2.html#war-room">War Room</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools-apps">Tools</a></li>
+                <li><a href="../ai_studio_code_F2.html#news">Logistics News</a></li>
+                <li><a href="#">Report & Insight</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- Left: Form -->
+        <main>
+            <h2>Quick Quote Request</h2>
+            
+            <!-- Validation Error Container -->
+            <div class="validation-error" id="validation-error">
+                <div class="validation-error-title">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>Please fix the following errors:</span>
+                </div>
+                <ul class="validation-error-list" id="validation-error-list"></ul>
+            </div>
+
+            <!-- Trade Mode -->
+            <div class="section">
+                <div class="section-header">Trade Mode <i class="far fa-question-circle info-icon"></i></div>
+                <div class="grid-3">
+                    <div class="option-card active" id="trade-export" onclick="setTrade('export')">
+                        <div class="icon-box">E</div>
+                        <span>Export (수출)</span>
+                    </div>
+                    <div class="option-card" id="trade-import" onclick="setTrade('import')">
+                        <div class="icon-box" style="background:#555;">I</div>
+                        <span>Import (수입)</span>
+                    </div>
+                    <div class="option-card" id="trade-domestic" onclick="setTrade('domestic')">
+                        <div class="icon-box" style="background:#555;">D</div>
+                        <span>Domestic (국내)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Type -->
+            <div class="section" id="shipping-type-section">
+                <div class="section-header">Shipping Type <i class="far fa-question-circle info-icon"></i></div>
+                <div class="grid-4" id="shipping-type-grid">
+                    <div class="option-card" id="ship-all" onclick="setShip('all')"><i class="fas fa-infinity"></i> All</div>
+                    <div class="option-card active" id="ship-ocean" onclick="setShip('ocean')"><i class="fas fa-ship"></i> Ocean</div>
+                    <div class="option-card" id="ship-air" onclick="setShip('air')"><i class="fas fa-plane"></i> Air</div>
+                    <div class="option-card" id="ship-truck" onclick="setShip('truck')"><i class="fas fa-truck"></i> Trucking</div>
+                </div>
+            </div>
+
+            <!-- Load Type -->
+            <div class="section" id="load-type-section">
+                <div class="section-header">Load Type <i class="far fa-question-circle info-icon"></i></div>
+                <div class="grid-3" id="load-type-container">
+                    <!-- Dynamic Content via JS -->
+                </div>
+            </div>
+
+            <!-- Shipping Schedules -->
+            <div class="section">
+                <div class="section-header" id="schedules-header">Shipping Schedules <i class="far fa-question-circle info-icon"></i></div>
+                <div class="grid-2" style="margin-bottom: 1rem;">
+                    <div class="input-group">
+                        <label id="label-pol">Port of Loading</label>
+                        <div class="autocomplete-wrapper">
+                            <div class="icon-input-wrapper">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-input port-autocomplete" id="input-pol" placeholder="Origin Port / City" maxlength="50" autocomplete="off">
+                            </div>
+                            <div class="autocomplete-dropdown" id="dropdown-pol"></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub); margin-top:4px;">From</div>
+                    </div>
+                    <div class="input-group">
+                        <label id="label-pod">Port of Discharging</label>
+                        <div class="autocomplete-wrapper">
+                            <div class="icon-input-wrapper">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" class="form-input port-autocomplete" id="input-pod" placeholder="Destination Port / City" maxlength="50" autocomplete="off">
+                            </div>
+                            <div class="autocomplete-dropdown" id="dropdown-pod"></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub); margin-top:4px;">To</div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>Estimated Departure</label>
+                        <div class="icon-input-wrapper">
+                            <i class="far fa-calendar"></i>
+                            <div class="date-input-group">
+                                <input type="text" class="date-year" id="etd-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                                <span class="date-separator">/</span>
+                                <input type="text" class="date-month" id="etd-month" placeholder="MM" maxlength="2" inputmode="numeric">
+                                <span class="date-separator">/</span>
+                                <input type="text" class="date-day" id="etd-day" placeholder="DD" maxlength="2" inputmode="numeric">
+                                <span class="time-fields" id="etd-time-fields">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-hour" id="etd-hour" placeholder="HH" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">:</span>
+                                    <input type="text" class="date-minute" id="etd-minute" placeholder="MM" maxlength="2" inputmode="numeric">
+                                </span>
+                            </div>
+                            <input type="hidden" id="input-etd">
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub); margin-top:4px;">ETD</div>
+                    </div>
+                    <div class="input-group">
+                        <label>Estimated Arrival</label>
+                        <div class="icon-input-wrapper">
+                            <i class="far fa-calendar"></i>
+                            <div class="date-input-group">
+                                <input type="text" class="date-year" id="eta-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                                <span class="date-separator">/</span>
+                                <input type="text" class="date-month" id="eta-month" placeholder="MM" maxlength="2" inputmode="numeric">
+                                <span class="date-separator">/</span>
+                                <input type="text" class="date-day" id="eta-day" placeholder="DD" maxlength="2" inputmode="numeric">
+                                <span class="time-fields" id="eta-time-fields">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-hour" id="eta-hour" placeholder="HH" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">:</span>
+                                    <input type="text" class="date-minute" id="eta-minute" placeholder="MM" maxlength="2" inputmode="numeric">
+                                </span>
+                            </div>
+                            <input type="hidden" id="input-eta">
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub); margin-top:4px;">ETA</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incoterms -->
+            <div class="section" id="incoterms-section">
+                <div class="section-header">Incoterms <i class="far fa-question-circle info-icon" title="Terms of Sale"></i></div>
+                <div class="grid-3" id="incoterm-container">
+                    <!-- JS will render active state here -->
+                    <div class="incoterm-card" onclick="setInco(this, 'EXW')"><div class="title">EXW</div><div class="desc">Ex Works<br>Only responsible until goods leave factory.</div></div>
+                    <div class="incoterm-card active" onclick="setInco(this, 'FOB')"><div class="title">FOB</div><div class="desc">Free-on Board<br>Costs until loaded at origin.</div></div>
+                    <div class="incoterm-card" onclick="setInco(this, 'CFR')"><div class="title">CFR</div><div class="desc">Cost and Freight<br>Pays transport to destination.</div></div>
+                    <div class="incoterm-card" onclick="setInco(this, 'CIF')"><div class="title">CIF</div><div class="desc">Cost, Insurance & Freight<br>Pays freight + insurance.</div></div>
+                    <div class="incoterm-card" onclick="setInco(this, 'DAP')"><div class="title">DAP</div><div class="desc">Delivered at Place<br>Ships to buyer's location.</div></div>
+                    <div class="incoterm-card" onclick="setInco(this, 'DDP')"><div class="title">DDP</div><div class="desc">Delivered Duty Paid<br>Handles everything + duties.</div></div>
+                </div>
+            </div>
+
+            <!-- Cargo Details -->
+            <div class="section">
+                <div class="section-header">Cargo Details <i class="far fa-question-circle info-icon"></i> 
+                    <button class="btn-add-row" id="btn-add-cargo" onclick="addCargoRow()" style="margin-left:auto;">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                    <span class="row-counter" id="row-counter">1 / 10</span>
+                </div>
+                
+                <div id="cargo-input-area">
+                    <!-- FCL INPUT VIEW -->
+                    <div id="fcl-view">
+                        <div id="fcl-rows">
+                            <div class="cargo-row" data-row-index="0">
+                                <div class="input-group"><label>Container Type</label><select class="form-input fcl-type"><option>20 Dry Container</option><option>40 Dry Container</option><option>40 HC Container</option></select></div>
+                                <div class="input-group"><label>Gross Weight(KG) <span class="text-red">*</span></label><input type="text" class="form-input number-format fcl-weight" placeholder="0.00" inputmode="decimal" maxlength="10"></div>
+                                <div class="input-group"><label>Measures(CBM)</label><input type="text" class="form-input number-format fcl-cbm" placeholder="0.00" inputmode="decimal" maxlength="10"></div>
+                                <div class="input-group"><label>Qty</label><input type="text" class="form-input number-format fcl-qty" value="1" inputmode="numeric" maxlength="10"></div>
+                                <i class="fas fa-minus-circle row-delete disabled" onclick="deleteCargoRow(this)"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LCL INPUT VIEW -->
+                    <div id="lcl-view" style="display:none;">
+                        <div id="lcl-rows">
+                            <div class="cargo-row" data-row-index="0" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 40px; align-items: end;">
+                                <div class="input-group">
+                                    <label>Length<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input lcl-calc-trigger number-format lcl-l" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Width<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input lcl-calc-trigger number-format lcl-w" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Height<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input lcl-calc-trigger number-format lcl-h" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Pkg Qty<br><span style="font-size:0.75rem; color:#888;">(PCS)</span></label>
+                                    <input type="text" class="form-input lcl-calc-trigger number-format lcl-qty" value="1" inputmode="numeric" maxlength="10">
+                                </div>
+                                <div class="input-group">
+                                    <label>Gross Weight <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(KG/Per Pkg)</span></label>
+                                    <input type="text" class="form-input lcl-calc-trigger number-format-int lcl-gross-weight" placeholder="0" inputmode="numeric" maxlength="10">
+                                </div>
+                                <div class="input-group">
+                                    <label>CBM<br><span style="font-size:0.75rem; color:#888;">(M³/Per Pkg)</span></label>
+                                    <input type="text" class="form-input lcl-cbm" readonly value="0.0" style="font-weight:600; color:var(--accent-color);">
+                                </div>
+                                <i class="fas fa-minus-circle row-delete disabled" onclick="deleteCargoRow(this)"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AIR INPUT VIEW -->
+                    <div id="air-view" style="display:none;">
+                        <div id="air-rows">
+                            <div class="cargo-row" data-row-index="0" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 40px; align-items: end;">
+                                <div class="input-group">
+                                    <label>Length<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input air-calc-trigger number-format air-l" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Width<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input air-calc-trigger number-format air-w" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Height<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <input type="text" class="form-input air-calc-trigger number-format air-h" placeholder="0" inputmode="numeric" maxlength="3">
+                                </div>
+                                <div class="input-group">
+                                    <label>Pkg Qty<br><span style="font-size:0.75rem; color:#888;">(PCS)</span></label>
+                                    <input type="text" class="form-input air-calc-trigger number-format air-qty" value="1" inputmode="numeric" maxlength="10">
+                                </div>
+                                <div class="input-group">
+                                    <label>Gross Weight <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(KG/Per Pkg)</span></label>
+                                    <input type="text" class="form-input air-calc-trigger number-format-int air-gross-weight" placeholder="0" inputmode="numeric" maxlength="10">
+                                </div>
+                                <div class="input-group">
+                                    <label>Volume Weight<br><span style="font-size:0.75rem; color:#888;">(KG/Per Pkg)</span></label>
+                                    <input type="text" class="form-input air-volume-weight" readonly value="0">
+                                </div>
+                                <div class="input-group">
+                                    <label>Chargeable Weight<br><span style="font-size:0.75rem; color:#888;">(KG/Per Pkg)</span></label>
+                                    <input type="text" class="form-input air-chargeable-weight" readonly value="0" style="font-weight:600; color:var(--accent-color);">
+                                </div>
+                                <i class="fas fa-minus-circle row-delete disabled" onclick="deleteCargoRow(this)"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FTL INPUT VIEW (Trucking) -->
+                    <div id="ftl-view" style="display:none;">
+                        <div id="ftl-rows">
+                            <div class="cargo-row" data-row-index="0" style="grid-template-columns: 1fr 1fr 40px;">
+                                <div class="input-group">
+                                    <label>Truck Type</label>
+                                    <select class="form-input ftl-type">
+                                        <option>1 Ton Truck</option>
+                                        <option>2.5 Ton Truck</option>
+                                        <option>5 Ton Truck</option>
+                                        <option>11 Ton Truck</option>
+                                        <option>25 Ton Truck</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Truck Qty</label>
+                                    <input type="text" class="form-input number-format ftl-qty" value="1" inputmode="numeric" maxlength="10">
+                                </div>
+                                <i class="fas fa-minus-circle row-delete disabled" onclick="deleteCargoRow(this)"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="checkbox-wrapper" id="dg-checkbox-wrapper">
+                    <input type="checkbox" id="dg-check" onchange="toggleDG(this.checked)" style="accent-color: var(--accent-color);">
+                    <label for="dg-check">Cargo is considered as dangerous goods</label>
+                </div>
+
+                <div class="grid-2" id="dg-inputs" style="display:none;">
+                    <div class="input-group"><label>DG Class</label><input type="text" class="form-input" id="dg-class" placeholder="e.g. 3" maxlength="1"></div>
+                    <div class="input-group"><label>UN Number</label><input type="text" class="form-input" id="dg-un" placeholder="e.g. 1203" maxlength="4"></div>
+                </div>
+            </div>
+
+            <!-- Additional Details -->
+            <div class="section" id="additional-details-section">
+                <div class="section-header">Additional Details <i class="far fa-question-circle info-icon"></i></div>
+                
+                <div class="detail-row" id="row-export-cc">
+                    <label>Export Customs Clearance</label>
+                    <div class="radio-group">
+                        <label class="radio-label"><input type="radio" name="export-cc" value="yes" onchange="updateSummary()"> Required</label>
+                        <label class="radio-label checked"><input type="radio" name="export-cc" value="no" checked onchange="updateSummary()"> No</label>
+                    </div>
+                </div>
+                <div class="detail-row" id="row-import-cc">
+                    <label>Import Customs Clearance</label>
+                    <div class="radio-group">
+                        <label class="radio-label"><input type="radio" name="import-cc" value="yes" onchange="updateSummary()"> Required</label>
+                        <label class="radio-label checked"><input type="radio" name="import-cc" value="no" checked onchange="updateSummary()"> No</label>
+                    </div>
+                </div>
+                <div class="detail-row" id="row-shipping-insurance">
+                    <label>Shipping Insurance</label>
+                    <div class="radio-group">
+                        <label class="radio-label"><input type="radio" name="ship-insurance" value="yes" onchange="updateSummary()"> Required</label>
+                        <label class="radio-label checked"><input type="radio" name="ship-insurance" value="no" checked onchange="updateSummary()"> No</label>
+                    </div>
+                </div>
+                
+                <div class="detail-row" id="row-pickup" style="align-items: flex-start;">
+                    <label style="padding-top:10px;">Pickup</label>
+                    <div style="width:100%;">
+                        <div class="radio-group" style="margin-bottom:10px;">
+                            <label class="radio-label"><input type="radio" name="pickup" value="yes" onchange="toggleAddr('pickup-addr', true)"> Required</label>
+                            <label class="radio-label checked"><input type="radio" name="pickup" value="no" checked onchange="toggleAddr('pickup-addr', false)"> No</label>
+                        </div>
+                        <div class="input-group" id="pickup-addr-group" style="display:none;">
+                            <label>Address</label>
+                            <input type="text" class="form-input" id="pickup-addr" placeholder="Full Pickup Address" maxlength="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-row" id="row-delivery" style="align-items: flex-start;">
+                    <label style="padding-top:10px;">Delivery</label>
+                    <div style="width:100%;">
+                        <div class="radio-group" style="margin-bottom:10px;">
+                            <label class="radio-label"><input type="radio" name="delivery" value="yes" onchange="toggleAddr('delivery-addr', true)"> Required</label>
+                            <label class="radio-label checked"><input type="radio" name="delivery" value="no" checked onchange="toggleAddr('delivery-addr', false)"> No</label>
+                        </div>
+                        <div class="input-group" id="delivery-addr-group" style="display:none;">
+                            <label>Address</label>
+                            <input type="text" class="form-input" id="delivery-addr" placeholder="Full Delivery Address" maxlength="100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-row" id="row-invoice">
+                    <label>Invoice Value(USD)</label>
+                    <div class="input-group" style="width: 200px;">
+                        <input type="text" class="form-input number-format" id="invoice-val" placeholder="0" inputmode="numeric" maxlength="20">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="section">
+                <div class="section-header">Customer Information <i class="far fa-question-circle info-icon"></i></div>
+                <div class="grid-3" style="margin-bottom: 1rem;">
+                    <div class="input-group"><label>Company Name <span class="text-red">*</span></label><input type="text" class="form-input" id="c-company" placeholder="Company Name" maxlength="50"></div>
+                    <div class="input-group"><label>Job Title</label><input type="text" class="form-input" id="c-title" placeholder="Position" maxlength="30"></div>
+                    <div class="input-group"><label>Name <span class="text-red">*</span></label><input type="text" class="form-input" id="c-name" placeholder="Full Name" maxlength="30"></div>
+                </div>
+                <div class="grid-2">
+                    <div class="input-group"><label>E-mail <span class="text-red">*</span></label><input type="email" class="form-input" id="c-email" placeholder="email@example.com" maxlength="30"></div>
+                    <div class="input-group"><label>Phone <span class="text-red">*</span></label><input type="tel" class="form-input" id="c-phone" placeholder="Phone Number" maxlength="30"></div>
+                </div>
+            </div>
+
+            <!-- Remark -->
+            <div class="section" id="remark-section">
+                <div class="section-header">Remark <span id="remark-required" class="text-red" style="display:none;">*</span> <i class="far fa-question-circle info-icon"></i></div>
+                <div id="remark-helper" class="remark-helper" style="display:none;"></div>
+                <textarea class="form-input" id="remark-textarea" style="height: 100px; resize: none;" placeholder="Any special instructions..." maxlength="500"></textarea>
+                <div id="all-notice" class="remark-helper" style="display:none; margin-top:10px; background:rgba(234, 179, 8, 0.1); border-color:#eab308; color:#eab308;">
+                    ※ A quotation is required for FCL, LCL, and Air freight
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Right: Summary -->
+        <aside>
+            <div class="summary-card">
+                <div class="mode-toggle">
+                    Quote Mode <span style="margin-left:10px;" class="active"><i class="fas fa-check-circle"></i> Quick</span> <span style="color:#666; margin-left:5px;"><i class="far fa-circle"></i> Guided</span>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-title">Quote Summary</div>
+                    <ul class="summary-list">
+                        <li>
+                            <span class="s-label">Trade Mode</span>
+                            <span class="s-value" id="s-trade">Export</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Shipping Type</span>
+                            <span class="s-value" id="s-ship">Ocean</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Load Type</span>
+                            <span class="s-value" id="s-load">FCL</span>
+                        </li>
+                        <li>
+                            <span class="s-label" id="s-schedule-label">Shipping Schedules</span>
+                            <span class="s-value" id="s-schedule">- <br> -</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Incoterms</span>
+                            <span class="s-value" id="s-inco">FOB</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Cargo Details</span>
+                            <span class="s-value" id="s-cargo">-</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Additional Details</span>
+                            <span class="s-value" id="s-add">-</span>
+                        </li>
+                        <li>
+                            <span class="s-label">Customer Information</span>
+                            <span class="s-value" id="s-cust">-</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Footer Actions -->
+        <div class="action-buttons">
+            <button class="btn btn-secondary">Connect to Support</button>
+            <button class="btn btn-primary" onclick="submitQuote()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8001';
+        
+        // State Management
+        const state = {
+            trade: 'export',
+            ship: 'ocean',
+            incoterms: 'FOB',
+            load: 'FCL'
+        };
+
+        // ==========================================
+        // PORT AUTOCOMPLETE FUNCTIONS
+        // ==========================================
+        
+        let autocompleteTimeout = null;
+        let currentSelectedIndex = -1;
+        
+        /**
+         * Initialize autocomplete for POL/POD inputs
+         */
+        function initPortAutocomplete() {
+            const polInput = document.getElementById('input-pol');
+            const podInput = document.getElementById('input-pod');
+            const polDropdown = document.getElementById('dropdown-pol');
+            const podDropdown = document.getElementById('dropdown-pod');
+            
+            // Check if elements exist before setup
+            if (!polInput || !podInput || !polDropdown || !podDropdown) {
+                console.warn('Port autocomplete elements not found');
+                return;
+            }
+            
+            // Setup POL autocomplete
+            setupAutocomplete(polInput, polDropdown, 'pol');
+            
+            // Setup POD autocomplete
+            setupAutocomplete(podInput, podDropdown, 'pod');
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.autocomplete-wrapper')) {
+                    if (polDropdown) polDropdown.classList.remove('show');
+                    if (podDropdown) podDropdown.classList.remove('show');
+                }
+            });
+        }
+        
+        /**
+         * Setup autocomplete for a single input
+         */
+        function setupAutocomplete(input, dropdown, type) {
+            // Null check
+            if (!input || !dropdown) return;
+            
+            // Input event - search as user types
+            input.addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                
+                // Clear previous timeout
+                if (autocompleteTimeout) {
+                    clearTimeout(autocompleteTimeout);
+                }
+                
+                // Hide dropdown if query is too short
+                if (query.length < 2) {
+                    dropdown.classList.remove('show');
+                    return;
+                }
+                
+                // Show loading state
+                dropdown.innerHTML = '<div class="autocomplete-loading">Searching</div>';
+                dropdown.classList.add('show');
+                
+                // Debounce API call (300ms)
+                autocompleteTimeout = setTimeout(() => {
+                    searchPorts(query, dropdown, input);
+                }, 300);
+            });
+            
+            // Focus event - show dropdown if there's a query
+            input.addEventListener('focus', (e) => {
+                const query = e.target.value.trim();
+                if (query.length >= 2) {
+                    searchPorts(query, dropdown, input);
+                }
+            });
+            
+            // Keyboard navigation
+            input.addEventListener('keydown', (e) => {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentSelectedIndex = Math.min(currentSelectedIndex + 1, items.length - 1);
+                    updateSelectedItem(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentSelectedIndex = Math.max(currentSelectedIndex - 1, 0);
+                    updateSelectedItem(items);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentSelectedIndex >= 0 && items[currentSelectedIndex]) {
+                        items[currentSelectedIndex].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                    currentSelectedIndex = -1;
+                }
+            });
+        }
+        
+        /**
+         * Update selected item highlight
+         */
+        function updateSelectedItem(items) {
+            items.forEach((item, idx) => {
+                item.classList.toggle('selected', idx === currentSelectedIndex);
+            });
+            
+            // Scroll into view
+            if (items[currentSelectedIndex]) {
+                items[currentSelectedIndex].scrollIntoView({ block: 'nearest' });
+            }
+        }
+        
+        /**
+         * Search ports via API
+         */
+        async function searchPorts(query, dropdown, input) {
+            try {
+                // Determine port type based on shipping type
+                let portType = '';
+                if (state.ship === 'air') {
+                    portType = 'air';
+                } else if (state.ship === 'ocean') {
+                    portType = 'ocean';
+                }
+                // For 'all' or 'truck', don't filter by type
+                
+                // Build API URL
+                let url = `${API_BASE_URL}/api/ports?search=${encodeURIComponent(query)}&limit=20`;
+                if (portType) {
+                    url += `&port_type=${portType}`;
+                }
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+                
+                const ports = await response.json();
+                
+                // Render results
+                renderPortResults(ports, dropdown, input);
+                
+            } catch (error) {
+                console.error('Port search error:', error);
+                dropdown.innerHTML = '<div class="autocomplete-no-results">Search unavailable. Please try again.</div>';
+            }
+        }
+        
+        /**
+         * Render port search results
+         */
+        function renderPortResults(ports, dropdown, input) {
+            currentSelectedIndex = -1;
+            
+            if (ports.length === 0) {
+                dropdown.innerHTML = '<div class="autocomplete-no-results">No matching ports found</div>';
+                return;
+            }
+            
+            let html = '';
+            ports.forEach((port, idx) => {
+                const typeClass = port.port_type === 'air' ? 'air' : 'ocean';
+                const typeLabel = port.port_type === 'air' ? 'AIR' : 'SEA';
+                
+                html += `
+                    <div class="autocomplete-item" data-code="${port.code}" data-name="${port.name}">
+                        <div>
+                            <span class="port-code">${port.code}</span>
+                            <span class="port-name">${port.name}</span>
+                            <span class="port-type ${typeClass}">${typeLabel}</span>
+                        </div>
+                        <span class="port-country">${port.country} (${port.country_code})</span>
+                    </div>
+                `;
+            });
+            
+            dropdown.innerHTML = html;
+            
+            // Add click handlers
+            dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const code = item.dataset.code;
+                    const name = item.dataset.name;
+                    
+                    // Set input value (code + name)
+                    input.value = `${code} - ${name}`;
+                    
+                    // Hide dropdown
+                    dropdown.classList.remove('show');
+                    currentSelectedIndex = -1;
+                    
+                    // Update summary
+                    updateSummary();
+                });
+            });
+        }
+
+        // Visibility Rules for Additional Details based on Trade Mode + Incoterms
+        const VISIBILITY_RULES = {
+            export: {
+                EXW: { 
+                    showFields: ['export-cc', 'import-cc', 'shipping-insurance', 'pickup', 'delivery', 'invoice'], 
+                    helperText: "Under EXW Incoterms, all transportation and responsibilities after dispatch are borne by the importer. Please specify the requested services in detail." 
+                },
+                FOB: { showFields: ['export-cc', 'pickup', 'invoice'] },
+                CFR: { showFields: ['export-cc', 'pickup', 'invoice'] },
+                CIF: { showFields: ['export-cc', 'shipping-insurance', 'pickup', 'invoice'] },
+                DAP: { showFields: ['export-cc', 'shipping-insurance', 'pickup', 'delivery', 'invoice'] },
+                DDP: { showFields: ['export-cc', 'import-cc', 'shipping-insurance', 'pickup', 'delivery', 'invoice'] }
+            },
+            import: {
+                EXW: { showFields: ['export-cc', 'import-cc', 'shipping-insurance', 'pickup', 'delivery', 'invoice'] },
+                FOB: { showFields: ['import-cc', 'delivery', 'invoice'] },
+                CFR: { showFields: ['import-cc', 'delivery', 'invoice'] },
+                CIF: { showFields: ['import-cc', 'delivery', 'invoice'] },
+                DAP: { showFields: ['import-cc', 'delivery', 'invoice'] },
+                DDP: { 
+                    showFields: [], 
+                    helperText: "Under DDP Incoterms, all transportation and responsibilities after dispatch are borne by the exporter. Please specify the requested services in detail." 
+                }
+            },
+            domestic: {
+                EXW: { showFields: ['invoice'] },
+                FOB: { showFields: ['invoice'] },
+                CFR: { showFields: ['invoice'] },
+                CIF: { showFields: ['invoice'] },
+                DAP: { showFields: ['invoice'] },
+                DDP: { showFields: ['invoice'] }
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setTrade('export'); // Init Trade Mode (Export as default)
+            setShip('ocean'); // Init Load Types
+            
+            const inputs = ['input-pol', 'input-pod', 'fcl-type', 'c-company', 'c-name', 'c-email', 'c-phone'];
+            inputs.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.addEventListener('input', updateSummary);
+            });
+            
+            // LCL Calc Listeners
+            document.querySelectorAll('.lcl-calc-trigger').forEach(el => el.addEventListener('input', calculateLCL));
+            
+            // Air Calc Listeners
+            document.querySelectorAll('.air-calc-trigger').forEach(el => el.addEventListener('input', calculateAir));
+            
+            // Number Format Listeners (thousand separator)
+            document.querySelectorAll('.number-format').forEach(el => {
+                el.addEventListener('input', function(e) {
+                    formatNumberInput(this);
+                    updateSummary();
+                });
+                el.addEventListener('blur', function(e) {
+                    formatNumberInput(this);
+                });
+            });
+            
+            // Integer-only Number Format Listeners
+            document.querySelectorAll('.number-format-int').forEach(el => {
+                el.addEventListener('input', function(e) {
+                    formatIntegerInput(this);
+                    updateSummary();
+                });
+                el.addEventListener('blur', function(e) {
+                    formatIntegerInput(this);
+                });
+            });
+            
+            // Radio Labels Styling Listener
+            document.querySelectorAll('input[type=radio]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // Reset styling in same group
+                    document.getElementsByName(this.name).forEach(r => {
+                        r.parentElement.classList.remove('checked');
+                    });
+                    this.parentElement.classList.add('checked');
+                });
+            });
+
+            // Initialize date input auto-focus
+            initDateInputAutoFocus('etd');
+            initDateInputAutoFocus('eta');
+
+            // Initialize Additional Details visibility based on default Trade Mode + Incoterms
+            updateAdditionalDetails();
+            
+            // Initialize row counter
+            updateRowCounter();
+            
+            // Initialize Port Autocomplete (wrapped in try-catch to prevent blocking other init)
+            try {
+                initPortAutocomplete();
+            } catch (e) {
+                console.error('Port autocomplete init error:', e);
+            }
+        });
+
+        // Number formatting function (add thousand separators)
+        function formatNumberInput(input) {
+            let value = input.value;
+            
+            // Remove existing commas and non-numeric characters except decimal point
+            let cleanValue = value.replace(/,/g, '').replace(/[^0-9.]/g, '');
+            
+            // Handle decimal numbers
+            let parts = cleanValue.split('.');
+            let integerPart = parts[0] || '';
+            let decimalPart = parts.length > 1 ? '.' + parts[1] : '';
+            
+            // Add thousand separators to integer part
+            if (integerPart.length >= 4) {
+                integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            
+            input.value = integerPart + decimalPart;
+        }
+
+        // Integer-only formatting function (no decimals)
+        function formatIntegerInput(input) {
+            let value = input.value;
+            
+            // Remove existing commas and non-numeric characters (including decimal point)
+            let cleanValue = value.replace(/,/g, '').replace(/[^0-9]/g, '');
+            
+            // Add thousand separators
+            if (cleanValue.length >= 4) {
+                cleanValue = cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+            
+            input.value = cleanValue;
+        }
+
+        // Get raw number value (without commas)
+        function getRawNumber(inputId) {
+            const el = document.getElementById(inputId);
+            if (!el) return 0;
+            const value = el.value.replace(/,/g, '');
+            return parseFloat(value) || 0;
+        }
+
+        // Date Input Auto-Focus Function
+        function initDateInputAutoFocus(prefix) {
+            const yearInput = document.getElementById(`${prefix}-year`);
+            const monthInput = document.getElementById(`${prefix}-month`);
+            const dayInput = document.getElementById(`${prefix}-day`);
+            const hourInput = document.getElementById(`${prefix}-hour`);
+            const minuteInput = document.getElementById(`${prefix}-minute`);
+            const hiddenInput = document.getElementById(`input-${prefix}`);
+
+            if (!yearInput || !monthInput || !dayInput || !hiddenInput) return;
+
+            // Helper: Update hidden input with combined date/time
+            function updateHiddenDate() {
+                const year = yearInput.value.padStart(4, '0');
+                const month = monthInput.value.padStart(2, '0');
+                const day = dayInput.value.padStart(2, '0');
+                const hour = hourInput ? hourInput.value.padStart(2, '0') : '';
+                const minute = minuteInput ? minuteInput.value.padStart(2, '0') : '';
+                
+                if (year && month && day && year.length === 4 && month.length === 2 && day.length === 2) {
+                    if (state.trade === 'domestic' && hour && minute) {
+                        hiddenInput.value = `${year}-${month}-${day} ${hour}:${minute}`;
+                    } else {
+                        hiddenInput.value = `${year}-${month}-${day}`;
+                    }
+                } else {
+                    hiddenInput.value = '';
+                }
+                updateSummary();
+            }
+
+            // Helper: Allow only numeric input
+            function filterNumeric(e) {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }
+
+            // Year input: auto-focus to month when 4 digits entered
+            yearInput.addEventListener('input', function(e) {
+                filterNumeric(e);
+                if (this.value.length === 4) {
+                    monthInput.focus();
+                    monthInput.select();
+                }
+                updateHiddenDate();
+            });
+
+            // Month input: auto-focus to day when 2 digits entered
+            monthInput.addEventListener('input', function(e) {
+                filterNumeric(e);
+                // Validate month range (01-12)
+                if (this.value.length === 2) {
+                    let val = parseInt(this.value, 10);
+                    if (val > 12) this.value = '12';
+                    if (val < 1 && this.value !== '0' && this.value !== '00') this.value = '01';
+                    dayInput.focus();
+                    dayInput.select();
+                }
+                updateHiddenDate();
+            });
+
+            // Day input: validate and auto-focus to hour when in Domestic mode
+            dayInput.addEventListener('input', function(e) {
+                filterNumeric(e);
+                // Validate day range (01-31)
+                if (this.value.length === 2) {
+                    let val = parseInt(this.value, 10);
+                    if (val > 31) this.value = '31';
+                    if (val < 1 && this.value !== '0' && this.value !== '00') this.value = '01';
+                    // Auto-focus to hour input if in Domestic mode
+                    if (state.trade === 'domestic' && hourInput) {
+                        hourInput.focus();
+                        hourInput.select();
+                    }
+                }
+                updateHiddenDate();
+            });
+
+            // Hour input: validate and auto-focus to minute
+            if (hourInput) {
+                hourInput.addEventListener('input', function(e) {
+                    filterNumeric(e);
+                    // Validate hour range (00-23)
+                    if (this.value.length === 2) {
+                        let val = parseInt(this.value, 10);
+                        if (val > 23) this.value = '23';
+                        if (minuteInput) {
+                            minuteInput.focus();
+                            minuteInput.select();
+                        }
+                    }
+                    updateHiddenDate();
+                });
+            }
+
+            // Minute input: validate
+            if (minuteInput) {
+                minuteInput.addEventListener('input', function(e) {
+                    filterNumeric(e);
+                    // Validate minute range (00-59)
+                    if (this.value.length === 2) {
+                        let val = parseInt(this.value, 10);
+                        if (val > 59) this.value = '59';
+                    }
+                    updateHiddenDate();
+                });
+            }
+
+            // Handle backspace to go back to previous field
+            monthInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '' && this.selectionStart === 0) {
+                    yearInput.focus();
+                    yearInput.setSelectionRange(yearInput.value.length, yearInput.value.length);
+                }
+            });
+
+            dayInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '' && this.selectionStart === 0) {
+                    monthInput.focus();
+                    monthInput.setSelectionRange(monthInput.value.length, monthInput.value.length);
+                }
+            });
+
+            if (hourInput) {
+                hourInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && this.selectionStart === 0) {
+                        dayInput.focus();
+                        dayInput.setSelectionRange(dayInput.value.length, dayInput.value.length);
+                    }
+                });
+            }
+
+            if (minuteInput) {
+                minuteInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '' && this.selectionStart === 0) {
+                        hourInput.focus();
+                        hourInput.setSelectionRange(hourInput.value.length, hourInput.value.length);
+                    }
+                });
+            }
+
+            // Focus events for select-all behavior
+            [yearInput, monthInput, dayInput].forEach(input => {
+                input.addEventListener('focus', function() {
+                    setTimeout(() => this.select(), 0);
+                });
+            });
+        }
+
+        // Update Additional Details visibility based on Trade Mode + Incoterms
+        function updateAdditionalDetails() {
+            const tradeMode = state.trade;
+            const incoterms = state.incoterms;
+            
+            // Get rules for current combination
+            const rules = VISIBILITY_RULES[tradeMode]?.[incoterms];
+            if (!rules) return;
+            
+            const showFields = rules.showFields || [];
+            const helperText = rules.helperText || null;
+            
+            // All possible field IDs
+            const allFields = ['export-cc', 'import-cc', 'shipping-insurance', 'pickup', 'delivery', 'invoice'];
+            
+            // Show/hide each field
+            allFields.forEach(field => {
+                const row = document.getElementById(`row-${field}`);
+                if (row) {
+                    // Hide shipping-insurance for Ocean Express (Bulk)
+                    if (field === 'shipping-insurance' && state.load === 'Bulk') {
+                        row.style.display = 'none';
+                    } else {
+                        row.style.display = showFields.includes(field) ? '' : 'none';
+                    }
+                }
+            });
+            
+            // Handle Remark helper text and highlighting
+            const remarkSection = document.getElementById('remark-section');
+            const remarkHelper = document.getElementById('remark-helper');
+            
+            const remarkRequired = document.getElementById('remark-required');
+            if (helperText && remarkSection && remarkHelper) {
+                remarkHelper.textContent = helperText;
+                remarkHelper.style.display = 'block';
+                remarkSection.classList.add('highlighted');
+                if (remarkRequired) remarkRequired.style.display = 'inline';
+            } else if (remarkSection && remarkHelper) {
+                remarkHelper.textContent = '';
+                remarkHelper.style.display = 'none';
+                remarkSection.classList.remove('highlighted');
+                if (remarkRequired) remarkRequired.style.display = 'none';
+            }
+            
+            updateSummary();
+        }
+
+        // Functions
+        function setTrade(val) {
+            state.trade = val;
+            document.getElementById('trade-export').classList.toggle('active', val === 'export');
+            document.getElementById('trade-import').classList.toggle('active', val === 'import');
+            document.getElementById('trade-domestic').classList.toggle('active', val === 'domestic');
+            
+            // Update icon box styles
+            document.querySelector('#trade-export .icon-box').style.background = val === 'export' ? 'var(--accent-color)' : '#555';
+            document.querySelector('#trade-import .icon-box').style.background = val === 'import' ? 'var(--accent-color)' : '#555';
+            document.querySelector('#trade-domestic .icon-box').style.background = val === 'domestic' ? 'var(--accent-color)' : '#555';
+            
+            // Handle Domestic mode - Show only Trucking option and auto-select
+            const shipAll = document.getElementById('ship-all');
+            const shipOcean = document.getElementById('ship-ocean');
+            const shipAir = document.getElementById('ship-air');
+            const shipTruck = document.getElementById('ship-truck');
+            const schedulesHeader = document.getElementById('schedules-header');
+            
+            // Time fields for Domestic mode
+            const etdTimeFields = document.getElementById('etd-time-fields');
+            const etaTimeFields = document.getElementById('eta-time-fields');
+            
+            // Incoterms section for Domestic mode
+            const incotermsSection = document.getElementById('incoterms-section');
+            
+            if (val === 'domestic') {
+                // Hide All, Ocean, Air options - show only Trucking
+                shipAll.style.display = 'none';
+                shipOcean.style.display = 'none';
+                shipAir.style.display = 'none';
+                shipTruck.style.display = 'flex';
+                // Force Trucking mode
+                setShip('truck');
+                // Change header to Trucking Schedules
+                schedulesHeader.innerHTML = 'Trucking Schedules <i class="far fa-question-circle info-icon"></i>';
+                // Show time input fields for Domestic
+                if (etdTimeFields) etdTimeFields.style.display = 'contents';
+                if (etaTimeFields) etaTimeFields.style.display = 'contents';
+                // Hide Incoterms section for Domestic
+                if (incotermsSection) incotermsSection.style.display = 'none';
+            } else {
+                // Show shipping type options except Trucking for Export/Import
+                shipAll.style.display = 'flex';
+                shipOcean.style.display = 'flex';
+                shipAir.style.display = 'flex';
+                shipTruck.style.display = 'none'; // Hide Trucking for Export/Import
+                // Hide time input fields
+                if (etdTimeFields) etdTimeFields.style.display = 'none';
+                // Show Incoterms section
+                if (incotermsSection) incotermsSection.style.display = 'block';
+                // If currently on Trucking, switch to Ocean
+                if (state.ship === 'truck') {
+                    setShip('ocean');
+                }
+                if (etaTimeFields) etaTimeFields.style.display = 'none';
+                // Restore header to Shipping Schedules
+                schedulesHeader.innerHTML = 'Shipping Schedules <i class="far fa-question-circle info-icon"></i>';
+            }
+            
+            updateAdditionalDetails();
+        }
+
+        function setShip(val) {
+            state.ship = val;
+            // UI Toggle
+            ['all', 'ocean', 'air', 'truck'].forEach(t => {
+                const el = document.getElementById(`ship-${t}`);
+                if(el) el.classList.toggle('active', t === val);
+            });
+
+            // Update Labels
+            const labels = {
+                all: ["Port of Loading / Airport", "Port of Discharging / Airport", "CBM"],
+                air: ["Departure Airport (POL)", "Arrival Airport (POD)", "Chargeable Weight"],
+                ocean: ["Port of Loading (POL)", "Port of Discharging (POD)", "R.TON"],
+                truck: ["Pickup Address", "Delivery Address", "Weight/CBM"]
+            };
+            const current = labels[val] || labels.ocean;
+            document.getElementById('label-pol').innerText = current[0];
+            document.getElementById('label-pod').innerText = current[1];
+            if(document.getElementById('label-rton')) document.getElementById('label-rton').innerText = current[2];
+
+            // Clear POL/POD values when shipping type changes
+            document.getElementById('input-pol').value = '';
+            document.getElementById('input-pod').value = '';
+
+            // Hide/Show Load Type section based on shipping type
+            const loadTypeSection = document.getElementById('load-type-section');
+            const allNotice = document.getElementById('all-notice');
+            
+            if (val === 'all') {
+                // All: Hide Load Type, show LCL cargo view, show notice
+                if (loadTypeSection) loadTypeSection.style.display = 'none';
+                state.load = 'All';
+                toggleCargoInput('LCL'); // Use LCL view for All
+                if (allNotice) allNotice.style.display = 'block';
+            } else if (val === 'air') {
+                // Air: Hide Load Type, show Air cargo view directly
+                if (loadTypeSection) loadTypeSection.style.display = 'none';
+                state.load = 'Air';
+                toggleCargoInput('Air');
+                if (allNotice) allNotice.style.display = 'none';
+            } else {
+                // Ocean/Truck: Show Load Type section
+                if (loadTypeSection) loadTypeSection.style.display = 'block';
+                renderLoadTypes(val);
+                if (allNotice) allNotice.style.display = 'none';
+            }
+            
+            updateSummary();
+        }
+
+        function renderLoadTypes(type) {
+            const container = document.getElementById('load-type-container');
+            container.innerHTML = '';
+            
+            let opts = [];
+            if (type === 'ocean') opts = [
+                {code: 'FCL', label: 'FCL', sub: '(Full Container Load)', icon: 'fa-container-storage'}, 
+                {code: 'LCL', label: 'LCL', sub: '(Less-than-Container)', icon: 'fa-boxes'}, 
+                {code: 'Bulk', label: 'Ocean Express', sub: '(Fast Ship)', icon: 'fa-shipping-fast'}
+            ];
+            else if (type === 'air') opts = [
+                {code: 'Express', label: 'Express', sub: '(Courier)', icon: 'fa-plane-departure'},
+                {code: 'Consol', label: 'Consol', sub: '(Standard Air)', icon: 'fa-box-open'}
+            ];
+            else opts = [
+                {code: 'FTL', label: 'FTL', sub: '(Full Truck)', icon: 'fa-truck-moving'},
+                {code: 'LTL', label: 'LTL', sub: '(Less Truck)', icon: 'fa-dolly'}
+            ];
+
+            opts.forEach((opt, idx) => {
+                const isActive = idx === 0;
+                if(isActive) state.load = opt.code;
+                
+                const div = document.createElement('div');
+                div.className = `option-card ${isActive ? 'active' : ''}`;
+                div.innerHTML = `
+                    <i class="fas ${opt.icon}"></i>
+                    <div style="text-align:center; line-height:1.2;">${opt.label}<br>
+                    <span style="font-size:0.8rem; font-weight:400; opacity:0.8">${opt.sub}</span></div>
+                `;
+                div.onclick = () => {
+                    container.querySelectorAll('.option-card').forEach(c => c.classList.remove('active'));
+                    div.classList.add('active');
+                    state.load = opt.code;
+                    toggleCargoInput(opt.code);
+                    updateAdditionalDetails();
+                    updateSummary();
+                };
+                container.appendChild(div);
+            });
+            toggleCargoInput(state.load);
+            updateSummary();
+        }
+
+        function toggleCargoInput(loadCode) {
+            const isFcl = loadCode === 'FCL';
+            const isFtl = loadCode === 'FTL';
+            const isAir = loadCode === 'Air';
+            const isLcl = !isFcl && !isFtl && !isAir;
+            
+            document.getElementById('fcl-view').style.display = isFcl ? 'block' : 'none';
+            document.getElementById('ftl-view').style.display = isFtl ? 'block' : 'none';
+            document.getElementById('lcl-view').style.display = isLcl ? 'block' : 'none';
+            document.getElementById('air-view').style.display = isAir ? 'block' : 'none';
+            
+            // Show DG checkbox wrapper for all load types (same position as LTL)
+            const dgCheckboxWrapper = document.getElementById('dg-checkbox-wrapper');
+            if (dgCheckboxWrapper) {
+                dgCheckboxWrapper.style.display = 'flex';
+            }
+            
+            // Update row counter for current load type
+            updateRowCounter();
+        }
+
+        function setInco(el, code) {
+            document.getElementById('incoterm-container').querySelectorAll('.incoterm-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            state.incoterms = code;
+            updateAdditionalDetails();
+        }
+
+        // Cargo Row Management
+        const MAX_CARGO_ROWS = 10;
+        
+        function getCargoRowsContainer() {
+            if (state.load === 'FCL') return document.getElementById('fcl-rows');
+            if (state.load === 'FTL') return document.getElementById('ftl-rows');
+            if (state.load === 'Air') return document.getElementById('air-rows');
+            return document.getElementById('lcl-rows'); // LCL, LTL, Bulk, All
+        }
+        
+        function getCargoRowCount() {
+            const container = getCargoRowsContainer();
+            return container ? container.querySelectorAll('.cargo-row').length : 0;
+        }
+        
+        function updateRowCounter() {
+            const count = getCargoRowCount();
+            document.getElementById('row-counter').textContent = `${count} / ${MAX_CARGO_ROWS}`;
+            document.getElementById('btn-add-cargo').disabled = count >= MAX_CARGO_ROWS;
+            
+            // Update delete button states
+            const container = getCargoRowsContainer();
+            if (container) {
+                const rows = container.querySelectorAll('.cargo-row');
+                rows.forEach((row, idx) => {
+                    const deleteBtn = row.querySelector('.row-delete');
+                    if (deleteBtn) {
+                        if (rows.length === 1) {
+                            deleteBtn.classList.add('disabled');
+                        } else {
+                            deleteBtn.classList.remove('disabled');
+                        }
+                    }
+                });
+            }
+        }
+        
+        function addCargoRow() {
+            const count = getCargoRowCount();
+            if (count >= MAX_CARGO_ROWS) return;
+            
+            const container = getCargoRowsContainer();
+            if (!container) return;
+            
+            const firstRow = container.querySelector('.cargo-row');
+            const newRow = firstRow.cloneNode(true);
+            newRow.setAttribute('data-row-index', count);
+            
+            // Clear values in new row
+            newRow.querySelectorAll('input[type="text"]').forEach(input => {
+                if (input.classList.contains('lcl-qty') || input.classList.contains('air-qty') || input.classList.contains('fcl-qty') || input.classList.contains('ftl-qty')) {
+                    input.value = '1';
+                } else if (input.hasAttribute('readonly')) {
+                    input.value = '0';
+                    if (input.classList.contains('lcl-cbm')) input.value = '0.0';
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            newRow.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+            });
+            
+            // Enable delete button on new row
+            const deleteBtn = newRow.querySelector('.row-delete');
+            if (deleteBtn) {
+                deleteBtn.classList.remove('disabled');
+            }
+            
+            // Add event listeners for new row
+            newRow.querySelectorAll('.lcl-calc-trigger').forEach(el => {
+                el.addEventListener('input', () => calculateAllLCL());
+            });
+            newRow.querySelectorAll('.air-calc-trigger').forEach(el => {
+                el.addEventListener('input', () => calculateAllAir());
+            });
+            newRow.querySelectorAll('.number-format').forEach(el => {
+                el.addEventListener('input', function() { formatNumberInput(this); updateSummary(); });
+                el.addEventListener('blur', function() { formatNumberInput(this); });
+            });
+            newRow.querySelectorAll('.number-format-int').forEach(el => {
+                el.addEventListener('input', function() { formatIntegerInput(this); updateSummary(); });
+                el.addEventListener('blur', function() { formatIntegerInput(this); });
+            });
+            
+            container.appendChild(newRow);
+            updateRowCounter();
+            updateSummary();
+        }
+        
+        function deleteCargoRow(btn) {
+            const row = btn.closest('.cargo-row');
+            const container = getCargoRowsContainer();
+            
+            if (!container || container.querySelectorAll('.cargo-row').length <= 1) return;
+            
+            row.remove();
+            
+            // Re-index rows
+            container.querySelectorAll('.cargo-row').forEach((r, idx) => {
+                r.setAttribute('data-row-index', idx);
+            });
+            
+            updateRowCounter();
+            calculateAllLCL();
+            calculateAllAir();
+            updateSummary();
+        }
+
+        function toggleDG(checked) {
+            document.getElementById('dg-inputs').style.display = checked ? 'grid' : 'none';
+        }
+
+        function toggleAddr(id, show) {
+            document.getElementById(id + '-group').style.display = show ? 'flex' : 'none';
+            updateSummary();
+        }
+
+        function calculateLCL() {
+            calculateAllLCL();
+        }
+        
+        function calculateAllLCL() {
+            const container = document.getElementById('lcl-rows');
+            if (!container) return;
+            
+            container.querySelectorAll('.cargo-row').forEach(row => {
+                const l = parseFloat(row.querySelector('.lcl-l')?.value.replace(/,/g, '') || 0);
+                const w = parseFloat(row.querySelector('.lcl-w')?.value.replace(/,/g, '') || 0);
+                const h = parseFloat(row.querySelector('.lcl-h')?.value.replace(/,/g, '') || 0);
+                
+                // CBM calculation: L x W x H / 1000000, rounded to 1 decimal place
+                const cbm = Math.round((l * w * h / 1000000) * 10) / 10;
+                
+                const cbmInput = row.querySelector('.lcl-cbm');
+                if (cbmInput) cbmInput.value = cbm.toFixed(1);
+            });
+            updateSummary();
+        }
+
+        function calculateAir() {
+            calculateAllAir();
+        }
+        
+        function calculateAllAir() {
+            const container = document.getElementById('air-rows');
+            if (!container) return;
+            
+            container.querySelectorAll('.cargo-row').forEach(row => {
+                const l = parseFloat(row.querySelector('.air-l')?.value.replace(/,/g, '') || 0);
+                const w = parseFloat(row.querySelector('.air-w')?.value.replace(/,/g, '') || 0);
+                const h = parseFloat(row.querySelector('.air-h')?.value.replace(/,/g, '') || 0);
+                const grossWeightPerPkg = Math.round(parseFloat(row.querySelector('.air-gross-weight')?.value.replace(/,/g, '') || 0));
+                
+                // Volume Weight (per pkg) = L x W x H / 6000, rounded to integer
+                const volumeWeightPerPkg = Math.round(l * w * h / 6000);
+                
+                // Chargeable Weight (per pkg) = max(Gross Weight per pkg, Volume Weight per pkg)
+                const chargeableWeightPerPkg = Math.max(grossWeightPerPkg, volumeWeightPerPkg);
+                
+                const vwInput = row.querySelector('.air-volume-weight');
+                const cwInput = row.querySelector('.air-chargeable-weight');
+                if (vwInput) vwInput.value = volumeWeightPerPkg.toLocaleString('en-US');
+                if (cwInput) cwInput.value = chargeableWeightPerPkg.toLocaleString('en-US');
+            });
+            updateSummary();
+        }
+
+        function updateSummary() {
+            // Header
+            document.getElementById('s-trade').innerText = state.trade.toUpperCase();
+            document.getElementById('s-ship').innerText = state.ship.toUpperCase();
+            
+            // Handle Load Type for All shipping type
+            const sLoadEl = document.getElementById('s-load');
+            const sLoadLi = sLoadEl.parentElement;
+            if (state.ship === 'all') {
+                sLoadLi.style.display = 'none';
+            } else {
+                sLoadLi.style.display = '';
+                sLoadEl.innerText = state.load;
+            }
+            
+            document.getElementById('s-inco').innerText = state.incoterms;
+            
+            // Update Schedules label based on trade mode
+            const scheduleLabel = document.getElementById('s-schedule-label');
+            if (scheduleLabel) {
+                scheduleLabel.innerText = state.trade === 'domestic' ? 'Trucking Schedules' : 'Shipping Schedules';
+            }
+
+            // Route & Date
+            const pol = document.getElementById('input-pol').value || '-';
+            const pod = document.getElementById('input-pod').value || '-';
+            
+            // Format ETD from individual fields
+            const etdYear = document.getElementById('etd-year').value;
+            const etdMonth = document.getElementById('etd-month').value;
+            const etdDay = document.getElementById('etd-day').value;
+            const etdHour = document.getElementById('etd-hour')?.value || '';
+            const etdMinute = document.getElementById('etd-minute')?.value || '';
+            let etd = '-';
+            if (etdYear && etdMonth && etdDay) {
+                etd = `${etdYear}/${etdMonth.padStart(2, '0')}/${etdDay.padStart(2, '0')}`;
+                if (state.trade === 'domestic' && etdHour && etdMinute) {
+                    etd += ` ${etdHour.padStart(2, '0')}:${etdMinute.padStart(2, '0')}`;
+                }
+            }
+            
+            // Format ETA from individual fields
+            const etaYear = document.getElementById('eta-year').value;
+            const etaMonth = document.getElementById('eta-month').value;
+            const etaDay = document.getElementById('eta-day').value;
+            const etaHour = document.getElementById('eta-hour')?.value || '';
+            const etaMinute = document.getElementById('eta-minute')?.value || '';
+            let eta = '-';
+            if (etaYear && etaMonth && etaDay) {
+                eta = `${etaYear}/${etaMonth.padStart(2, '0')}/${etaDay.padStart(2, '0')}`;
+                if (state.trade === 'domestic' && etaHour && etaMinute) {
+                    eta += ` ${etaHour.padStart(2, '0')}:${etaMinute.padStart(2, '0')}`;
+                }
+            }
+            
+            document.getElementById('s-schedule').innerHTML = `${pol} → ${pod}<br><span style="color:#666; font-size:0.8em">${etd} → ${eta}</span>`;
+
+            // Cargo - Multi-row support
+            let cargoTxt = '';
+            
+            if (state.load === 'FCL') {
+                const rows = document.querySelectorAll('#fcl-rows .cargo-row');
+                const rowSummaries = [];
+                let totalQty = 0;
+                
+                rows.forEach((row, idx) => {
+                    const type = row.querySelector('.fcl-type')?.value || '';
+                    const qty = parseInt(row.querySelector('.fcl-qty')?.value.replace(/,/g, '') || 0);
+                    if (type && qty > 0) {
+                        rowSummaries.push(`#${idx + 1}: ${type} x ${qty}`);
+                        totalQty += qty;
+                    }
+                });
+                
+                if (rowSummaries.length > 0) {
+                    if (rowSummaries.length === 1) {
+                        cargoTxt = rowSummaries[0].replace('#1: ', '');
+                    } else {
+                        cargoTxt = rowSummaries.join('<br>') + `<br><span style="color:#888;">───</span><br><b>Total: ${totalQty} containers</b>`;
+                    }
+                } else {
+                    cargoTxt = '-';
+                }
+            } else if (state.load === 'FTL') {
+                const rows = document.querySelectorAll('#ftl-rows .cargo-row');
+                const rowSummaries = [];
+                let totalQty = 0;
+                
+                rows.forEach((row, idx) => {
+                    const type = row.querySelector('.ftl-type')?.value || '';
+                    const qty = parseInt(row.querySelector('.ftl-qty')?.value.replace(/,/g, '') || 0);
+                    if (type && qty > 0) {
+                        rowSummaries.push(`#${idx + 1}: ${type} x ${qty}`);
+                        totalQty += qty;
+                    }
+                });
+                
+                if (rowSummaries.length > 0) {
+                    if (rowSummaries.length === 1) {
+                        cargoTxt = rowSummaries[0].replace('#1: ', '');
+                    } else {
+                        cargoTxt = rowSummaries.join('<br>') + `<br><span style="color:#888;">───</span><br><b>Total: ${totalQty} trucks</b>`;
+                    }
+                } else {
+                    cargoTxt = '-';
+                }
+            } else if (state.load === 'Air') {
+                const rows = document.querySelectorAll('#air-rows .cargo-row');
+                const rowSummaries = [];
+                let grandTotalGW = 0, grandTotalVW = 0, grandTotalCW = 0;
+                let hasCompleteRow = false;
+                
+                rows.forEach((row, idx) => {
+                    const l = row.querySelector('.air-l')?.value || '';
+                    const w = row.querySelector('.air-w')?.value || '';
+                    const h = row.querySelector('.air-h')?.value || '';
+                    const qty = row.querySelector('.air-qty')?.value || '';
+                    const gw = row.querySelector('.air-gross-weight')?.value || '';
+                    const vw = row.querySelector('.air-volume-weight')?.value || '';
+                    const cw = row.querySelector('.air-chargeable-weight')?.value || '';
+                    
+                    const isComplete = l && l !== '0' && w && w !== '0' && h && h !== '0' && qty && qty !== '0' && gw && gw !== '0';
+                    
+                    if (isComplete) {
+                        hasCompleteRow = true;
+                        const qtyNum = parseInt(qty.replace(/,/g, ''), 10) || 0;
+                        const gwNum = parseInt(gw.replace(/,/g, ''), 10) || 0;
+                        const vwNum = parseInt(vw.replace(/,/g, ''), 10) || 0;
+                        const cwNum = parseInt(cw.replace(/,/g, ''), 10) || 0;
+                        
+                        grandTotalGW += gwNum * qtyNum;
+                        grandTotalVW += vwNum * qtyNum;
+                        grandTotalCW += cwNum * qtyNum;
+                        
+                        rowSummaries.push(`#${idx + 1}: ${l}x${w}x${h}cm x ${qty}pcs`);
+                    }
+                });
+                
+                if (hasCompleteRow) {
+                    if (rowSummaries.length === 1) {
+                        const row = rows[0];
+                        const l = row.querySelector('.air-l')?.value;
+                        const w = row.querySelector('.air-w')?.value;
+                        const h = row.querySelector('.air-h')?.value;
+                        const qty = row.querySelector('.air-qty')?.value;
+                        const gw = row.querySelector('.air-gross-weight')?.value;
+                        const vw = row.querySelector('.air-volume-weight')?.value;
+                        const cw = row.querySelector('.air-chargeable-weight')?.value;
+                        cargoTxt = `${l}x${w}x${h}cm x ${qty}pcs<br>G.W:${gw} / V.W:${vw} / C.W:${cw} KG<br>Total G.W:${grandTotalGW.toLocaleString('en-US')} / V.W:${grandTotalVW.toLocaleString('en-US')} / C.W:${grandTotalCW.toLocaleString('en-US')} KG`;
+                    } else {
+                        cargoTxt = rowSummaries.join('<br>') + `<br><span style="color:#888;">───</span><br><b>Total G.W:${grandTotalGW.toLocaleString('en-US')} / V.W:${grandTotalVW.toLocaleString('en-US')} / C.W:${grandTotalCW.toLocaleString('en-US')} KG</b>`;
+                    }
+                } else {
+                    cargoTxt = '-';
+                }
+            } else if (['LCL', 'LTL', 'Bulk', 'All'].includes(state.load)) {
+                const rows = document.querySelectorAll('#lcl-rows .cargo-row');
+                const rowSummaries = [];
+                let grandTotalGW = 0, grandTotalCBM = 0;
+                let hasCompleteRow = false;
+                
+                rows.forEach((row, idx) => {
+                    const l = row.querySelector('.lcl-l')?.value || '';
+                    const w = row.querySelector('.lcl-w')?.value || '';
+                    const h = row.querySelector('.lcl-h')?.value || '';
+                    const qty = row.querySelector('.lcl-qty')?.value || '';
+                    const gw = row.querySelector('.lcl-gross-weight')?.value || '';
+                    const cbm = row.querySelector('.lcl-cbm')?.value || '0.0';
+                    
+                    const isComplete = l && l !== '0' && w && w !== '0' && h && h !== '0' && qty && qty !== '0' && gw && gw !== '0';
+                    
+                    if (isComplete) {
+                        hasCompleteRow = true;
+                        const qtyNum = parseInt(qty.replace(/,/g, ''), 10) || 0;
+                        const gwNum = parseInt(gw.replace(/,/g, ''), 10) || 0;
+                        const cbmNum = parseFloat(cbm) || 0;
+                        
+                        grandTotalGW += gwNum * qtyNum;
+                        grandTotalCBM += cbmNum * qtyNum;
+                        
+                        rowSummaries.push(`#${idx + 1}: ${l}x${w}x${h}cm x ${qty}pcs`);
+                    }
+                });
+                
+                grandTotalCBM = Math.round(grandTotalCBM * 10) / 10;
+                
+                if (hasCompleteRow) {
+                    if (rowSummaries.length === 1) {
+                        const row = rows[0];
+                        const l = row.querySelector('.lcl-l')?.value;
+                        const w = row.querySelector('.lcl-w')?.value;
+                        const h = row.querySelector('.lcl-h')?.value;
+                        const qty = row.querySelector('.lcl-qty')?.value;
+                        const gw = row.querySelector('.lcl-gross-weight')?.value;
+                        const cbm = row.querySelector('.lcl-cbm')?.value;
+                        cargoTxt = `${l}x${w}x${h}cm x ${qty}pcs<br>G.W:${gw}KG / CBM:${cbm}M³<br>Total G.W:${grandTotalGW.toLocaleString('en-US')}KG / CBM:${grandTotalCBM.toFixed(1)}M³`;
+                    } else {
+                        cargoTxt = rowSummaries.join('<br>') + `<br><span style="color:#888;">───</span><br><b>Total G.W:${grandTotalGW.toLocaleString('en-US')}KG / CBM:${grandTotalCBM.toFixed(1)}M³</b>`;
+                    }
+                } else {
+                    cargoTxt = '-';
+                }
+            } else {
+                cargoTxt = '-';
+            }
+            document.getElementById('s-cargo').innerHTML = cargoTxt;
+
+            // Additional
+            let adds = [];
+            if(document.querySelector('input[name="export-cc"]:checked')?.value === 'yes') adds.push('Export CC');
+            if(document.querySelector('input[name="import-cc"]:checked')?.value === 'yes') adds.push('Import CC');
+            if(document.querySelector('input[name="pickup"]:checked')?.value === 'yes') adds.push('Pickup');
+            if(document.querySelector('input[name="delivery"]:checked')?.value === 'yes') adds.push('Delivery');
+            const inv = document.getElementById('invoice-val').value;
+            if(inv) adds.push(`$${inv}`);
+            
+            document.getElementById('s-add').innerHTML = adds.length > 0 ? adds.join('<br>') : 'None';
+
+            // Customer
+            const co = document.getElementById('c-company').value;
+            const name = document.getElementById('c-name').value;
+            const email = document.getElementById('c-email').value;
+            const phone = document.getElementById('c-phone').value;
+            
+            let custParts = [];
+            if (co || name) custParts.push(`${co} / ${name}`);
+            if (email) custParts.push(email);
+            if (phone) custParts.push(phone);
+            
+            document.getElementById('s-cust').innerHTML = custParts.length > 0 ? custParts.join('<br>') : '-';
+        }
+
+        // ==========================================
+        // FORM DATA COLLECTION
+        // ==========================================
+        function collectFormData() {
+            const data = {
+                // Trade & Shipping
+                trade_mode: state.trade,
+                shipping_type: state.ship,
+                load_type: state.load,
+                incoterms: state.incoterms,
+                
+                // Schedules
+                pol: document.getElementById('input-pol').value.trim(),
+                pod: document.getElementById('input-pod').value.trim(),
+                etd: formatDateForAPI('etd'),
+                eta: formatDateForAPI('eta'),
+                
+                // Cargo Details
+                cargo: collectCargoData(),
+                
+                // DG (Dangerous Goods)
+                is_dg: document.getElementById('dg-check').checked,
+                dg_class: document.getElementById('dg-class')?.value.trim() || '',
+                dg_un: document.getElementById('dg-un')?.value.trim() || '',
+                
+                // Additional Details
+                export_cc: document.querySelector('input[name="export-cc"]:checked')?.value === 'yes',
+                import_cc: document.querySelector('input[name="import-cc"]:checked')?.value === 'yes',
+                shipping_insurance: document.querySelector('input[name="shipping-insurance"]:checked')?.value === 'yes',
+                pickup_required: document.querySelector('input[name="pickup"]:checked')?.value === 'yes',
+                pickup_address: document.getElementById('pickup-addr')?.value.trim() || '',
+                delivery_required: document.querySelector('input[name="delivery"]:checked')?.value === 'yes',
+                delivery_address: document.getElementById('delivery-addr')?.value.trim() || '',
+                invoice_value: parseFloat(document.getElementById('invoice-val').value.replace(/,/g, '')) || 0,
+                
+                // Customer Information
+                customer: {
+                    company: document.getElementById('c-company').value.trim(),
+                    job_title: document.getElementById('c-title').value.trim(),
+                    name: document.getElementById('c-name').value.trim(),
+                    email: document.getElementById('c-email').value.trim(),
+                    phone: document.getElementById('c-phone').value.trim()
+                },
+                
+                // Remark
+                remark: document.getElementById('remark-textarea').value.trim()
+            };
+            
+            return data;
+        }
+        
+        function formatDateForAPI(prefix) {
+            const year = document.getElementById(`${prefix}-year`).value;
+            const month = document.getElementById(`${prefix}-month`).value;
+            const day = document.getElementById(`${prefix}-day`).value;
+            const hour = document.getElementById(`${prefix}-hour`)?.value || '';
+            const minute = document.getElementById(`${prefix}-minute`)?.value || '';
+            
+            if (!year || !month || !day) return '';
+            
+            let dateStr = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            if (state.trade === 'domestic' && hour && minute) {
+                dateStr += ` ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+            }
+            return dateStr;
+        }
+        
+        function collectCargoData() {
+            const cargoList = [];
+            let container;
+            
+            if (state.load === 'FCL') {
+                container = document.getElementById('fcl-rows');
+                container?.querySelectorAll('.cargo-row').forEach(row => {
+                    cargoList.push({
+                        container_type: row.querySelector('.fcl-type')?.value || '',
+                        gross_weight: parseFloat(row.querySelector('.fcl-weight')?.value.replace(/,/g, '') || 0),
+                        cbm: parseFloat(row.querySelector('.fcl-cbm')?.value.replace(/,/g, '') || 0),
+                        qty: parseInt(row.querySelector('.fcl-qty')?.value.replace(/,/g, '') || 0)
+                    });
+                });
+            } else if (state.load === 'FTL') {
+                container = document.getElementById('ftl-rows');
+                container?.querySelectorAll('.cargo-row').forEach(row => {
+                    cargoList.push({
+                        truck_type: row.querySelector('.ftl-type')?.value || '',
+                        qty: parseInt(row.querySelector('.ftl-qty')?.value.replace(/,/g, '') || 0)
+                    });
+                });
+            } else if (state.load === 'Air') {
+                container = document.getElementById('air-rows');
+                container?.querySelectorAll('.cargo-row').forEach(row => {
+                    cargoList.push({
+                        length: parseInt(row.querySelector('.air-l')?.value.replace(/,/g, '') || 0),
+                        width: parseInt(row.querySelector('.air-w')?.value.replace(/,/g, '') || 0),
+                        height: parseInt(row.querySelector('.air-h')?.value.replace(/,/g, '') || 0),
+                        qty: parseInt(row.querySelector('.air-qty')?.value.replace(/,/g, '') || 0),
+                        gross_weight: parseInt(row.querySelector('.air-gross-weight')?.value.replace(/,/g, '') || 0),
+                        volume_weight: parseInt(row.querySelector('.air-volume-weight')?.value.replace(/,/g, '') || 0),
+                        chargeable_weight: parseInt(row.querySelector('.air-chargeable-weight')?.value.replace(/,/g, '') || 0)
+                    });
+                });
+            } else {
+                // LCL, LTL, Bulk, All
+                container = document.getElementById('lcl-rows');
+                container?.querySelectorAll('.cargo-row').forEach(row => {
+                    cargoList.push({
+                        length: parseInt(row.querySelector('.lcl-l')?.value.replace(/,/g, '') || 0),
+                        width: parseInt(row.querySelector('.lcl-w')?.value.replace(/,/g, '') || 0),
+                        height: parseInt(row.querySelector('.lcl-h')?.value.replace(/,/g, '') || 0),
+                        qty: parseInt(row.querySelector('.lcl-qty')?.value.replace(/,/g, '') || 0),
+                        gross_weight: parseInt(row.querySelector('.lcl-gross-weight')?.value.replace(/,/g, '') || 0),
+                        cbm: parseFloat(row.querySelector('.lcl-cbm')?.value || 0)
+                    });
+                });
+            }
+            
+            return cargoList;
+        }
+
+        // ==========================================
+        // FORM VALIDATION
+        // ==========================================
+        function validateForm() {
+            const errors = [];
+            clearValidationErrors();
+            
+            // POL/POD validation
+            const pol = document.getElementById('input-pol');
+            const pod = document.getElementById('input-pod');
+            if (!pol.value.trim()) {
+                errors.push('POL (Port of Loading / Pickup Address) is required');
+                pol.classList.add('error');
+            }
+            if (!pod.value.trim()) {
+                errors.push('POD (Port of Discharging / Delivery Address) is required');
+                pod.classList.add('error');
+            }
+            
+            // ETD validation
+            const etdYear = document.getElementById('etd-year');
+            const etdMonth = document.getElementById('etd-month');
+            const etdDay = document.getElementById('etd-day');
+            if (!etdYear.value || !etdMonth.value || !etdDay.value) {
+                errors.push('Estimated Departure Date (ETD) is required');
+                if (!etdYear.value) etdYear.parentElement.classList.add('error');
+            }
+            
+            // FCL Gross Weight validation
+            if (state.load === 'FCL') {
+                const fclRows = document.querySelectorAll('#fcl-rows .cargo-row');
+                fclRows.forEach((row, idx) => {
+                    const weight = row.querySelector('.fcl-weight');
+                    if (!weight.value || parseFloat(weight.value.replace(/,/g, '')) <= 0) {
+                        errors.push(`Cargo Row ${idx + 1}: Gross Weight is required for FCL`);
+                        weight.classList.add('error');
+                    }
+                });
+            }
+            
+            // LCL/Air cargo validation - at least one complete row
+            if (['LCL', 'LTL', 'Bulk', 'All'].includes(state.load)) {
+                const rows = document.querySelectorAll('#lcl-rows .cargo-row');
+                let hasCompleteRow = false;
+                rows.forEach(row => {
+                    const l = row.querySelector('.lcl-l')?.value;
+                    const w = row.querySelector('.lcl-w')?.value;
+                    const h = row.querySelector('.lcl-h')?.value;
+                    const qty = row.querySelector('.lcl-qty')?.value;
+                    const gw = row.querySelector('.lcl-gross-weight')?.value;
+                    if (l && w && h && qty && gw && 
+                        parseFloat(l) > 0 && parseFloat(w) > 0 && parseFloat(h) > 0 && 
+                        parseInt(qty) > 0 && parseInt(gw.replace(/,/g, '')) > 0) {
+                        hasCompleteRow = true;
+                    }
+                });
+                if (!hasCompleteRow) {
+                    errors.push('At least one complete cargo row is required (L, W, H, Qty, Gross Weight)');
+                }
+            }
+            
+            if (state.load === 'Air') {
+                const rows = document.querySelectorAll('#air-rows .cargo-row');
+                let hasCompleteRow = false;
+                rows.forEach(row => {
+                    const l = row.querySelector('.air-l')?.value;
+                    const w = row.querySelector('.air-w')?.value;
+                    const h = row.querySelector('.air-h')?.value;
+                    const qty = row.querySelector('.air-qty')?.value;
+                    const gw = row.querySelector('.air-gross-weight')?.value;
+                    if (l && w && h && qty && gw && 
+                        parseFloat(l) > 0 && parseFloat(w) > 0 && parseFloat(h) > 0 && 
+                        parseInt(qty) > 0 && parseInt(gw.replace(/,/g, '')) > 0) {
+                        hasCompleteRow = true;
+                    }
+                });
+                if (!hasCompleteRow) {
+                    errors.push('At least one complete cargo row is required (L, W, H, Qty, Gross Weight)');
+                }
+            }
+            
+            // DG validation
+            const dgCheck = document.getElementById('dg-check');
+            if (dgCheck.checked) {
+                const dgClass = document.getElementById('dg-class');
+                const dgUn = document.getElementById('dg-un');
+                if (!dgClass.value.trim()) {
+                    errors.push('DG Class is required when Dangerous Goods is checked');
+                    dgClass.classList.add('error');
+                }
+                if (!dgUn.value.trim()) {
+                    errors.push('UN Number is required when Dangerous Goods is checked');
+                    dgUn.classList.add('error');
+                }
+            }
+            
+            // Customer Information validation
+            const company = document.getElementById('c-company');
+            const name = document.getElementById('c-name');
+            const email = document.getElementById('c-email');
+            const phone = document.getElementById('c-phone');
+            
+            if (!company.value.trim()) {
+                errors.push('Company Name is required');
+                company.classList.add('error');
+            }
+            if (!name.value.trim()) {
+                errors.push('Name is required');
+                name.classList.add('error');
+            }
+            if (!email.value.trim()) {
+                errors.push('E-mail is required');
+                email.classList.add('error');
+            } else if (!isValidEmail(email.value.trim())) {
+                errors.push('Please enter a valid email address');
+                email.classList.add('error');
+            }
+            if (!phone.value.trim()) {
+                errors.push('Phone is required');
+                phone.classList.add('error');
+            }
+            
+            // Remark validation (when highlighted/required)
+            const remarkSection = document.getElementById('remark-section');
+            const remarkTextarea = document.getElementById('remark-textarea');
+            if (remarkSection.classList.contains('highlighted') && !remarkTextarea.value.trim()) {
+                errors.push('Remark is required for this Incoterms selection');
+                remarkTextarea.classList.add('error');
+            }
+            
+            // Display errors
+            if (errors.length > 0) {
+                showValidationErrors(errors);
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function isValidEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        function clearValidationErrors() {
+            // Hide error container
+            document.getElementById('validation-error').classList.remove('show');
+            document.getElementById('validation-error-list').innerHTML = '';
+            
+            // Remove error class from all inputs
+            document.querySelectorAll('.form-input.error').forEach(el => {
+                el.classList.remove('error');
+            });
+            document.querySelectorAll('.date-input-group.error').forEach(el => {
+                el.classList.remove('error');
+            });
+        }
+        
+        function showValidationErrors(errors) {
+            const container = document.getElementById('validation-error');
+            const list = document.getElementById('validation-error-list');
+            
+            list.innerHTML = errors.map(err => `<li>${err}</li>`).join('');
+            container.classList.add('show');
+            
+            // Scroll to error container
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ==========================================
+        // FORM SUBMISSION
+        // ==========================================
+        
+        function submitQuote() {
+            // Validate form
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Collect form data
+            const formData = collectFormData();
+            
+            // Show loading
+            showLoading(true);
+            
+            // Log for debugging
+            console.log('Form Data to Submit:', JSON.stringify(formData, null, 2));
+            
+            // API call
+            fetch(`${API_BASE_URL}/api/quote/request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    showToast(`Quote request submitted! Request #: ${data.request_number}`, 'success');
+                    // Optional: Reset form or show confirmation
+                    console.log('Success:', data);
+                } else {
+                    showToast(data.message || 'Failed to submit quote request', 'error');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                const errorMsg = error.detail || error.message || 'Network error. Please try again.';
+                showToast(errorMsg, 'error');
+                console.error('Submit error:', error);
+            });
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+    </script>
+
+</body>
+</html>
