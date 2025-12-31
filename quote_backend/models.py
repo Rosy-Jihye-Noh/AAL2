@@ -201,6 +201,7 @@ class QuoteRequest(Base):
     # Relationships
     customer = relationship("Customer", back_populates="quote_requests")
     cargo_details = relationship("CargoDetail", back_populates="quote_request", cascade="all, delete-orphan")
+    bidding = relationship("Bidding", back_populates="quote_request", uselist=False)
     
     def __repr__(self):
         return f"<QuoteRequest {self.request_number}>"
@@ -241,3 +242,28 @@ class CargoDetail(Base):
     def __repr__(self):
         return f"<CargoDetail #{self.row_index} for QR#{self.quote_request_id}>"
 
+
+class Bidding(Base):
+    """
+    Bidding Management - RFQ sent to forwarders
+    Bidding No Format: [Trade 2자리][Shipping 3자리][Sequence 5자리]
+    Example: IMAIR00000, EXSEA00001
+    """
+    __tablename__ = "biddings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    bidding_no = Column(String(10), unique=True, nullable=False, index=True)  # EXSEA00000
+    quote_request_id = Column(Integer, ForeignKey("quote_requests.id"), nullable=False)
+    pdf_path = Column(String(255), nullable=True)  # Path to generated PDF
+    deadline = Column(DateTime, nullable=True)  # Quotation submission deadline
+    status = Column(String(20), default="open")  # open, closed, awarded, cancelled
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    quote_request = relationship("QuoteRequest", back_populates="bidding")
+    
+    def __repr__(self):
+        return f"<Bidding {self.bidding_no}>"

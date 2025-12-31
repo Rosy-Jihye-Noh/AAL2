@@ -151,7 +151,7 @@ class QuoteRequestBase(BaseModel):
     pol: str = Field(..., max_length=50)
     pod: str = Field(..., max_length=50)
     etd: str = Field(..., description="YYYY-MM-DD or YYYY-MM-DD HH:MM")
-    eta: Optional[str] = None
+    eta: str = Field(..., description="YYYY-MM-DD or YYYY-MM-DD HH:MM")  # Required
     
     # DG
     is_dg: bool = False
@@ -166,7 +166,7 @@ class QuoteRequestBase(BaseModel):
     pickup_address: Optional[str] = Field(None, max_length=100)
     delivery_required: bool = False
     delivery_address: Optional[str] = Field(None, max_length=100)
-    invoice_value: float = 0
+    invoice_value: float = Field(..., description="Invoice value in USD")  # Required
     
     # Remark
     remark: Optional[str] = None
@@ -224,4 +224,23 @@ class QuoteSubmitResponse(BaseModel):
     message: str
     request_number: str
     quote_request_id: int
+    bidding_no: Optional[str] = None
+    pdf_url: Optional[str] = None
+    deadline: Optional[str] = None
 
+
+# ==========================================
+# BIDDING SCHEMAS
+# ==========================================
+
+class BiddingResponse(BaseModel):
+    id: int
+    bidding_no: str
+    quote_request_id: int
+    pdf_path: Optional[str] = None
+    deadline: Optional[datetime] = None
+    status: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

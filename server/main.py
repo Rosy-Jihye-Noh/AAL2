@@ -22,9 +22,21 @@ BASE_DIR = Path(__file__).parent.parent
 app = Flask(__name__)
 CORS(app) # Enable CORS for all routes (for development)
 
+# Disable caching for development
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
+@app.after_request
+def add_no_cache_headers(response):
+    """Add no-cache headers to all responses for development"""
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 ECOS_API_KEY = os.getenv("ECOS_API_KEY")
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
@@ -478,6 +490,7 @@ def serve_pages(filename):
 
 # GDELT 데이터 자동 업데이트 스케줄러
 scheduler = BackgroundScheduler(daemon=True)
+
 
 def update_gdelt_data_job():
     """15분마다 실행되는 GDELT 데이터 업데이트 작업"""

@@ -5,18 +5,23 @@ Main Application Entry Point
 
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 import random
 import string
+import os
 
 from database import get_db, engine
-from models import Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, CargoDetail
+from models import Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, CargoDetail, Bidding
 from schemas import (
     PortResponse, ContainerTypeResponse, TruckTypeResponse, IncotermResponse,
-    QuoteRequestCreate, QuoteRequestResponse, QuoteSubmitResponse, APIResponse
+    QuoteRequestCreate, QuoteRequestResponse, QuoteSubmitResponse, APIResponse,
+    BiddingResponse
 )
+from pdf_generator import RFQPDFGenerator
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -69,6 +74,72 @@ def parse_datetime(date_str: str) -> datetime:
             continue
     
     raise ValueError(f"Invalid date format: {date_str}")
+
+
+def generate_bidding_no(trade_mode: str, shipping_type: str, db: Session) -> str:
+    """
+    Generate unique Bidding Number
+    Format: [Trade Mode 2자리][Shipping Type 3자리][Sequence 5자리]
+    
+    Examples:
+    - EXSEA00000 (Export + Ocean)
+    - IMAIR00001 (Import + Air)
+    - DOTRK00000 (Domestic + Truck)
+    """
+    # Trade Mode mapping (2 digits)
+    trade_map = {
+        "export": "EX",
+        "import": "IM",
+        "domestic": "DO"
+    }
+    
+    # Shipping Type mapping (3 digits)
+    ship_map = {
+        "ocean": "SEA",
+        "air": "AIR",
+        "truck": "TRK",
+        "all": "ALL"
+    }
+    
+    prefix = trade_map.get(trade_mode, "XX") + ship_map.get(shipping_type, "XXX")
+    
+    # Find the last bidding number with this prefix
+    last_bidding = db.query(Bidding).filter(
+        Bidding.bidding_no.like(f"{prefix}%")
+    ).order_by(Bidding.bidding_no.desc()).first()
+    
+    if last_bidding:
+        # Extract sequence and increment
+        last_seq = int(last_bidding.bidding_no[-5:])
+        new_seq = str(last_seq + 1).zfill(5)
+    else:
+        new_seq = "00000"
+    
+    return f"{prefix}{new_seq}"
+
+
+def calculate_deadline(etd: datetime, shipping_type: str) -> datetime:
+    """
+    Calculate quotation submission deadline based on shipping type
+    
+    Rules:
+    - Ocean: ETD - 4 days
+    - Air: ETD - 1 day
+    - Truck/All: ETD - 1 day (default)
+    
+    Time is set to 18:00 KST
+    """
+    if shipping_type == "ocean":
+        deadline = etd - timedelta(days=4)
+    elif shipping_type == "air":
+        deadline = etd - timedelta(days=1)
+    else:
+        deadline = etd - timedelta(days=1)  # Default for truck, all
+    
+    # Set time to 18:00
+    deadline = deadline.replace(hour=18, minute=0, second=0, microsecond=0)
+    
+    return deadline
 
 
 # ==========================================
@@ -197,9 +268,9 @@ def submit_quote_request(
         while db.query(QuoteRequest).filter(QuoteRequest.request_number == request_number).first():
             request_number = generate_request_number()
         
-        # Parse dates
+        # Parse dates (both ETD and ETA are required)
         etd = parse_datetime(request_data.etd)
-        eta = parse_datetime(request_data.eta) if request_data.eta else None
+        eta = parse_datetime(request_data.eta)
         
         # Create quote request
         quote_request = QuoteRequest(
@@ -248,13 +319,53 @@ def submit_quote_request(
             )
             db.add(cargo)
         
+        db.flush()  # Ensure cargo details are saved
+        
+        # ==========================================
+        # BIDDING & PDF GENERATION
+        # ==========================================
+        
+        # Generate Bidding No
+        bidding_no = generate_bidding_no(request_data.trade_mode, request_data.shipping_type, db)
+        
+        # Calculate deadline (Ocean: ETD-4days, Air: ETD-1day)
+        deadline = calculate_deadline(etd, request_data.shipping_type)
+        
+        # Generate PDF
+        pdf_dir = Path(__file__).parent / "generated_pdfs"
+        pdf_path = str(pdf_dir / f"RFQ_{bidding_no}.pdf")
+        
+        try:
+            # Refresh quote_request to include relationships
+            db.refresh(quote_request)
+            
+            pdf_generator = RFQPDFGenerator(bidding_no, quote_request, deadline)
+            pdf_generator.generate(pdf_path)
+        except Exception as pdf_error:
+            # Log error but don't fail the request
+            print(f"PDF generation error: {pdf_error}")
+            pdf_path = None
+        
+        # Create Bidding record
+        bidding = Bidding(
+            bidding_no=bidding_no,
+            quote_request_id=quote_request.id,
+            pdf_path=pdf_path,
+            deadline=deadline,
+            status="open"
+        )
+        db.add(bidding)
+        
         db.commit()
         
         return QuoteSubmitResponse(
             success=True,
-            message="Quote request submitted successfully",
+            message="Quote request submitted successfully. RFQ generated.",
             request_number=request_number,
-            quote_request_id=quote_request.id
+            quote_request_id=quote_request.id,
+            bidding_no=bidding_no,
+            pdf_url=f"/api/quote/rfq/{bidding_no}/pdf" if pdf_path else None,
+            deadline=deadline.strftime("%Y-%m-%d %H:%M") if deadline else None
         )
         
     except ValueError as e:
@@ -353,6 +464,80 @@ def update_quote_status(
         message=f"Status updated to '{status}'",
         data={"request_id": request_id, "new_status": status}
     )
+
+
+# ==========================================
+# BIDDING & PDF ENDPOINTS
+# ==========================================
+
+@app.get("/api/quote/rfq/{bidding_no}/pdf", tags=["Bidding"])
+def download_rfq_pdf(bidding_no: str, db: Session = Depends(get_db)):
+    """
+    Download RFQ PDF by Bidding Number
+    """
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    if not bidding.pdf_path or not os.path.exists(bidding.pdf_path):
+        raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    return FileResponse(
+        path=bidding.pdf_path,
+        media_type="application/pdf",
+        filename=f"RFQ_{bidding_no}.pdf"
+    )
+
+
+@app.get("/api/quote/bidding/{bidding_no}", response_model=BiddingResponse, tags=["Bidding"])
+def get_bidding(bidding_no: str, db: Session = Depends(get_db)):
+    """
+    Get bidding details by Bidding Number
+    """
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    return bidding
+
+
+@app.get("/api/quote/biddings", tags=["Bidding"])
+def get_biddings(
+    status: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of biddings with filters
+    """
+    query = db.query(Bidding)
+    
+    if status:
+        query = query.filter(Bidding.status == status)
+    
+    total = query.count()
+    biddings = query.order_by(Bidding.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return {
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "data": [
+            {
+                "id": b.id,
+                "bidding_no": b.bidding_no,
+                "quote_request_id": b.quote_request_id,
+                "deadline": b.deadline.isoformat() if b.deadline else None,
+                "status": b.status,
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+                "has_pdf": bool(b.pdf_path and os.path.exists(b.pdf_path))
+            }
+            for b in biddings
+        ]
+    }
 
 
 # ==========================================

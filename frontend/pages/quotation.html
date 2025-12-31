@@ -384,6 +384,119 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        /* Success Modal Styles */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+        .success-modal.show {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .success-modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            animation: scaleIn 0.3s ease;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .success-icon {
+            font-size: 60px;
+            color: #10b981;
+            margin-bottom: 20px;
+        }
+        .success-modal h3 {
+            color: var(--text-main);
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+        }
+        .success-details {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .success-details .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .success-details .detail-item:last-child {
+            border-bottom: none;
+        }
+        .success-details .label {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+        .success-details .value {
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .success-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-pdf {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 14px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .btn-pdf:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+        }
+        .btn-pdf i {
+            font-size: 1.2rem;
+        }
+        .btn-close-modal {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .btn-close-modal:hover {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
         /* Autocomplete Styles */
         .autocomplete-wrapper {
             position: relative;
@@ -494,6 +607,32 @@
     
     <!-- Toast Message -->
     <div class="toast" id="toast"></div>
+    
+    <!-- Success Modal -->
+    <div class="success-modal" id="success-modal">
+        <div class="success-modal-content">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3>RFQ Submitted Successfully!</h3>
+            <div class="success-details">
+                <div class="detail-item">
+                    <span class="label">Bidding No</span>
+                    <span class="value" id="modal-bidding-no">-</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Deadline</span>
+                    <span class="value" id="modal-deadline">-</span>
+                </div>
+            </div>
+            <div class="success-actions">
+                <button class="btn btn-pdf" id="btn-download-pdf" onclick="downloadPDF()">
+                    <i class="fas fa-file-pdf"></i> Download RFQ PDF
+                </button>
+                <button class="btn btn-close-modal" onclick="closeSuccessModal()">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Header -->
     <header>
@@ -2209,6 +2348,22 @@
                 if (!etdYear.value) etdYear.parentElement.classList.add('error');
             }
             
+            // ETA validation
+            const etaYear = document.getElementById('eta-year');
+            const etaMonth = document.getElementById('eta-month');
+            const etaDay = document.getElementById('eta-day');
+            if (!etaYear.value || !etaMonth.value || !etaDay.value) {
+                errors.push('Estimated Arrival Date (ETA) is required');
+                if (!etaYear.value) etaYear.parentElement.classList.add('error');
+            }
+            
+            // Invoice Value validation
+            const invoiceVal = document.getElementById('invoice-val');
+            if (!invoiceVal.value || parseFloat(invoiceVal.value.replace(/,/g, '')) <= 0) {
+                errors.push('Invoice Value is required');
+                invoiceVal.classList.add('error');
+            }
+            
             // FCL Gross Weight validation
             if (state.load === 'FCL') {
                 const fclRows = document.querySelectorAll('#fcl-rows .cargo-row');
@@ -2386,8 +2541,8 @@
             .then(data => {
                 showLoading(false);
                 if (data.success) {
-                    showToast(`Quote request submitted! Request #: ${data.request_number}`, 'success');
-                    // Optional: Reset form or show confirmation
+                    // Show success with Bidding No and PDF download
+                    showSuccessModal(data);
                     console.log('Success:', data);
                 } else {
                     showToast(data.message || 'Failed to submit quote request', 'error');
@@ -2419,6 +2574,56 @@
                 toast.classList.remove('show');
             }, 4000);
         }
+        
+        // ==========================================
+        // SUCCESS MODAL & PDF DOWNLOAD
+        // ==========================================
+        
+        let currentPdfUrl = null;
+        
+        function showSuccessModal(data) {
+            const modal = document.getElementById('success-modal');
+            
+            // Set modal data
+            document.getElementById('modal-bidding-no').textContent = data.bidding_no || '-';
+            document.getElementById('modal-deadline').textContent = data.deadline ? `${data.deadline} (KST)` : '-';
+            
+            // Store PDF URL for download
+            currentPdfUrl = data.pdf_url;
+            
+            // Show/hide PDF button based on availability
+            const pdfBtn = document.getElementById('btn-download-pdf');
+            if (data.pdf_url) {
+                pdfBtn.style.display = 'flex';
+            } else {
+                pdfBtn.style.display = 'none';
+            }
+            
+            // Show modal
+            modal.classList.add('show');
+        }
+        
+        function closeSuccessModal() {
+            const modal = document.getElementById('success-modal');
+            modal.classList.remove('show');
+            currentPdfUrl = null;
+        }
+        
+        function downloadPDF() {
+            if (currentPdfUrl) {
+                // Open PDF in new tab or trigger download
+                window.open(`${API_BASE_URL}${currentPdfUrl}`, '_blank');
+            } else {
+                showToast('PDF not available', 'error');
+            }
+        }
+        
+        // Close modal on outside click
+        document.getElementById('success-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSuccessModal();
+            }
+        });
     </script>
 
 </body>
