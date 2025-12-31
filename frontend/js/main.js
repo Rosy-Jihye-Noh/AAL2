@@ -44,7 +44,7 @@ function switchProduct(productName) {
         'gdp-per-capita': 'GDP per Capita',
         'gni': 'GNI',
         'trade': 'Export x Import',
-        'employment': 'Employment',
+        'employment': 'Unemployment',
         'gdp-growth': 'Economy Growth Rate',
         'global-stocks': 'Global Stocks'
     };

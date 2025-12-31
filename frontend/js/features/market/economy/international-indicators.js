@@ -21,7 +21,8 @@ const INTERNATIONAL_INDICATORS_CONFIG = {
         title: 'GDP',
         description: '국제 주요국 국내총생산(GDP)',
         cycle: 'A', // Annual
-        unit: 'Billion USD',
+        unit: 'M USD',  // Million USD
+        unitType: 'million-usd',
         dateInputType: 'number', // year input
         chartPrefix: 'gdp-indicator'
     },
@@ -32,6 +33,7 @@ const INTERNATIONAL_INDICATORS_CONFIG = {
         description: '국제 주요국 1인당 GDP',
         cycle: 'A', // Annual
         unit: 'USD',
+        unitType: 'usd',
         dateInputType: 'number',
         chartPrefix: 'gdp-per-capita'
     },
@@ -41,7 +43,8 @@ const INTERNATIONAL_INDICATORS_CONFIG = {
         title: 'GNI',
         description: '국제 주요국 국민총소득(GNI)',
         cycle: 'A', // Annual
-        unit: 'Billion USD',
+        unit: 'M USD',  // Million USD
+        unitType: 'million-usd',
         dateInputType: 'number',
         chartPrefix: 'gni'
     },
@@ -66,6 +69,89 @@ const INTERNATIONAL_INDICATORS_CONFIG = {
         chartPrefix: 'global-stocks'
     }
 };
+
+// ============================================================
+// VALUE FORMATTING WITH KRW CONVERSION
+// ============================================================
+
+/**
+ * Get current USD/KRW exchange rate from exchange-rate module
+ * Falls back to approximate rate if not available
+ */
+function getUsdKrwRate() {
+    // Try to get from exchange-rate module
+    if (window.exchangeRates && window.exchangeRates.USD) {
+        return window.exchangeRates.USD;
+    }
+    // Fallback approximate rate
+    return 1350;
+}
+
+/**
+ * Convert USD value to KRW with appropriate unit
+ * @param {number} value - Value in USD
+ * @param {string} unitType - 'million-usd' or 'usd'
+ * @returns {string} Formatted KRW string or null
+ */
+function convertToKRW(value, unitType) {
+    if (!Number.isFinite(value)) return null;
+    
+    const rate = getUsdKrwRate();
+    
+    if (unitType === 'million-usd') {
+        // Million USD → 조원 (trillion KRW)
+        // 1 Million USD × rate = rate Million KRW
+        // rate Million KRW = rate / 1,000,000 조원 = rate / 10,000 억원
+        const krwBillion = value * rate / 1000; // 십억원 단위
+        const krwTrillion = krwBillion / 1000; // 조원 단위
+        
+        if (krwTrillion >= 1) {
+            return `≈${krwTrillion.toLocaleString('en-US', {maximumFractionDigits: 0})}조 원`;
+        } else if (krwBillion >= 1) {
+            return `≈${krwBillion.toLocaleString('en-US', {maximumFractionDigits: 0})}억 원`;
+        }
+    } else if (unitType === 'usd') {
+        // USD → 만원
+        // 36,238 USD × rate = 48,921,300 KRW ≈ 4,892만원
+        const krwValue = value * rate;
+        const krwMan = krwValue / 10000; // 만원 단위
+        
+        if (krwMan >= 1) {
+            return `≈${krwMan.toLocaleString('en-US', {maximumFractionDigits: 0})}만 원`;
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Format indicator value with unit and KRW conversion
+ */
+function formatIndicatorValueWithKRW(value, config) {
+    if (!Number.isFinite(value)) return '-';
+    
+    const formattedValue = value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    
+    if (config.unit === '%') {
+        return value.toFixed(1) + '%';
+    }
+    
+    if (config.unit === 'Index') {
+        return formattedValue;
+    }
+    
+    // For GDP, GNI (Million USD) and GDP per Capita (USD)
+    let result = `${formattedValue} ${config.unit}`;
+    
+    if (config.unitType) {
+        const krwValue = convertToKRW(value, config.unitType);
+        if (krwValue) {
+            result += ` (${krwValue})`;
+        }
+    }
+    
+    return result;
+}
 
 // ============================================================
 // STATE MANAGEMENT
@@ -884,13 +970,23 @@ function showIndicatorTooltip(indicatorType, event) {
         const computedColor = window.getComputedStyle(tempEl).color;
         document.body.removeChild(tempEl);
         
+        // Format tooltip value with smaller unit text
         let valueText;
+        const formattedVal = item.value.toLocaleString('en-US', { maximumFractionDigits: 2 });
         if (config.unit === '%') {
-            valueText = item.value.toFixed(1) + '%';
+            valueText = formattedVal + '%';
         } else if (config.unit === 'Index') {
-            valueText = item.value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            valueText = formattedVal;
         } else {
-            valueText = item.value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            let unitHtml = `<span style="font-size: 80%; opacity: 0.8;"> ${config.unit}`;
+            if (config.unitType) {
+                const krwVal = convertToKRW(item.value, config.unitType);
+                if (krwVal) {
+                    unitHtml += ` (${krwVal})`;
+                }
+            }
+            unitHtml += '</span>';
+            valueText = formattedVal + unitHtml;
         }
         
         content += `
@@ -975,16 +1071,29 @@ function updateIndicatorChartHeader(indicatorType) {
     
     const valueEl = document.getElementById(`${prefix}-chart-main-value`);
     if (valueEl) {
+        // Main value with unit and KRW (unit/KRW in smaller text)
+        const formattedValue = current.toLocaleString('en-US', { maximumFractionDigits: 2 });
         if (config.unit === '%') {
-            valueEl.textContent = current.toFixed(1) + '%';
+            valueEl.innerHTML = formattedValue + '%';
+        } else if (config.unit === 'Index') {
+            valueEl.innerHTML = formattedValue;
         } else {
-            valueEl.textContent = current.toLocaleString('en-US', { maximumFractionDigits: 2 });
+            let unitHtml = `<span style="font-size: 50%; opacity: 0.8;"> ${config.unit}`;
+            if (config.unitType) {
+                const krwValue = convertToKRW(current, config.unitType);
+                if (krwValue) {
+                    unitHtml += ` (${krwValue})`;
+                }
+            }
+            unitHtml += '</span>';
+            valueEl.innerHTML = formattedValue + unitHtml;
         }
     }
     
+    // Stats - just the number (no unit)
     const formatStat = (val) => {
         if (config.unit === '%') return val.toFixed(1) + '%';
-        return val.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        return val.toLocaleString('en-US', { maximumFractionDigits: 0 });
     };
     
     const highEl = document.getElementById(`${prefix}-stat-high`);

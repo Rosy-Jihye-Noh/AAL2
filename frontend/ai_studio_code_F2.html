@@ -172,7 +172,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -357,7 +357,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -454,7 +454,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -539,7 +539,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -624,7 +624,7 @@
                             <li class="selected" onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -709,7 +709,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -820,7 +820,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li class="selected" onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -876,7 +876,7 @@
 
                         <!-- Interactive Chart -->
                         <div class="chart-area" id="trade-chart-container">
-                            <svg class="chart-svg" id="trade-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                            <svg class="chart-svg" id="trade-chart-svg" viewBox="0 0 1200 420" preserveAspectRatio="none">
                                 <!-- Grid Lines -->
                                 <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
                                 <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
@@ -887,18 +887,11 @@
                                 <!-- Y-axis labels - Left (금액) -->
                                 <g id="trade-y-axis-labels"></g>
                                 
-                                <!-- Y-axis labels - Right (증감률) -->
-                                <g id="trade-y-axis-labels-right"></g>
-                                
-                                <!-- Bar chart groups (수출/수입 금액) -->
+                                <!-- Bar chart groups (Export/Import 금액) -->
                                 <g id="trade-bars-group"></g>
                                 
-                                <!-- Line chart paths (증감률) -->
-                                <path id="path-trade-export-growth" class="chart-path visible" stroke="var(--c-trade-growth-export)" d="" />
-                                <path id="path-trade-import-growth" class="chart-path visible" stroke="var(--c-trade-growth-import)" d="" />
-                                
-                                <!-- Trade Balance Line (무역수지) -->
-                                <path id="path-trade-balance" class="chart-path visible" stroke="var(--c-trade-balance-surplus)" d="" style="display: none;" />
+                                <!-- Trade Balance line -->
+                                <path id="path-trade-balance" class="chart-path" fill="none" stroke-width="2"></path>
                                 
                                 <!-- Data points (for line chart) -->
                                 <g id="trade-data-points"></g>
@@ -930,7 +923,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li class="selected" onclick="switchProduct('employment')">Employment</li>
+                            <li class="selected" onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -939,7 +932,7 @@
                         <div class="tool-header">
                             <div>
                                 <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-color); text-transform: uppercase;">Economy / Employment</span>
-                                <h2>Employment</h2>
+                                <h2>Unemployment</h2>
                                 <p>Trend Analysis of Unemployment Rate</p>
                             </div>
                             <div class="live-badge"><div class="live-dot"></div> Live Market</div>
@@ -1033,7 +1026,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li class="selected" onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -1135,7 +1128,7 @@
                             <li onclick="switchProduct('gni')">GNI</li>
                             <li onclick="switchProduct('trade')">Export x Import</li>
                             <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
-                            <li onclick="switchProduct('employment')">Employment</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
                             <li class="selected" onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
@@ -1571,13 +1564,13 @@
         let activeTradeIndicators = ['EXPORT', 'IMPORT']; // Active indicators
         let tradeData = { EXPORT: [], IMPORT: [] }; // Trade data storage (USD 기준)
         let tradeDataKRW = { EXPORT: [], IMPORT: [] }; // Trade data storage (KRW 변환값)
-        let tradeExchangeRates = {}; // 환율 데이터 저장 { 'YYYYMM': rate } (수출입 통계용)
+        let tradeExchangeRates = {}; // 환율 데이터 저장 { 'YYYYMM': rate } (Export입 통계용)
         let tradeYAxisRange = { min: 0, max: 0 }; // Y-axis range for trade
         
         // International Trade Statistics variables
         let activeTradeCountry = null; // 선택된 국가 (1개만)
         let tradeCountryMapping = {}; // 국가 매핑 { 'item_code': {code, name} }
-        let tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] }; // 선택된 국가의 수출/수입/무역수지 데이터
+        let tradeCountryData = { EXPORT: [], IMPORT: [], BALANCE: [] }; // 선택된 국가의 Export/Import/Trade Balance 데이터
         
         // Employment Statistics variables
         let employmentCycle = 'M'; // Current cycle (M, Q)
@@ -1702,36 +1695,54 @@
         }
 
         /**
-         * 수출입 통계 숫자에 쉬운 단위를 괄호로 추가하는 함수
+         * Get current USD/KRW exchange rate
+         */
+        function getTradeUsdKrwRate() {
+            if (window.exchangeRates && window.exchangeRates.USD) {
+                return window.exchangeRates.USD;
+            }
+            return 1350; // Fallback rate
+        }
+        
+        /**
+         * Export/Import 통계 숫자에 단위와 원화 환산 추가
          * @param {number} value - 원본 값 (USD: 백만달러 단위, KRW: 억원 단위)
          * @param {string} currency - 통화 ('USD' 또는 'KRW')
-         * @returns {object} - { formatted: "55,878", easyUnit: "(559억)" } 형식의 객체
+         * @returns {object} - { formatted: "55,878", easyUnit: "M USD (≈75조 원)" } 형식의 객체
          */
         function formatTradeNumberWithEasyUnit(value, currency = 'USD') {
             if (!Number.isFinite(value)) {
                 return { formatted: value.toFixed(0), easyUnit: '' };
             }
             
-            // 숫자에 쉼표 추가 (가시성 향상)
-            const formattedValue = Number(value).toLocaleString('ko-KR', { 
+            // Format number with commas
+            const formattedValue = Number(value).toLocaleString('en-US', { 
                 maximumFractionDigits: 0 
             });
             
             let easyUnit = '';
             
             if (currency === 'USD') {
-                // 백만달러 → 억달러 변환
-                // 계산: 1억달러 = 100 백만달러 (1억 = 10^8, 백만 = 10^6)
-                const eokValue = value / 100; // 백만달러 → 억달러
-                if (eokValue >= 0.1) { // 0.1억 이상일 때만 표시
-                    easyUnit = `(${eokValue.toFixed(eokValue >= 1 ? 0 : 1)}억)`;
+                // Value is in millions USD
+                const rate = getTradeUsdKrwRate();
+                // Million USD × rate = Million KRW
+                // Million KRW / 1,000,000 = 조원, Million KRW / 10,000 = 억원
+                const krwBillion = value * rate / 1000; // 십억원 단위
+                const krwTrillion = krwBillion / 1000; // 조원 단위
+                
+                let krwText = '';
+                if (krwTrillion >= 1) {
+                    krwText = `≈${krwTrillion.toLocaleString('en-US', {maximumFractionDigits: 0})}조 원`;
+                } else if (krwBillion >= 1) {
+                    krwText = `≈${krwBillion.toLocaleString('en-US', {maximumFractionDigits: 0})}억 원`;
                 }
+                
+                easyUnit = krwText ? `M USD (${krwText})` : 'M USD';
             } else if (currency === 'KRW') {
-                // 억원 → 조원 변환
-                // 계산: 1조원 = 10,000 억원 (1조 = 10^12, 억 = 10^8)
-                const joValue = value / 10000; // 억원 → 조원
-                if (joValue >= 0.01) { // 0.01조 이상일 때만 표시
-                    easyUnit = `(${joValue.toFixed(joValue >= 1 ? 0 : 1)}조)`;
+                // Value is in 억원 (100 million KRW)
+                const trillionValue = value / 10000;
+                if (trillionValue >= 0.01) {
+                    easyUnit = `(${trillionValue.toFixed(trillionValue >= 1 ? 1 : 2)}조 원)`;
                 }
             }
             
@@ -3325,7 +3336,7 @@
                 });
             });
             
-            // Initialize indicators: 수출/수입 모두 활성화
+            // Initialize indicators: Export/Import 모두 활성화
             activeTradeIndicators = ['EXPORT', 'IMPORT'];
             const exportChip = document.getElementById('chip-trade-export');
             const importChip = document.getElementById('chip-trade-import');
@@ -3347,7 +3358,7 @@
         // International Trade Functions
         async function fetchTradeCountryList() {
             try {
-                // 수출 카테고리에서 국가 리스트 가져오기
+                // Export 카테고리에서 국가 리스트 가져오기
                 const url = `${API_BASE}/market/categories?category=export-international`;
                 const response = await fetch(url);
                 
@@ -3623,7 +3634,7 @@
                 tradeDataKRW.EXPORT.sort((a, b) => a.date.localeCompare(b.date));
                 tradeDataKRW.IMPORT.sort((a, b) => a.date.localeCompare(b.date));
                 
-                // 무역수지 계산
+                // Trade Balance 계산
                 calculateTradeBalance();
                 
                 // 선택된 국가의 데이터 가져오기
@@ -3659,7 +3670,7 @@
                             }
                         }
                         
-                        // 국가 무역수지 계산
+                        // 국가 Trade Balance 계산
                         const exportMap = new Map();
                         tradeCountryData.EXPORT.forEach(item => exportMap.set(item.date, item.value));
                         const importMap = new Map();
@@ -3686,7 +3697,7 @@
                 
             } catch (err) {
                 console.error('Failed to fetch trade data:', err);
-                alert('수출입 데이터 조회 중 오류가 발생했습니다: ' + err.message);
+                alert('Export입 데이터 조회 중 오류가 발생했습니다: ' + err.message);
             } finally {
                 if (chartContainer) {
                     chartContainer.style.opacity = '1';
@@ -3695,12 +3706,12 @@
         }
 
         /**
-         * 수출입 통계 기간에 해당하는 환율 데이터 가져오기
+         * Export입 통계 기간에 해당하는 환율 데이터 가져오기
          */
         async function fetchTradeExchangeRates(startDate, endDate) {
             try {
                 // 환율 API는 항상 일별(D) 데이터만 제공하므로 cycle=D로 고정
-                // 월별/분기별 수출입 데이터의 경우 해당 기간의 환율을 집계하여 사용
+                // 월별/분기별 Export입 데이터의 경우 해당 기간의 환율을 집계하여 사용
                 const exchangeUrl = `${API_BASE}/market/indices?type=exchange&itemCode=USD&startDate=${startDate}&endDate=${endDate}&cycle=D`;
                 const response = await fetch(exchangeUrl);
                 
@@ -3808,7 +3819,7 @@
             let combinedData = [];
             
             if (hasExport && hasImport) {
-                // 둘 다 선택 시: 수출 + 수입 합산
+                // 둘 다 선택 시: Export + Import 합산
                 const exportMap = new Map();
                 data.EXPORT.forEach(item => {
                     exportMap.set(item.date, item.value);
@@ -3865,7 +3876,7 @@
         }
 
         /**
-         * 무역수지 계산 (수출 - 수입)
+         * Trade Balance 계산 (Export - Import)
          * @returns {void} tradeData.BALANCE 배열을 채움
          */
         function calculateTradeBalance() {
@@ -4033,32 +4044,35 @@
         }
 
         function updateTradeChart() {
-            const exportGrowthPath = document.getElementById('path-trade-export-growth');
-            const importGrowthPath = document.getElementById('path-trade-import-growth');
             const barsGroup = document.getElementById('trade-bars-group');
             const pointsGroup = document.getElementById('trade-data-points');
             
-            if (!exportGrowthPath || !importGrowthPath || !barsGroup || !pointsGroup) return;
+            if (!barsGroup || !pointsGroup) return;
             
             // Clear existing data
-            exportGrowthPath.setAttribute('d', '');
-            importGrowthPath.setAttribute('d', '');
             barsGroup.innerHTML = '';
             pointsGroup.innerHTML = '';
             
-            // 국가가 선택된 경우 국가 데이터 사용, 아니면 한국 데이터 사용
-            let displayData;
-            if (activeTradeCountry && tradeCountryData.EXPORT.length > 0) {
-                // 국가 데이터 사용
-                displayData = {
-                    EXPORT: tradeCountryData.EXPORT,
-                    IMPORT: tradeCountryData.IMPORT,
-                    BALANCE: tradeCountryData.BALANCE
-                };
-            } else {
-                // 한국 데이터 사용
-                displayData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
+            // Clear balance path
+            const balancePath = document.getElementById('path-trade-balance');
+            if (balancePath) {
+                balancePath.setAttribute('d', '');
+                balancePath.style.display = 'none';
             }
+            
+            // 국가가 선택된 경우에만 데이터 표시
+            if (!activeTradeCountry) {
+                // No country selected - show empty chart
+                renderTradeYAxisLabelsLeft();
+                renderTradeXAxisLabels();
+                return;
+            }
+            
+            let displayData = {
+                EXPORT: tradeCountryData.EXPORT,
+                IMPORT: tradeCountryData.IMPORT,
+                BALANCE: tradeCountryData.BALANCE
+            };
             
             const hasExport = activeTradeIndicators.includes('EXPORT') && displayData.EXPORT.length > 0;
             const hasImport = activeTradeIndicators.includes('IMPORT') && displayData.IMPORT.length > 0;
@@ -4066,7 +4080,6 @@
             
             if (!hasExport && !hasImport && !hasBalance) {
                 renderTradeYAxisLabelsLeft();
-                renderTradeYAxisLabelsRight();
                 renderTradeXAxisLabels();
                 return;
             }
@@ -4087,40 +4100,13 @@
                 };
             }
             
-            // Render Y-axis labels (이중 Y축)
+            // Render Y-axis labels (left only - bar chart amounts)
             renderTradeYAxisLabelsLeft();
-            renderTradeYAxisLabelsRight();
             
-            // Render bar charts (수출/수입 금액 - 왼쪽 Y축)
+            // Render bar charts (Export/Import 금액)
             renderTradeBarsForData(displayData);
             
-            // Render line charts (증감률 - 오른쪽 Y축) - 한국 데이터만
-            if (!activeTradeCountry) {
-                const growthRates = calculateTradeGrowthRates();
-                if (hasExport && growthRates.length >= 2) {
-                    const exportGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'export');
-                    exportGrowthPath.setAttribute('d', exportGrowthPathData);
-                    exportGrowthPath.classList.add('visible');
-                } else {
-                    exportGrowthPath.classList.remove('visible');
-                }
-                
-                if (hasImport && growthRates.length >= 2) {
-                    const importGrowthPathData = generateTradeGrowthSVGPath(growthRates, 'import');
-                    importGrowthPath.setAttribute('d', importGrowthPathData);
-                    importGrowthPath.classList.add('visible');
-                } else {
-                    importGrowthPath.classList.remove('visible');
-                }
-                
-                // Render data points for line chart
-                renderTradeGrowthDataPoints(growthRates);
-            } else {
-                exportGrowthPath.classList.remove('visible');
-                importGrowthPath.classList.remove('visible');
-            }
-            
-            // Render trade balance line
+            // Render Trade Balance line if active
             renderTradeBalanceForData(displayData);
             
             // Render X-axis labels
@@ -4145,7 +4131,7 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 50, left: 40, right: 20 };  // bottom=50 for viewBox height 420
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
@@ -4215,11 +4201,11 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 50, left: 40, right: 20 };  // bottom=50 for viewBox height 420
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
-            // 무역수지 범위 계산
+            // Trade Balance 범위 계산
             const balanceValues = data.BALANCE.map(item => item.value);
             const minBalance = Math.min(...balanceValues);
             const maxBalance = Math.max(...balanceValues);
@@ -4260,7 +4246,7 @@
             if (!svg) return;
             
             const { width } = getSvgViewBoxSize(svg);
-            const padding = { left: 40, right: 60 };
+            const padding = { left: 40, right: 20 };  // Reduced right padding since no right Y-axis
             const chartWidth = width - padding.left - padding.right;
             
             const labelInterval = Math.max(1, Math.floor(sortedDates.length / 8));
@@ -4269,7 +4255,7 @@
                 if (index % labelInterval !== 0 && index !== sortedDates.length - 1) return;
                 
                 const x = padding.left + (index / (sortedDates.length - 1 || 1)) * chartWidth;
-                const y = 370;
+                const y = 380;  // Directly below bar chart (bars end at y=370)
                 
                 let labelText = '';
                 if (tradeCycle === 'M' && date.length === 6) {
@@ -4334,7 +4320,7 @@
         function calculateDualYAxisRanges() {
             const data = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
             
-            // 왼쪽 Y축: 수출/수입 금액 범위
+            // 왼쪽 Y축: Export/Import 금액 범위
             const allAmountValues = [];
             if (activeTradeIndicators.includes('EXPORT')) {
                 data.EXPORT.forEach(item => allAmountValues.push(item.value));
@@ -4391,15 +4377,14 @@
             
             yAxisGroup.innerHTML = '';
             
-            // 국가 데이터가 있으면 tradeYAxisRange 사용, 없으면 calculateDualYAxisRanges 사용
+            // Only show Y-axis labels when a country is selected with data
             if (!activeTradeCountry || tradeCountryData.EXPORT.length === 0) {
-                const ranges = calculateDualYAxisRanges();
-                tradeYAxisRange = ranges.left;
+                return;  // Show empty Y-axis
             }
             
             const steps = 5;
             const { width, height } = getSvgViewBoxSize(document.getElementById('trade-chart-svg'));
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 50, left: 40, right: 20 };  // bottom=50 for viewBox height 420
             
             for (let i = 0; i <= steps; i++) {
                 const value = tradeYAxisRange.max - (i / steps) * (tradeYAxisRange.max - tradeYAxisRange.min);
@@ -4440,7 +4425,7 @@
             
             const steps = 5;
             const { width, height } = getSvgViewBoxSize(document.getElementById('trade-chart-svg'));
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
             
             for (let i = 0; i <= steps; i++) {
                 const value = rightRange.max - (i / steps) * (rightRange.max - rightRange.min);
@@ -4467,7 +4452,7 @@
         }
 
         /**
-         * 막대 그래프 렌더링 (수출/수입 금액 - 왼쪽 Y축)
+         * 막대 그래프 렌더링 (Export/Import 금액 - 왼쪽 Y축)
          */
         function renderTradeBars() {
             const barsGroup = document.getElementById('trade-bars-group');
@@ -4488,7 +4473,7 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 50, left: 40, right: 20 };  // bottom=50 for viewBox height 420
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
@@ -4562,7 +4547,7 @@
             if (!svg) return '';
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
@@ -4606,7 +4591,7 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
@@ -4656,7 +4641,7 @@
         }
 
         /**
-         * 무역수지 렌더링 (라인 차트)
+         * Trade Balance 렌더링 (라인 차트)
          */
         function renderTradeBalance() {
             const balancePath = document.getElementById('path-trade-balance');
@@ -4676,11 +4661,11 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
-            // 무역수지 범위 계산 (0 기준선 포함)
+            // Trade Balance 범위 계산 (0 기준선 포함)
             const balanceValues = activeData.BALANCE.map(item => item.value);
             const minBalance = Math.min(0, ...balanceValues);
             const maxBalance = Math.max(0, ...balanceValues);
@@ -4715,21 +4700,23 @@
             
             xAxisGroup.innerHTML = '';
             
-            // 통화에 따라 다른 데이터 사용
-            const activeData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
+            // Only show X-axis labels when a country is selected with data
+            if (!activeTradeCountry || tradeCountryData.EXPORT.length === 0) {
+                return;  // Show empty X-axis
+            }
             
-            // Use export data for X-axis labels (or import if export is not available)
-            const labelData = activeData.EXPORT.length > 0 ? activeData.EXPORT : activeData.IMPORT;
+            // Use country data for X-axis labels
+            const labelData = tradeCountryData.EXPORT.length > 0 ? tradeCountryData.EXPORT : tradeCountryData.IMPORT;
             
             if (labelData.length === 0) return;
             
             const { width, height } = getSvgViewBoxSize(document.getElementById('trade-chart-svg'));
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 50, left: 40, right: 20 };  // bottom=50 for viewBox height 420
             
             // 월별인 경우 모든 월을 YY.MM 형식으로 표시
             labelData.forEach((point, index) => {
                 const x = padding.left + (index / (labelData.length - 1 || 1)) * (width - padding.left - padding.right);
-                const y = height - padding.bottom + 20;
+                const y = 380;  // Directly below bar chart (bars end at y=370)
                 
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', x);
@@ -4765,7 +4752,7 @@
             if (!svg) return;
             
             const { width, height } = getSvgViewBoxSize(svg);
-            const padding = { top: 20, bottom: 30, left: 40, right: 60 };
+            const padding = { top: 20, bottom: 30, left: 40, right: 20 };
             const chartWidth = width - padding.left - padding.right;
             const chartHeight = height - padding.top - padding.bottom;
             
@@ -4857,12 +4844,13 @@
                     rafId = null;
                     
                     // 국가가 선택된 경우 국가 데이터 사용, 아니면 한국 데이터 사용
-                    let displayData;
-                    if (activeTradeCountry && tradeCountryData.EXPORT.length > 0) {
-                        displayData = tradeCountryData;
-                    } else {
-                        displayData = tradeCurrency === 'USD' ? tradeData : tradeDataKRW;
+                    // Only show tooltip when a country is selected
+                    if (!activeTradeCountry) {
+                        hideTradeTooltip();
+                        return;
                     }
+                    
+                    const displayData = tradeCountryData;
                     
                     const allData = [];
                     if (activeTradeIndicators.includes('EXPORT') && displayData.EXPORT.length > 0) {
@@ -4881,7 +4869,7 @@
                     const x = e.clientX - rect.left;
                     const svgX = (x / rect.width) * 1200;
                     
-                    const padding = { left: 40, right: 60 };
+                    const padding = { left: 40, right: 20 };
                     const chartWidth = 1200 - padding.left - padding.right;
                     
                     // 모든 날짜 수집
@@ -4926,17 +4914,17 @@
             
             if (!tooltip || !tooltipDate || !tooltipContent) return;
             
-            // Format date
+            // Format date (English format: YYYY-MM)
             let formattedDate = data.date;
             if (tradeCycle === 'M' && data.date.length === 6) {
-                formattedDate = `${data.date.substring(0, 4)} ${data.date.substring(4, 6)}월`;
+                formattedDate = `${data.date.substring(0, 4)}-${data.date.substring(4, 6)}`;
             } else if (tradeCycle === 'Q' && data.date.includes('Q')) {
                 formattedDate = data.date;
             }
             
             tooltipDate.textContent = formattedDate;
             
-            // Build content - 막대 그래프(금액) + 선 그래프(증감률) + 무역수지
+            // Build content - 막대 그래프(금액) + 선 그래프(증감률) + Trade Balance
             let contentHtml = '';
             
             // 국가 데이터인 경우 증감률 계산 생략
@@ -4950,7 +4938,7 @@
                 yoyData = yoyRates.find(item => item.date === data.date);
             }
             
-            // 무역수지 데이터 (국가 데이터 또는 한국 데이터)
+            // Trade Balance 데이터 (국가 데이터 또는 한국 데이터)
             const balanceData = data.balancePoint || (tradeCurrency === 'USD' ? tradeData : tradeDataKRW).BALANCE?.find(item => item.date === data.date);
             
             // 막대 그래프 데이터 (금액) - 구분선 추가
@@ -4959,11 +4947,11 @@
                 hasAmountData = true;
                 const formatted = formatTradeNumberWithEasyUnit(data.exportPoint.value, tradeCurrency);
                 const valueText = formatted.easyUnit
-                    ? `${formatted.formatted} ${formatted.easyUnit}`
+                    ? `${formatted.formatted} <span style="font-size: 80%; opacity: 0.8;">${formatted.easyUnit}</span>`
                     : formatted.formatted;
                 contentHtml += `
                     <div class="tooltip-row">
-                        <span class="tooltip-label" style="color: var(--c-trade-export);">● 수출</span>
+                        <span class="tooltip-label" style="color: var(--c-trade-export);">● Export</span>
                         <span class="tooltip-value">${valueText}</span>
                     </div>
                 `;
@@ -4973,17 +4961,17 @@
                 hasAmountData = true;
                 const formatted = formatTradeNumberWithEasyUnit(data.importPoint.value, tradeCurrency);
                 const valueText = formatted.easyUnit
-                    ? `${formatted.formatted} ${formatted.easyUnit}`
+                    ? `${formatted.formatted} <span style="font-size: 80%; opacity: 0.8;">${formatted.easyUnit}</span>`
                     : formatted.formatted;
                 contentHtml += `
                     <div class="tooltip-row">
-                        <span class="tooltip-label" style="color: var(--c-trade-import);">● 수입</span>
+                        <span class="tooltip-label" style="color: var(--c-trade-import);">● Import</span>
                         <span class="tooltip-value">${valueText}</span>
                     </div>
                 `;
             }
             
-            // 무역수지 표시
+            // Trade Balance 표시
             if (balanceData && (activeTradeIndicators.includes('BALANCE') || (data.exportPoint && data.importPoint))) {
                 if (hasAmountData) {
                     contentHtml += `<div style="border-bottom: 1px solid rgba(255,255,255,0.1); margin: 8px 0 4px 0;"></div>`;
@@ -4993,11 +4981,11 @@
                 const currency = data.isCountry ? 'USD' : tradeCurrency;
                 const formattedBalance = formatTradeNumberWithEasyUnit(Math.abs(balanceData.value), currency);
                 const balanceText = formattedBalance.easyUnit
-                    ? `${balanceSign}${formattedBalance.formatted} ${formattedBalance.easyUnit}`
+                    ? `${balanceSign}${formattedBalance.formatted} <span style="font-size: 80%; opacity: 0.8;">${formattedBalance.easyUnit}</span>`
                     : `${balanceSign}${formattedBalance.formatted}`;
                 contentHtml += `
                     <div class="tooltip-row">
-                        <span class="tooltip-label">무역수지</span>
+                        <span class="tooltip-label">Trade Balance</span>
                         <span class="tooltip-value" style="color: ${balanceColor};">${balanceText}</span>
                     </div>
                 `;
@@ -5016,7 +5004,7 @@
                         const color = growthData.exportRate >= 0 ? '#ef4444' : '#3b82f6';
                         contentHtml += `
                             <div class="tooltip-row">
-                                <span class="tooltip-label">수출 증감률 (MoM)</span>
+                                <span class="tooltip-label">Export 증감률 (MoM)</span>
                                 <span class="tooltip-value" style="color: ${color};">${sign}${growthData.exportRate.toFixed(1)}%</span>
                             </div>
                         `;
@@ -5027,7 +5015,7 @@
                         const color = growthData.importRate >= 0 ? '#ef4444' : '#3b82f6';
                         contentHtml += `
                             <div class="tooltip-row">
-                                <span class="tooltip-label">수입 증감률 (MoM)</span>
+                                <span class="tooltip-label">Import 증감률 (MoM)</span>
                                 <span class="tooltip-value" style="color: ${color};">${sign}${growthData.importRate.toFixed(1)}%</span>
                             </div>
                         `;
@@ -5041,7 +5029,7 @@
                         const color = yoyData.exportYoY >= 0 ? '#ef4444' : '#3b82f6';
                         contentHtml += `
                             <div class="tooltip-row">
-                                <span class="tooltip-label">수출 증감률 (YoY)</span>
+                                <span class="tooltip-label">Export 증감률 (YoY)</span>
                                 <span class="tooltip-value" style="color: ${color};">${sign}${yoyData.exportYoY.toFixed(1)}%</span>
                             </div>
                         `;
@@ -5052,7 +5040,7 @@
                         const color = yoyData.importYoY >= 0 ? '#ef4444' : '#3b82f6';
                         contentHtml += `
                             <div class="tooltip-row">
-                                <span class="tooltip-label">수입 증감률 (YoY)</span>
+                                <span class="tooltip-label">Import 증감률 (YoY)</span>
                                 <span class="tooltip-value" style="color: ${color};">${sign}${yoyData.importYoY.toFixed(1)}%</span>
                             </div>
                         `;
