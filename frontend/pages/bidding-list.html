@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bidding List - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/sections/bidding-list.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="bidding-list.html" class="active">Bidding</a></li>
+                <li><a href="market-data.html">Market Data</a></li>
+                <li><a href="war-room.html">War Room</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding">
+        <!-- Page Header -->
+        <div class="section-header">
+            <div>
+                <p class="section-subtitle">FREIGHT BIDDING PLATFORM</p>
+                <h1 class="section-title">Bidding List</h1>
+            </div>
+            <div id="forwarderActions">
+                <!-- Login/Register or User Info will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Forwarder Info Bar (shown when logged in) -->
+        <div id="forwarderBar" class="forwarder-bar" style="display: none;">
+            <div class="forwarder-info">
+                <div class="forwarder-avatar" id="forwarderAvatar">F</div>
+                <div class="forwarder-details">
+                    <h4 id="forwarderCompany">Company Name</h4>
+                    <span id="forwarderEmail">email@company.com</span>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="BiddingList.logout()">
+                <i class="fas fa-sign-out-alt"></i> 로그아웃
+            </button>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="bidding-dashboard">
+            <div class="stat-card total">
+                <div class="stat-label">
+                    <i class="fas fa-th-list"></i>
+                    전체 BIDDING
+                </div>
+                <div class="stat-value" id="statTotal">-</div>
+            </div>
+            <div class="stat-card open">
+                <div class="stat-label">
+                    <i class="fas fa-gavel"></i>
+                    진행중
+                </div>
+                <div class="stat-value" id="statOpen">-</div>
+            </div>
+            <div class="stat-card closing">
+                <div class="stat-label">
+                    <i class="fas fa-clock"></i>
+                    마감예정 (24h)
+                </div>
+                <div class="stat-value" id="statClosing">-</div>
+            </div>
+            <div class="stat-card awarded">
+                <div class="stat-label">
+                    <i class="fas fa-trophy"></i>
+                    낙찰완료
+                </div>
+                <div class="stat-value" id="statAwarded">-</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-label">
+                    <i class="fas fa-times-circle"></i>
+                    유찰
+                </div>
+                <div class="stat-value" id="statFailed">-</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <select class="filter-select" id="filterStatus">
+                    <option value="">전체 상태</option>
+                    <option value="open">진행중</option>
+                    <option value="closed">마감</option>
+                    <option value="awarded">낙찰</option>
+                    <option value="expired">만료</option>
+                    <option value="cancelled">취소</option>
+                </select>
+                <select class="filter-select" id="filterShipping">
+                    <option value="">전체 운송</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="air">Air</option>
+                    <option value="truck">Truck</option>
+                </select>
+                <input type="text" class="filter-input" id="filterSearch" placeholder="Bidding No 검색...">
+            </div>
+            <button class="btn-refresh" onclick="BiddingList.refresh()">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+        </div>
+
+        <!-- Bidding Table -->
+        <div class="bidding-table-container">
+            <table class="bidding-table">
+                <thead>
+                    <tr>
+                        <th>Bidding No</th>
+                        <th>화주사</th>
+                        <th>구간</th>
+                        <th>운송타입</th>
+                        <th>ETD</th>
+                        <th>마감일시</th>
+                        <th>상태</th>
+                        <th>입찰수</th>
+                        <th>액션</th>
+                    </tr>
+                </thead>
+                <tbody id="biddingTableBody">
+                    <!-- Table rows will be inserted here -->
+                </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <i class="fas fa-inbox"></i>
+                <h3>등록된 입찰 건이 없습니다</h3>
+                <p>새로운 견적 요청이 등록되면 여기에 표시됩니다.</p>
+            </div>
+            
+            <!-- Loading State -->
+            <div class="loading-spinner" id="loadingState" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be inserted here -->
+        </div>
+    </main>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="authModalTitle">포워더 로그인</h3>
+                <button class="modal-close" onclick="BiddingList.closeAuthModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Login Form -->
+                <div id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label required">이메일</label>
+                        <input type="email" class="form-input" id="loginEmail" placeholder="company@example.com">
+                    </div>
+                    <p class="form-hint" style="margin-bottom: 1rem;">
+                        등록된 이메일로 로그인하세요. 
+                        <a href="#" onclick="BiddingList.showRegisterForm()" style="color: var(--accent-color);">
+                            신규 등록하기
+                        </a>
+                    </p>
+                </div>
+                
+                <!-- Register Form -->
+                <div id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label required">회사명</label>
+                        <input type="text" class="form-input" id="regCompany" placeholder="회사명">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required">담당자명</label>
+                            <input type="text" class="form-input" id="regName" placeholder="담당자명">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">사업자등록번호</label>
+                            <input type="text" class="form-input" id="regBusinessNo" placeholder="000-00-00000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">이메일</label>
+                        <input type="email" class="form-input" id="regEmail" placeholder="company@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">연락처</label>
+                        <input type="tel" class="form-input" id="regPhone" placeholder="010-0000-0000">
+                    </div>
+                    <p class="form-hint">
+                        이미 계정이 있으신가요? 
+                        <a href="#" onclick="BiddingList.showLoginForm()" style="color: var(--accent-color);">
+                            로그인하기
+                        </a>
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="BiddingList.closeAuthModal()">취소</button>
+                <button class="action-btn primary" id="authSubmitBtn" onclick="BiddingList.submitAuth()">
+                    로그인
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bid Submit Modal -->
+    <div class="modal-overlay bid-modal" id="bidModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">입찰하기 - <span id="bidModalBiddingNo">EXSEA00000</span></h3>
+                <button class="modal-close" onclick="BiddingList.closeBidModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Bidding Info Card -->
+                <div class="bid-info-card">
+                    <div class="bid-info-row">
+                        <span class="bid-info-label">구간</span>
+                        <span class="bid-info-value" id="bidInfoRoute">KRPUS → USLAX</span>
+                    </div>
+                    <div class="bid-info-row">
+                        <span class="bid-info-label">운송타입</span>
+                        <span class="bid-info-value" id="bidInfoType">Ocean / FCL</span>
+                    </div>
+                    <div class="bid-info-row">
+                        <span class="bid-info-label">ETD</span>
+                        <span class="bid-info-value" id="bidInfoEtd">2026-01-15</span>
+                    </div>
+                    <div class="bid-info-row">
+                        <span class="bid-info-label">마감일시</span>
+                        <span class="bid-info-value" id="bidInfoDeadline">2026-01-11 18:00</span>
+                    </div>
+                </div>
+
+                <!-- Bid Form -->
+                <div class="form-group">
+                    <label class="form-label required">운임 (Freight) - USD</label>
+                    <input type="number" class="form-input" id="bidFreight" placeholder="0.00" step="0.01" onchange="BiddingList.calculateTotal()">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">로컬비용 - USD</label>
+                        <input type="number" class="form-input" id="bidLocal" placeholder="0.00" step="0.01" onchange="BiddingList.calculateTotal()">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">기타비용 - USD</label>
+                        <input type="number" class="form-input" id="bidOther" placeholder="0.00" step="0.01" onchange="BiddingList.calculateTotal()">
+                    </div>
+                </div>
+
+                <div class="amount-summary">
+                    <span class="amount-label">총 입찰금액</span>
+                    <span class="amount-value">$ <span id="bidTotalAmount">0.00</span></span>
+                </div>
+
+                <div class="form-row" style="margin-top: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">예상 운송기간</label>
+                        <input type="text" class="form-input" id="bidTransitTime" placeholder="예: 14-18일">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">견적 유효기간</label>
+                        <input type="date" class="form-input" id="bidValidity">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">비고/조건</label>
+                    <textarea class="form-textarea" id="bidRemark" placeholder="추가 조건이나 비고 사항을 입력하세요..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="BiddingList.closeBidModal()">취소</button>
+                <button class="action-btn primary" id="bidSubmitBtn" onclick="BiddingList.submitBid()">
+                    <i class="fas fa-gavel"></i> 입찰 제출
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bidding Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Bidding 상세 - <span id="detailBiddingNo">EXSEA00000</span></h3>
+                <button class="modal-close" onclick="BiddingList.closeDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- Detail content will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="BiddingList.closeDetailModal()">닫기</button>
+                <a class="action-btn primary" id="detailPdfBtn" href="#" target="_blank">
+                    <i class="fas fa-file-pdf"></i> RFQ PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/config/api.js"></script>
+    <script src="../js/features/biddingList.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            BiddingList.init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data - AAL</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/buttons.css">
+    <link rel="stylesheet" href="../css/components/charts.css">
+    <link rel="stylesheet" href="../css/components/cards.css">
+    <link rel="stylesheet" href="../css/sections/market.css">
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <a href="../ai_studio_code_F2.html" style="text-decoration: none; color: inherit;">
+                AAL<span>.</span>
+            </a>
+            <div class="full-name">All About Logistics</div>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="bidding-list.html">Bidding</a></li>
+                <li><a href="market-data.html" class="active">Market Data</a></li>
+                <li><a href="war-room.html">War Room</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main style="padding-top: 80px;">
+        <!-- Market Section -->
+        <section id="market" class="container section-padding">
+            <div class="section-header reveal">
+                <h2 class="section-title">Market Data</h2>
+                <span class="section-subtitle">LIVE INDICES & ANALYTICS</span>
+            </div>
+
+            <div class="market-controller reveal">
+                <div class="tab-container">
+                    <button class="tab-btn active" onclick="switchTab('economy')">Economy</button>
+                    <button class="tab-btn" onclick="switchTab('logistics')">Logistics</button>
+                </div>
+            </div>
+
+            <!-- Economy Panel -->
+            <div id="economy-panel" class="market-content active reveal">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li class="selected" onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+
+                    <main class="tool-workspace">
+                        <!-- Exchange Rate (Default) -->
+                        <div class="chart-controls">
+                            <div class="date-range-control">
+                                <input type="date" class="date-input" id="startDate" />
+                                <span class="date-separator">~</span>
+                                <input type="date" class="date-input" id="endDate" />
+                            </div>
+                            <div class="period-buttons">
+                                <button class="period-btn" onclick="handlePeriodClick('1W', event)">1W</button>
+                                <button class="period-btn" onclick="handlePeriodClick('1M', event)">1M</button>
+                                <button class="period-btn active" onclick="handlePeriodClick('3M', event)">3M</button>
+                                <button class="period-btn" onclick="handlePeriodClick('1Y', event)">1Y</button>
+                            </div>
+                        </div>
+
+                        <!-- Chart Header -->
+                        <div class="chart-header" id="chart-header">
+                            <div class="chart-title-section">
+                                <h2 class="chart-main-title" id="chart-main-title">USD/KRW</h2>
+                                <div class="chart-main-value" id="chart-main-value">-</div>
+                                <div class="chart-change-info">
+                                    <span class="chart-change" id="chart-change">-</span>
+                                    <span class="chart-date" id="chart-date">-</span>
+                                </div>
+                            </div>
+                            <div class="chart-stats-inline" id="chart-stats-inline">
+                                <div class="stat-item">
+                                    <span class="stat-label">기간 고가</span>
+                                    <span class="stat-value" id="stat-high">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">기간 저가</span>
+                                    <span class="stat-value" id="stat-low">-</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">기간 평균</span>
+                                    <span class="stat-value" id="stat-average">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Multi-Currency Toggle -->
+                        <div class="currency-toggle" id="currency-toggle">
+                            <button class="currency-btn active" data-currency="USD" onclick="toggleCurrency('USD', event)">
+                                <span class="currency-flag">🇺🇸</span> USD
+                            </button>
+                            <button class="currency-btn" data-currency="EUR" onclick="toggleCurrency('EUR', event)">
+                                <span class="currency-flag">🇪🇺</span> EUR
+                            </button>
+                            <button class="currency-btn" data-currency="JPY" onclick="toggleCurrency('JPY', event)">
+                                <span class="currency-flag">🇯🇵</span> JPY
+                            </button>
+                            <button class="currency-btn" data-currency="CNY" onclick="toggleCurrency('CNY', event)">
+                                <span class="currency-flag">🇨🇳</span> CNY
+                            </button>
+                            <button class="currency-btn" data-currency="GBP" onclick="toggleCurrency('GBP', event)">
+                                <span class="currency-flag">🇬🇧</span> GBP
+                            </button>
+                        </div>
+
+                        <div class="chart-area" id="chart-container">
+                            <svg class="chart-svg" id="chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                
+                                <g id="y-axis-labels"></g>
+                                <g id="paths-group"></g>
+                                <g id="data-points"></g>
+                                <g id="x-axis-labels"></g>
+                            </svg>
+                        </div>
+                        <div class="chart-tooltip" id="chart-tooltip">
+                            <div class="chart-tooltip-date" id="tooltip-date"></div>
+                            <div id="tooltip-content"></div>
+                        </div>
+
+                        <!-- All Currency Rates Table -->
+                        <div class="rates-table-container" id="rates-table-container">
+                            <h3 class="rates-table-title">전체 통화 환율</h3>
+                            <div class="rates-table-wrapper">
+                                <table class="rates-table" id="rates-table">
+                                    <thead>
+                                        <tr>
+                                            <th>통화</th>
+                                            <th>매매기준율</th>
+                                            <th>전일대비</th>
+                                            <th>현찰살때</th>
+                                            <th>현찰팔때</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rates-table-body">
+                                        <tr><td colspan="5" style="text-align:center; padding:2rem;">데이터 로딩중...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Interest Rates Panel -->
+            <div id="interest-rates-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li class="selected" onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-percentage" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Interest Rates</h2>
+                        <p style="color:var(--text-sub);">금리 데이터를 로드하고 있습니다...</p>
+                        <div class="chart-area" id="interest-chart-container" style="width:100%; margin-top:2rem;">
+                            <svg class="chart-svg" id="interest-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                <g id="interest-y-axis-labels"></g>
+                                <g id="interest-paths-group"></g>
+                                <g id="interest-data-points"></g>
+                                <g id="interest-x-axis-labels"></g>
+                            </svg>
+                        </div>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Inflation Panel -->
+            <div id="inflation-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li class="selected" onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-chart-line" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Inflation (CPI)</h2>
+                        <p style="color:var(--text-sub);">물가 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- GDP Indicator Panel -->
+            <div id="gdp-indicator-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li class="selected" onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-chart-bar" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">GDP</h2>
+                        <p style="color:var(--text-sub);">GDP 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- GDP per Capita Panel -->
+            <div id="gdp-per-capita-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li class="selected" onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-user-chart" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">GDP per Capita</h2>
+                        <p style="color:var(--text-sub);">1인당 GDP 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- GNI Panel -->
+            <div id="gni-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li class="selected" onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-coins" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">GNI (Gross National Income)</h2>
+                        <p style="color:var(--text-sub);">GNI 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Trade Panel -->
+            <div id="trade-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li class="selected" onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-exchange-alt" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Export x Import</h2>
+                        <p style="color:var(--text-sub);">무역 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Employment Panel -->
+            <div id="employment-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li class="selected" onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-users" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Unemployment Rate</h2>
+                        <p style="color:var(--text-sub);">고용 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- GDP Growth Panel -->
+            <div id="gdp-growth-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li class="selected" onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-chart-line" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Economy Growth Rate</h2>
+                        <p style="color:var(--text-sub);">경제성장률 데이터를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Global Stocks Panel -->
+            <div id="global-stocks-panel" class="market-content reveal" style="display:none;">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Financial Products</h3>
+                        <ul class="product-menu">
+                            <li onclick="switchProduct('exchange-rate')">Exchange Rate</li>
+                            <li onclick="switchProduct('interest-rates')">Interest Rates</li>
+                            <li onclick="switchProduct('inflation')">Inflation</li>
+                            <li onclick="switchProduct('gdp-indicator')">GDP</li>
+                            <li onclick="switchProduct('gdp-per-capita')">GDP per Capita</li>
+                            <li onclick="switchProduct('gni')">GNI</li>
+                            <li onclick="switchProduct('trade')">Export x Import</li>
+                            <li onclick="switchProduct('gdp-growth')">Economy Growth Rate</li>
+                            <li onclick="switchProduct('employment')">Unemployment</li>
+                            <li class="selected" onclick="switchProduct('global-stocks')">Global Stocks</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-chart-area" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Global Stock Indices</h2>
+                        <p style="color:var(--text-sub);">글로벌 주가지수를 로드하고 있습니다...</p>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Logistics Panel -->
+            <div id="logistics-panel" class="market-content reveal">
+                <div class="product-grid">
+                    <aside class="product-sidebar">
+                        <h3>Logistics Indices</h3>
+                        <ul class="product-menu">
+                            <li class="selected">SCFI (Shanghai)</li>
+                            <li>BDI (Baltic Dry)</li>
+                            <li>NCFI (Ningbo)</li>
+                        </ul>
+                    </aside>
+                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
+                        <i class="fas fa-ship" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
+                        <h2 style="margin-bottom:0.5rem;">Logistics Indices</h2>
+                        <p style="color:var(--text-sub);">운임 지수 데이터를 확인하려면 메뉴를 선택하세요.</p>
+                    </main>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-brand">AAL.</div>
+        <div class="copyright">&copy; 2024 AllAboutLogistics.</div>
+    </footer>
+
+    <!-- External JavaScript Modules -->
+    <script src="../js/config/constants.js"></script>
+    <script src="../js/utils/helpers.js"></script>
+    <script src="../js/features/market/economy/exchange-rate.js"></script>
+    <script src="../js/features/market/economy/interest-rate.js"></script>
+    <script src="../js/features/market/economy/inflation.js"></script>
+    <script src="../js/features/market/economy/gdp.js"></script>
+    <script src="../js/features/market/economy/trade.js"></script>
+    <script src="../js/features/market/economy/employment.js"></script>
+    <script src="../js/features/market/economy/gdp-growth.js"></script>
+    <script src="../js/features/market/economy/international-indicators.js"></script>
+    <script src="../js/features/market/logistics/logistics.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

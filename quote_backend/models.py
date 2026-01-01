@@ -36,6 +36,21 @@ class QuoteStatusEnum(str, enum.Enum):
     cancelled = "cancelled"
 
 
+class BiddingStatusEnum(str, enum.Enum):
+    open = "open"
+    closed = "closed"
+    awarded = "awarded"
+    cancelled = "cancelled"
+    expired = "expired"
+
+
+class BidStatusEnum(str, enum.Enum):
+    draft = "draft"
+    submitted = "submitted"
+    awarded = "awarded"
+    rejected = "rejected"
+
+
 # ==========================================
 # REFERENCE DATA (MASTER TABLES)
 # ==========================================
@@ -279,7 +294,8 @@ class Bidding(Base):
     quote_request_id = Column(Integer, ForeignKey("quote_requests.id"), nullable=False)
     pdf_path = Column(String(255), nullable=True)  # Path to generated PDF
     deadline = Column(DateTime, nullable=True)  # Quotation submission deadline
-    status = Column(String(20), default="open")  # open, closed, awarded, cancelled
+    status = Column(String(20), default="open")  # open, closed, awarded, cancelled, expired
+    awarded_bid_id = Column(Integer, ForeignKey("bids.id"), nullable=True)  # 낙찰된 입찰 ID
     
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())
@@ -287,6 +303,70 @@ class Bidding(Base):
     
     # Relationships
     quote_request = relationship("QuoteRequest", back_populates="bidding")
+    bids = relationship("Bid", back_populates="bidding", foreign_keys="Bid.bidding_id")
+    awarded_bid = relationship("Bid", foreign_keys=[awarded_bid_id], post_update=True)
     
     def __repr__(self):
         return f"<Bidding {self.bidding_no}>"
+
+
+class Forwarder(Base):
+    """
+    Forwarder Information - 포워더 정보
+    """
+    __tablename__ = "forwarders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    company = Column(String(100), nullable=False)
+    business_no = Column(String(20), nullable=True)  # 사업자등록번호
+    name = Column(String(50), nullable=False)  # 담당자명
+    email = Column(String(100), unique=True, nullable=False, index=True)
+    phone = Column(String(30), nullable=False)
+    is_verified = Column(Boolean, default=False)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    bids = relationship("Bid", back_populates="forwarder")
+    
+    def __repr__(self):
+        return f"<Forwarder {self.company}: {self.name}>"
+
+
+class Bid(Base):
+    """
+    Bid - 포워더의 입찰 정보
+    """
+    __tablename__ = "bids"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    
+    # 입찰 금액 (USD)
+    total_amount = Column(DECIMAL(15, 2), nullable=False)
+    freight_charge = Column(DECIMAL(15, 2), nullable=True)  # 운임
+    local_charge = Column(DECIMAL(15, 2), nullable=True)  # 로컬비용
+    other_charge = Column(DECIMAL(15, 2), nullable=True)  # 기타비용
+    
+    # 추가 정보
+    validity_date = Column(DateTime, nullable=True)  # 견적 유효기간
+    transit_time = Column(String(50), nullable=True)  # 예상 운송기간
+    remark = Column(Text, nullable=True)  # 비고/조건
+    
+    # 상태
+    status = Column(String(20), default="draft")  # draft, submitted, awarded, rejected
+    submitted_at = Column(DateTime, nullable=True)  # 제출일시
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    bidding = relationship("Bidding", back_populates="bids", foreign_keys=[bidding_id])
+    forwarder = relationship("Forwarder", back_populates="bids")
+    
+    def __repr__(self):
+        return f"<Bid #{self.id} for Bidding #{self.bidding_id} by Forwarder #{self.forwarder_id}>"

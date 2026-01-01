@@ -266,3 +266,154 @@ class BiddingResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# ==========================================
+# FORWARDER SCHEMAS
+# ==========================================
+
+class ForwarderBase(BaseModel):
+    company: str = Field(..., max_length=100)
+    business_no: Optional[str] = Field(None, max_length=20)
+    name: str = Field(..., max_length=50)
+    email: str = Field(..., max_length=100)
+    phone: str = Field(..., max_length=30)
+
+
+class ForwarderCreate(ForwarderBase):
+    pass
+
+
+class ForwarderLogin(BaseModel):
+    email: str = Field(..., max_length=100)
+
+
+class ForwarderResponse(ForwarderBase):
+    id: int
+    is_verified: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class ForwarderAuthResponse(BaseModel):
+    success: bool
+    message: str
+    forwarder: Optional[ForwarderResponse] = None
+    token: Optional[str] = None
+
+
+# ==========================================
+# BID SCHEMAS
+# ==========================================
+
+class BidBase(BaseModel):
+    total_amount: float = Field(..., description="Total bid amount in USD")
+    freight_charge: Optional[float] = Field(None, description="Freight charge")
+    local_charge: Optional[float] = Field(None, description="Local charges")
+    other_charge: Optional[float] = Field(None, description="Other charges")
+    validity_date: Optional[str] = Field(None, description="Quote validity date YYYY-MM-DD")
+    transit_time: Optional[str] = Field(None, max_length=50, description="Expected transit time")
+    remark: Optional[str] = Field(None, description="Additional remarks/conditions")
+
+
+class BidCreate(BidBase):
+    bidding_id: int
+
+
+class BidUpdate(BidBase):
+    pass
+
+
+class BidResponse(BidBase):
+    id: int
+    bidding_id: int
+    forwarder_id: int
+    status: str
+    submitted_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class BidWithForwarderResponse(BidResponse):
+    forwarder: ForwarderResponse
+    
+    class Config:
+        from_attributes = True
+
+
+class BidSubmitResponse(BaseModel):
+    success: bool
+    message: str
+    bid: Optional[BidResponse] = None
+
+
+# ==========================================
+# BIDDING LIST SCHEMAS
+# ==========================================
+
+class BiddingListItem(BaseModel):
+    id: int
+    bidding_no: str
+    customer_company: str
+    pol: str
+    pod: str
+    shipping_type: str
+    load_type: str
+    etd: datetime
+    deadline: Optional[datetime] = None
+    status: str
+    bid_count: int = 0
+    my_bid_status: Optional[str] = None  # 포워더 본인의 입찰 상태
+    
+    class Config:
+        from_attributes = True
+
+
+class BiddingListResponse(BaseModel):
+    total: int
+    page: int
+    limit: int
+    data: List[BiddingListItem]
+
+
+class BiddingStatsResponse(BaseModel):
+    total_count: int  # 전체 Bidding 건수
+    open_count: int
+    closing_soon_count: int  # 24시간 이내 마감
+    awarded_count: int
+    failed_count: int  # closed + cancelled + expired
+
+
+class BiddingDetailResponse(BaseModel):
+    id: int
+    bidding_no: str
+    status: str
+    deadline: Optional[datetime] = None
+    created_at: datetime
+    pdf_url: Optional[str] = None
+    
+    # Quote Request 정보
+    customer_company: str
+    customer_name: str
+    trade_mode: str
+    shipping_type: str
+    load_type: str
+    incoterms: Optional[str] = None
+    pol: str
+    pod: str
+    etd: datetime
+    eta: Optional[datetime] = None
+    is_dg: bool
+    remark: Optional[str] = None
+    
+    # 입찰 정보
+    bid_count: int = 0
+    my_bid: Optional[BidResponse] = None
+    
+    class Config:
+        from_attributes = True

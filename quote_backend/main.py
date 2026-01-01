@@ -15,13 +15,21 @@ import string
 import os
 
 from database import get_db, engine
-from models import Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, CargoDetail, Bidding
+from models import Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, CargoDetail, Bidding, Forwarder, Bid
 from schemas import (
     PortResponse, ContainerTypeResponse, TruckTypeResponse, IncotermResponse,
     QuoteRequestCreate, QuoteRequestResponse, QuoteSubmitResponse, APIResponse,
-    BiddingResponse
+    BiddingResponse,
+    # Forwarder schemas
+    ForwarderCreate, ForwarderLogin, ForwarderResponse, ForwarderAuthResponse,
+    # Bid schemas
+    BidCreate, BidUpdate, BidResponse, BidWithForwarderResponse, BidSubmitResponse,
+    # Bidding List schemas
+    BiddingListItem, BiddingListResponse, BiddingStatsResponse, BiddingDetailResponse
 )
 from pdf_generator import RFQPDFGenerator
+import hashlib
+import secrets
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -658,6 +666,681 @@ def get_biddings(
             for b in biddings
         ]
     }
+
+
+# ==========================================
+# FORWARDER AUTH ENDPOINTS
+# ==========================================
+
+def generate_simple_token(email: str) -> str:
+    """Generate a simple token for forwarder authentication"""
+    random_part = secrets.token_hex(16)
+    hash_input = f"{email}:{random_part}:{datetime.now().isoformat()}"
+    return hashlib.sha256(hash_input.encode()).hexdigest()[:32]
+
+
+def get_forwarder_from_token(token: str, db: Session) -> Optional[Forwarder]:
+    """
+    간단한 토큰 검증 (실제 프로덕션에서는 JWT 등 사용 권장)
+    현재는 헤더에서 forwarder_id를 직접 받는 방식으로 간소화
+    """
+    # 이 구현에서는 X-Forwarder-ID 헤더를 사용
+    return None
+
+
+@app.post("/api/forwarder/register", response_model=ForwarderAuthResponse, tags=["Forwarder"])
+def register_forwarder(
+    forwarder_data: ForwarderCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Register a new forwarder
+    
+    이메일 기반 간단 인증 - 중복 이메일 체크
+    """
+    try:
+        # Check if email already exists
+        existing = db.query(Forwarder).filter(Forwarder.email == forwarder_data.email).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        
+        # Create new forwarder
+        forwarder = Forwarder(
+            company=forwarder_data.company,
+            business_no=forwarder_data.business_no,
+            name=forwarder_data.name,
+            email=forwarder_data.email,
+            phone=forwarder_data.phone,
+            is_verified=True  # 간단 인증에서는 바로 verified 처리
+        )
+        db.add(forwarder)
+        db.commit()
+        db.refresh(forwarder)
+        
+        # Generate token
+        token = generate_simple_token(forwarder.email)
+        
+        return ForwarderAuthResponse(
+            success=True,
+            message="Registration successful",
+            forwarder=ForwarderResponse.model_validate(forwarder),
+            token=token
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
+
+
+@app.post("/api/forwarder/login", response_model=ForwarderAuthResponse, tags=["Forwarder"])
+def login_forwarder(
+    login_data: ForwarderLogin,
+    db: Session = Depends(get_db)
+):
+    """
+    Login forwarder by email (간단 인증)
+    
+    실제 프로덕션에서는 비밀번호 또는 이메일 인증 필요
+    """
+    forwarder = db.query(Forwarder).filter(Forwarder.email == login_data.email).first()
+    
+    if not forwarder:
+        raise HTTPException(status_code=404, detail="Forwarder not found. Please register first.")
+    
+    # Generate token
+    token = generate_simple_token(forwarder.email)
+    
+    return ForwarderAuthResponse(
+        success=True,
+        message="Login successful",
+        forwarder=ForwarderResponse.model_validate(forwarder),
+        token=token
+    )
+
+
+@app.get("/api/forwarder/profile/{forwarder_id}", response_model=ForwarderResponse, tags=["Forwarder"])
+def get_forwarder_profile(
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get forwarder profile by ID"""
+    forwarder = db.query(Forwarder).filter(Forwarder.id == forwarder_id).first()
+    
+    if not forwarder:
+        raise HTTPException(status_code=404, detail="Forwarder not found")
+    
+    return forwarder
+
+
+# ==========================================
+# BIDDING LIST ENDPOINTS (for Forwarders)
+# ==========================================
+
+@app.get("/api/bidding/stats", response_model=BiddingStatsResponse, tags=["Bidding List"])
+def get_bidding_stats(db: Session = Depends(get_db)):
+    """
+    Get bidding statistics for dashboard
+    
+    - total_count: 전체 Bidding 건수
+    - open_count: 진행중인 입찰 건수
+    - closing_soon_count: 24시간 이내 마감 예정 건수
+    - awarded_count: 낙찰 완료 건수
+    - failed_count: 유찰 건수 (closed + cancelled + expired)
+    """
+    now = datetime.now()
+    tomorrow = now + timedelta(hours=24)
+    
+    total_count = db.query(Bidding).count()
+    
+    open_count = db.query(Bidding).filter(Bidding.status == "open").count()
+    
+    closing_soon_count = db.query(Bidding).filter(
+        Bidding.status == "open",
+        Bidding.deadline <= tomorrow,
+        Bidding.deadline > now
+    ).count()
+    
+    awarded_count = db.query(Bidding).filter(Bidding.status == "awarded").count()
+    
+    failed_count = db.query(Bidding).filter(
+        Bidding.status.in_(["closed", "cancelled", "expired"])
+    ).count()
+    
+    return BiddingStatsResponse(
+        total_count=total_count,
+        open_count=open_count,
+        closing_soon_count=closing_soon_count,
+        awarded_count=awarded_count,
+        failed_count=failed_count
+    )
+
+
+@app.get("/api/bidding/list", response_model=BiddingListResponse, tags=["Bidding List"])
+def get_bidding_list(
+    status: Optional[str] = None,
+    shipping_type: Optional[str] = None,
+    search: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+    forwarder_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get paginated list of biddings for forwarders
+    
+    - status: filter by bidding status (open, closed, awarded, cancelled, expired)
+    - shipping_type: filter by shipping type (ocean, air, truck)
+    - search: search by bidding_no
+    - page: page number (1-based)
+    - limit: items per page
+    - forwarder_id: optional, to check if forwarder has already bid
+    """
+    # Base query with join to get quote request and customer info
+    query = db.query(Bidding).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).join(
+        Customer, QuoteRequest.customer_id == Customer.id
+    )
+    
+    # Apply filters
+    if status:
+        query = query.filter(Bidding.status == status)
+    
+    if shipping_type:
+        query = query.filter(QuoteRequest.shipping_type == shipping_type)
+    
+    if search:
+        query = query.filter(Bidding.bidding_no.ilike(f"%{search}%"))
+    
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * limit
+    biddings = query.order_by(Bidding.created_at.desc()).offset(offset).limit(limit).all()
+    
+    # Build response
+    items = []
+    for b in biddings:
+        qr = b.quote_request
+        
+        # Count bids for this bidding
+        bid_count = db.query(Bid).filter(
+            Bid.bidding_id == b.id,
+            Bid.status == "submitted"
+        ).count()
+        
+        # Check if forwarder has already bid
+        my_bid_status = None
+        if forwarder_id:
+            my_bid = db.query(Bid).filter(
+                Bid.bidding_id == b.id,
+                Bid.forwarder_id == forwarder_id
+            ).first()
+            if my_bid:
+                my_bid_status = my_bid.status
+        
+        items.append(BiddingListItem(
+            id=b.id,
+            bidding_no=b.bidding_no,
+            customer_company=qr.customer.company,
+            pol=qr.pol,
+            pod=qr.pod,
+            shipping_type=qr.shipping_type,
+            load_type=qr.load_type,
+            etd=qr.etd,
+            deadline=b.deadline,
+            status=b.status,
+            bid_count=bid_count,
+            my_bid_status=my_bid_status
+        ))
+    
+    return BiddingListResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        data=items
+    )
+
+
+@app.get("/api/bidding/{bidding_no}/detail", response_model=BiddingDetailResponse, tags=["Bidding List"])
+def get_bidding_detail(
+    bidding_no: str,
+    forwarder_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed bidding information including quote request details
+    
+    - forwarder_id: optional, to include forwarder's own bid
+    """
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    qr = bidding.quote_request
+    customer = qr.customer
+    
+    # Count bids
+    bid_count = db.query(Bid).filter(
+        Bid.bidding_id == bidding.id,
+        Bid.status == "submitted"
+    ).count()
+    
+    # Get forwarder's bid if forwarder_id provided
+    my_bid = None
+    if forwarder_id:
+        bid = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.forwarder_id == forwarder_id
+        ).first()
+        if bid:
+            my_bid = BidResponse.model_validate(bid)
+    
+    return BiddingDetailResponse(
+        id=bidding.id,
+        bidding_no=bidding.bidding_no,
+        status=bidding.status,
+        deadline=bidding.deadline,
+        created_at=bidding.created_at,
+        pdf_url=f"/api/quote/rfq/{bidding_no}/pdf" if bidding.pdf_path else None,
+        customer_company=customer.company,
+        customer_name=customer.name,
+        trade_mode=qr.trade_mode,
+        shipping_type=qr.shipping_type,
+        load_type=qr.load_type,
+        incoterms=qr.incoterms,
+        pol=qr.pol,
+        pod=qr.pod,
+        etd=qr.etd,
+        eta=qr.eta,
+        is_dg=qr.is_dg,
+        remark=qr.remark,
+        bid_count=bid_count,
+        my_bid=my_bid
+    )
+
+
+# ==========================================
+# BID ENDPOINTS (for Forwarders)
+# ==========================================
+
+@app.post("/api/bid/submit", response_model=BidSubmitResponse, tags=["Bid"])
+def submit_bid(
+    bid_data: BidCreate,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Submit a new bid for a bidding
+    
+    - forwarder_id: 포워더 ID (헤더 또는 쿼리로 전달)
+    - 마감 전까지만 제출 가능
+    - 동일 포워더가 동일 비딩에 중복 제출 불가 (수정은 PUT 사용)
+    """
+    try:
+        # Verify forwarder exists
+        forwarder = db.query(Forwarder).filter(Forwarder.id == forwarder_id).first()
+        if not forwarder:
+            raise HTTPException(status_code=404, detail="Forwarder not found")
+        
+        # Verify bidding exists and is open
+        bidding = db.query(Bidding).filter(Bidding.id == bid_data.bidding_id).first()
+        if not bidding:
+            raise HTTPException(status_code=404, detail="Bidding not found")
+        
+        if bidding.status != "open":
+            raise HTTPException(status_code=400, detail="Bidding is not open for bids")
+        
+        # Check deadline
+        if bidding.deadline and datetime.now() > bidding.deadline:
+            raise HTTPException(status_code=400, detail="Bidding deadline has passed")
+        
+        # Check for existing bid
+        existing_bid = db.query(Bid).filter(
+            Bid.bidding_id == bid_data.bidding_id,
+            Bid.forwarder_id == forwarder_id
+        ).first()
+        
+        if existing_bid:
+            raise HTTPException(
+                status_code=400, 
+                detail="You have already submitted a bid. Use PUT /api/bid/{bid_id} to update."
+            )
+        
+        # Parse validity date
+        validity_date = None
+        if bid_data.validity_date:
+            validity_date = parse_datetime(bid_data.validity_date)
+        
+        # Create bid
+        bid = Bid(
+            bidding_id=bid_data.bidding_id,
+            forwarder_id=forwarder_id,
+            total_amount=bid_data.total_amount,
+            freight_charge=bid_data.freight_charge,
+            local_charge=bid_data.local_charge,
+            other_charge=bid_data.other_charge,
+            validity_date=validity_date,
+            transit_time=bid_data.transit_time,
+            remark=bid_data.remark,
+            status="submitted",
+            submitted_at=datetime.now()
+        )
+        db.add(bid)
+        db.commit()
+        db.refresh(bid)
+        
+        return BidSubmitResponse(
+            success=True,
+            message="Bid submitted successfully",
+            bid=BidResponse.model_validate(bid)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to submit bid: {str(e)}")
+
+
+@app.put("/api/bid/{bid_id}", response_model=BidSubmitResponse, tags=["Bid"])
+def update_bid(
+    bid_id: int,
+    bid_data: BidUpdate,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Update an existing bid
+    
+    - 본인의 입찰만 수정 가능
+    - 마감 전까지만 수정 가능
+    - 낙찰/거절된 입찰은 수정 불가
+    """
+    try:
+        # Get bid
+        bid = db.query(Bid).filter(Bid.id == bid_id).first()
+        if not bid:
+            raise HTTPException(status_code=404, detail="Bid not found")
+        
+        # Verify ownership
+        if bid.forwarder_id != forwarder_id:
+            raise HTTPException(status_code=403, detail="You can only update your own bids")
+        
+        # Check bid status
+        if bid.status in ["awarded", "rejected"]:
+            raise HTTPException(status_code=400, detail=f"Cannot update bid with status '{bid.status}'")
+        
+        # Check bidding deadline
+        bidding = db.query(Bidding).filter(Bidding.id == bid.bidding_id).first()
+        if bidding.deadline and datetime.now() > bidding.deadline:
+            raise HTTPException(status_code=400, detail="Bidding deadline has passed")
+        
+        if bidding.status != "open":
+            raise HTTPException(status_code=400, detail="Bidding is no longer open")
+        
+        # Update bid
+        bid.total_amount = bid_data.total_amount
+        bid.freight_charge = bid_data.freight_charge
+        bid.local_charge = bid_data.local_charge
+        bid.other_charge = bid_data.other_charge
+        if bid_data.validity_date:
+            bid.validity_date = parse_datetime(bid_data.validity_date)
+        bid.transit_time = bid_data.transit_time
+        bid.remark = bid_data.remark
+        bid.updated_at = datetime.now()
+        
+        db.commit()
+        db.refresh(bid)
+        
+        return BidSubmitResponse(
+            success=True,
+            message="Bid updated successfully",
+            bid=BidResponse.model_validate(bid)
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to update bid: {str(e)}")
+
+
+@app.get("/api/bid/my-bids", tags=["Bid"])
+def get_my_bids(
+    forwarder_id: int,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    Get list of forwarder's own bids
+    
+    - status: filter by bid status (draft, submitted, awarded, rejected)
+    """
+    query = db.query(Bid).filter(Bid.forwarder_id == forwarder_id)
+    
+    if status:
+        query = query.filter(Bid.status == status)
+    
+    total = query.count()
+    offset = (page - 1) * limit
+    bids = query.order_by(Bid.created_at.desc()).offset(offset).limit(limit).all()
+    
+    # Build response with bidding info
+    result = []
+    for bid in bids:
+        bidding = db.query(Bidding).filter(Bidding.id == bid.bidding_id).first()
+        qr = bidding.quote_request if bidding else None
+        
+        result.append({
+            "id": bid.id,
+            "bidding_id": bid.bidding_id,
+            "bidding_no": bidding.bidding_no if bidding else None,
+            "pol": qr.pol if qr else None,
+            "pod": qr.pod if qr else None,
+            "shipping_type": qr.shipping_type if qr else None,
+            "total_amount": float(bid.total_amount),
+            "status": bid.status,
+            "bidding_status": bidding.status if bidding else None,
+            "deadline": bidding.deadline.isoformat() if bidding and bidding.deadline else None,
+            "submitted_at": bid.submitted_at.isoformat() if bid.submitted_at else None,
+            "created_at": bid.created_at.isoformat() if bid.created_at else None
+        })
+    
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "data": result
+    }
+
+
+@app.get("/api/bidding/{bidding_no}/bids", tags=["Bid"])
+def get_bidding_bids(
+    bidding_no: str,
+    customer_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all bids for a specific bidding (화주용)
+    
+    - 봉인 입찰: 마감 후에만 조회 가능
+    - customer_id로 본인 확인 (간소화된 인증)
+    """
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    # 봉인 입찰: 마감 전에는 조회 불가 (화주도)
+    # 단, 마감이 지났거나 awarded 상태면 조회 가능
+    if bidding.status == "open" and bidding.deadline and datetime.now() < bidding.deadline:
+        raise HTTPException(
+            status_code=403, 
+            detail="Bids are sealed until deadline. Please wait until the deadline passes."
+        )
+    
+    # Get all submitted bids with forwarder info
+    bids = db.query(Bid).filter(
+        Bid.bidding_id == bidding.id,
+        Bid.status.in_(["submitted", "awarded", "rejected"])
+    ).order_by(Bid.total_amount.asc()).all()
+    
+    result = []
+    for bid in bids:
+        forwarder = db.query(Forwarder).filter(Forwarder.id == bid.forwarder_id).first()
+        result.append({
+            "id": bid.id,
+            "forwarder_id": bid.forwarder_id,
+            "forwarder_company": forwarder.company if forwarder else None,
+            "forwarder_name": forwarder.name if forwarder else None,
+            "forwarder_phone": forwarder.phone if forwarder else None,
+            "total_amount": float(bid.total_amount),
+            "freight_charge": float(bid.freight_charge) if bid.freight_charge else None,
+            "local_charge": float(bid.local_charge) if bid.local_charge else None,
+            "other_charge": float(bid.other_charge) if bid.other_charge else None,
+            "transit_time": bid.transit_time,
+            "validity_date": bid.validity_date.isoformat() if bid.validity_date else None,
+            "remark": bid.remark,
+            "status": bid.status,
+            "submitted_at": bid.submitted_at.isoformat() if bid.submitted_at else None
+        })
+    
+    return {
+        "bidding_no": bidding_no,
+        "bidding_status": bidding.status,
+        "total_bids": len(result),
+        "bids": result
+    }
+
+
+# ==========================================
+# AWARD ENDPOINTS (for Shippers)
+# ==========================================
+
+@app.post("/api/bidding/{bidding_no}/award", response_model=APIResponse, tags=["Award"])
+def award_bid(
+    bidding_no: str,
+    bid_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Award a bid to a forwarder (화주용)
+    
+    - bidding_no: Bidding 번호
+    - bid_id: 낙찰할 Bid ID
+    """
+    try:
+        # Get bidding
+        bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+        if not bidding:
+            raise HTTPException(status_code=404, detail="Bidding not found")
+        
+        if bidding.status == "awarded":
+            raise HTTPException(status_code=400, detail="Bidding has already been awarded")
+        
+        if bidding.status not in ["open", "closed"]:
+            raise HTTPException(status_code=400, detail=f"Cannot award bidding with status '{bidding.status}'")
+        
+        # Get the bid to award
+        bid = db.query(Bid).filter(
+            Bid.id == bid_id,
+            Bid.bidding_id == bidding.id
+        ).first()
+        
+        if not bid:
+            raise HTTPException(status_code=404, detail="Bid not found for this bidding")
+        
+        if bid.status != "submitted":
+            raise HTTPException(status_code=400, detail=f"Cannot award bid with status '{bid.status}'")
+        
+        # Award the bid
+        bid.status = "awarded"
+        bid.updated_at = datetime.now()
+        
+        # Update bidding status
+        bidding.status = "awarded"
+        bidding.awarded_bid_id = bid.id
+        bidding.updated_at = datetime.now()
+        
+        # Reject all other bids
+        other_bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.id != bid.id,
+            Bid.status == "submitted"
+        ).all()
+        
+        for other_bid in other_bids:
+            other_bid.status = "rejected"
+            other_bid.updated_at = datetime.now()
+        
+        db.commit()
+        
+        # Get forwarder info for response
+        forwarder = db.query(Forwarder).filter(Forwarder.id == bid.forwarder_id).first()
+        
+        return APIResponse(
+            success=True,
+            message=f"Bid awarded successfully to {forwarder.company if forwarder else 'forwarder'}",
+            data={
+                "bidding_no": bidding_no,
+                "awarded_bid_id": bid.id,
+                "forwarder_id": bid.forwarder_id,
+                "forwarder_company": forwarder.company if forwarder else None,
+                "total_amount": float(bid.total_amount)
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to award bid: {str(e)}")
+
+
+@app.post("/api/bidding/{bidding_no}/close", response_model=APIResponse, tags=["Award"])
+def close_bidding(
+    bidding_no: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Close a bidding without awarding (유찰 처리)
+    """
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    if bidding.status != "open":
+        raise HTTPException(status_code=400, detail=f"Cannot close bidding with status '{bidding.status}'")
+    
+    bidding.status = "closed"
+    bidding.updated_at = datetime.now()
+    
+    # Reject all submitted bids
+    bids = db.query(Bid).filter(
+        Bid.bidding_id == bidding.id,
+        Bid.status == "submitted"
+    ).all()
+    
+    for bid in bids:
+        bid.status = "rejected"
+        bid.updated_at = datetime.now()
+    
+    db.commit()
+    
+    return APIResponse(
+        success=True,
+        message="Bidding closed successfully",
+        data={"bidding_no": bidding_no, "status": "closed", "rejected_bids": len(bids)}
+    )
 
 
 # ==========================================
