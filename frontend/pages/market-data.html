@@ -87,10 +87,10 @@
                                 <input type="date" class="date-input" id="endDate" />
                             </div>
                             <div class="period-buttons">
-                                <button class="period-btn" onclick="handlePeriodClick('1W', event)">1W</button>
-                                <button class="period-btn" onclick="handlePeriodClick('1M', event)">1M</button>
-                                <button class="period-btn active" onclick="handlePeriodClick('3M', event)">3M</button>
-                                <button class="period-btn" onclick="handlePeriodClick('1Y', event)">1Y</button>
+                                <button class="period-btn" onclick="handlePeriodClick('1W')">1W</button>
+                                <button class="period-btn" onclick="handlePeriodClick('1M')">1M</button>
+                                <button class="period-btn active" onclick="handlePeriodClick('3M')">3M</button>
+                                <button class="period-btn" onclick="handlePeriodClick('1Y')">1Y</button>
                             </div>
                         </div>
 
@@ -122,19 +122,19 @@
 
                         <!-- Multi-Currency Toggle -->
                         <div class="currency-toggle" id="currency-toggle">
-                            <button class="currency-btn active" data-currency="USD" onclick="toggleCurrency('USD', event)">
+                            <button class="currency-btn chip active" data-curr="USD" onclick="toggleCurrency('USD')">
                                 <span class="currency-flag">🇺🇸</span> USD
                             </button>
-                            <button class="currency-btn" data-currency="EUR" onclick="toggleCurrency('EUR', event)">
+                            <button class="currency-btn chip" data-curr="EUR" onclick="toggleCurrency('EUR')">
                                 <span class="currency-flag">🇪🇺</span> EUR
                             </button>
-                            <button class="currency-btn" data-currency="JPY" onclick="toggleCurrency('JPY', event)">
+                            <button class="currency-btn chip" data-curr="JPY" onclick="toggleCurrency('JPY')">
                                 <span class="currency-flag">🇯🇵</span> JPY
                             </button>
-                            <button class="currency-btn" data-currency="CNY" onclick="toggleCurrency('CNY', event)">
+                            <button class="currency-btn chip" data-curr="CNY" onclick="toggleCurrency('CNY')">
                                 <span class="currency-flag">🇨🇳</span> CNY
                             </button>
-                            <button class="currency-btn" data-currency="GBP" onclick="toggleCurrency('GBP', event)">
+                            <button class="currency-btn chip" data-curr="GBP" onclick="toggleCurrency('GBP')">
                                 <span class="currency-flag">🇬🇧</span> GBP
                             </button>
                         </div>
@@ -148,7 +148,18 @@
                                 <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
                                 
                                 <g id="y-axis-labels"></g>
-                                <g id="paths-group"></g>
+                                <g id="paths-group">
+                                    <!-- Currency Paths -->
+                                    <path id="path-USD" class="chart-path" style="stroke: var(--c-usd);" d="" />
+                                    <path id="path-EUR" class="chart-path" style="stroke: var(--c-eur);" d="" />
+                                    <path id="path-JPY" class="chart-path" style="stroke: var(--c-jpy);" d="" />
+                                    <path id="path-CNY" class="chart-path" style="stroke: var(--c-cny);" d="" />
+                                    <path id="path-GBP" class="chart-path" style="stroke: var(--c-gbp);" d="" />
+                                    <path id="path-CHF" class="chart-path" style="stroke: var(--c-chf);" d="" />
+                                    <path id="path-HKD" class="chart-path" style="stroke: var(--c-hkd);" d="" />
+                                    <path id="path-CAD" class="chart-path" style="stroke: var(--c-cad);" d="" />
+                                    <path id="path-RUB" class="chart-path" style="stroke: var(--c-rub);" d="" />
+                                </g>
                                 <g id="data-points"></g>
                                 <g id="x-axis-labels"></g>
                             </svg>
@@ -158,24 +169,11 @@
                             <div id="tooltip-content"></div>
                         </div>
 
-                        <!-- All Currency Rates Table -->
+                        <!-- All Currency Rates Grid -->
                         <div class="rates-table-container" id="rates-table-container">
                             <h3 class="rates-table-title">전체 통화 환율</h3>
-                            <div class="rates-table-wrapper">
-                                <table class="rates-table" id="rates-table">
-                                    <thead>
-                                        <tr>
-                                            <th>통화</th>
-                                            <th>매매기준율</th>
-                                            <th>전일대비</th>
-                                            <th>현찰살때</th>
-                                            <th>현찰팔때</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="rates-table-body">
-                                        <tr><td colspan="5" style="text-align:center; padding:2rem;">데이터 로딩중...</td></tr>
-                                    </tbody>
-                                </table>
+                            <div class="currency-rates-grid" id="currency-rates-grid">
+                                <!-- Currency rate cards will be dynamically populated -->
                             </div>
                         </div>
                     </main>
@@ -200,11 +198,45 @@
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
-                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
-                        <i class="fas fa-percentage" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
-                        <h2 style="margin-bottom:0.5rem;">Interest Rates</h2>
-                        <p style="color:var(--text-sub);">금리 데이터를 로드하고 있습니다...</p>
-                        <div class="chart-area" id="interest-chart-container" style="width:100%; margin-top:2rem;">
+                    <main class="tool-workspace">
+                        <!-- Chart Header -->
+                        <div class="chart-header">
+                            <div class="chart-info">
+                                <h2 class="chart-title" id="interest-chart-main-title">기준금리</h2>
+                                <div class="chart-value-container">
+                                    <span class="chart-value" id="interest-chart-main-value">-</span>
+                                    <span class="chart-change" id="interest-change-value">-</span>
+                                    <span class="chart-change-percent" id="interest-change-percent">(-)</span>
+                                </div>
+                            </div>
+                            <div class="chart-stats">
+                                <div class="stat-item"><span class="stat-label">High</span><span class="stat-value" id="interest-stat-high">-</span></div>
+                                <div class="stat-item"><span class="stat-label">Low</span><span class="stat-value" id="interest-stat-low">-</span></div>
+                                <div class="stat-item"><span class="stat-label">Average</span><span class="stat-value" id="interest-stat-average">-</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="chart-controls">
+                            <div class="date-range-control">
+                                <input type="date" class="date-input" id="interest-start-date" />
+                                <span class="date-separator">~</span>
+                                <input type="date" class="date-input" id="interest-end-date" />
+                            </div>
+                            <div class="period-buttons">
+                                <button class="period-btn interest-cycle-btn active" data-cycle="M">월별</button>
+                                <button class="period-btn interest-cycle-btn" data-cycle="Q">분기별</button>
+                                <button class="period-btn interest-cycle-btn" data-cycle="A">연별</button>
+                            </div>
+                        </div>
+
+                        <!-- Country Chips -->
+                        <div class="currency-toggle" id="interest-country-chips">
+                            <!-- Country chips will be dynamically populated -->
+                        </div>
+
+                        <!-- Chart Area -->
+                        <div class="chart-area" id="interest-chart-container">
                             <svg class="chart-svg" id="interest-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
                                 <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
                                 <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
@@ -216,6 +248,10 @@
                                 <g id="interest-data-points"></g>
                                 <g id="interest-x-axis-labels"></g>
                             </svg>
+                        </div>
+                        <div class="chart-tooltip" id="interest-chart-tooltip">
+                            <div class="chart-tooltip-date" id="interest-tooltip-date"></div>
+                            <div id="interest-tooltip-content"></div>
                         </div>
                     </main>
                 </div>
@@ -239,10 +275,65 @@
                             <li onclick="switchProduct('global-stocks')">Global Stocks</li>
                         </ul>
                     </aside>
-                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
-                        <i class="fas fa-chart-line" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
-                        <h2 style="margin-bottom:0.5rem;">Inflation (CPI)</h2>
-                        <p style="color:var(--text-sub);">물가 데이터를 로드하고 있습니다...</p>
+                    <main class="tool-workspace">
+                        <!-- Chart Header -->
+                        <div class="chart-header">
+                            <div class="chart-info">
+                                <h2 class="chart-title" id="inflation-chart-main-title">물가지수 (CPI)</h2>
+                                <div class="chart-value-container">
+                                    <span class="chart-value" id="inflation-chart-main-value">-</span>
+                                    <span class="chart-change" id="inflation-change-value">-</span>
+                                    <span class="chart-change-percent" id="inflation-change-percent">(-)</span>
+                                </div>
+                            </div>
+                            <div class="chart-stats">
+                                <div class="stat-item"><span class="stat-label">High</span><span class="stat-value" id="inflation-stat-high">-</span></div>
+                                <div class="stat-item"><span class="stat-label">Low</span><span class="stat-value" id="inflation-stat-low">-</span></div>
+                                <div class="stat-item"><span class="stat-label">Average</span><span class="stat-value" id="inflation-stat-average">-</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="chart-controls">
+                            <div class="date-range-control">
+                                <input type="date" class="date-input" id="inflation-start-date" />
+                                <span class="date-separator">~</span>
+                                <input type="date" class="date-input" id="inflation-end-date" />
+                            </div>
+                            <div class="period-buttons">
+                                <button class="period-btn inflation-cycle-btn active" data-cycle="M">월별</button>
+                                <button class="period-btn inflation-cycle-btn" data-cycle="Q">분기별</button>
+                            </div>
+                        </div>
+
+                        <!-- Country Chips -->
+                        <div class="currency-toggle" id="inflation-country-chips">
+                            <!-- Country chips will be dynamically populated -->
+                        </div>
+
+                        <!-- Chart Area -->
+                        <div class="chart-area" id="inflation-chart-container">
+                            <svg class="chart-svg" id="inflation-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                <g id="inflation-y-axis-labels"></g>
+                                <g id="inflation-paths-group">
+                                    <path id="path-inflation-CPI_TOTAL" class="chart-path" style="stroke: var(--c-cpi-total);" d="" />
+                                    <path id="path-inflation-CPI_FRESH" class="chart-path" style="stroke: var(--c-cpi-fresh);" d="" />
+                                    <path id="path-inflation-CPI_INDUSTRIAL" class="chart-path" style="stroke: var(--c-cpi-industrial);" d="" />
+                                </g>
+                                <g id="inflation-bar-chart"></g>
+                                <g id="inflation-data-points"></g>
+                                <g id="inflation-x-axis-labels"></g>
+                            </svg>
+                        </div>
+                        <div class="chart-tooltip" id="inflation-chart-tooltip">
+                            <div class="chart-tooltip-date" id="inflation-tooltip-date"></div>
+                            <div id="inflation-tooltip-content"></div>
+                        </div>
                     </main>
                 </div>
             </div>
