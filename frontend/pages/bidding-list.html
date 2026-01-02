@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="../css/utilities.css">
     <!-- Components -->
     <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
     <link rel="stylesheet" href="../css/components/unified-cards.css">
     <link rel="stylesheet" href="../css/components/unified-buttons.css">
     <!-- Sections -->
@@ -41,6 +42,12 @@
                 <li><a href="report-insight.html">Report & Insight</a></li>
             </ul>
         </nav>
+        <!-- Auth Container -->
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
     </header>
 
     <!-- Main Content -->
@@ -48,7 +55,6 @@
         <!-- Page Header -->
         <div class="section-header">
             <div>
-                <p class="section-subtitle">FREIGHT BIDDING PLATFORM</p>
                 <h1 class="section-title">Bidding List</h1>
             </div>
             <div id="forwarderActions">
@@ -113,12 +119,12 @@
         <div class="filter-bar">
             <div class="filter-group">
                 <select class="filter-select" id="filterStatus">
-                    <option value="">전체 상태</option>
+                    <option value="">전체</option>
                     <option value="open">진행중</option>
-                    <option value="closed">마감</option>
+                    <option value="closing_soon">마감예정</option>
+                    <option value="expired">마감</option>
                     <option value="awarded">낙찰</option>
-                    <option value="expired">만료</option>
-                    <option value="cancelled">취소</option>
+                    <option value="failed">유찰</option>
                 </select>
                 <select class="filter-select" id="filterShipping">
                     <option value="">전체 운송</option>
@@ -173,85 +179,6 @@
             <!-- Pagination will be inserted here -->
         </div>
     </main>
-
-    <!-- Auth Modal -->
-    <div class="modal-overlay" id="authModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title" id="authModalTitle">포워더 로그인</h3>
-                <button class="modal-close" onclick="BiddingList.closeAuthModal()">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <!-- Login Form -->
-                <div id="loginForm">
-                    <div class="form-group">
-                        <label class="form-label required">이메일</label>
-                        <input type="email" class="form-input" id="loginEmail" placeholder="company@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label required">비밀번호</label>
-                        <input type="password" class="form-input" id="loginPassword" placeholder="비밀번호를 입력하세요">
-                    </div>
-                    <p class="form-hint" style="margin-bottom: 1rem;">
-                        등록된 이메일로 로그인하세요. 
-                        <a href="#" onclick="BiddingList.showRegisterForm()" style="color: var(--accent-color);">
-                            신규 등록하기
-                        </a>
-                    </p>
-                </div>
-                
-                <!-- Register Form -->
-                <div id="registerForm" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label required">회사명</label>
-                        <input type="text" class="form-input" id="regCompany" placeholder="회사명">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label required">담당자명</label>
-                            <input type="text" class="form-input" id="regName" placeholder="담당자명">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">사업자등록번호</label>
-                            <input type="text" class="form-input" id="regBusinessNo" placeholder="000-00-00000">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label required">이메일</label>
-                        <input type="email" class="form-input" id="regEmail" placeholder="company@example.com">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label required">비밀번호</label>
-                            <input type="password" class="form-input" id="regPassword" placeholder="최소 6자 이상">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label required">비밀번호 확인</label>
-                            <input type="password" class="form-input" id="regPasswordConfirm" placeholder="비밀번호 확인">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label required">연락처</label>
-                        <input type="tel" class="form-input" id="regPhone" placeholder="010-0000-0000">
-                    </div>
-                    <p class="form-hint">
-                        이미 계정이 있으신가요? 
-                        <a href="#" onclick="BiddingList.showLoginForm()" style="color: var(--accent-color);">
-                            로그인하기
-                        </a>
-                    </p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="action-btn secondary" onclick="BiddingList.closeAuthModal()">취소</button>
-                <button class="action-btn primary" id="authSubmitBtn" onclick="BiddingList.submitAuth()">
-                    로그인
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Bid Submit Modal (Quote Registration - 견적 등록) -->
     <div class="modal-overlay bid-modal" id="bidModal">
@@ -387,41 +314,201 @@
                     <div class="remarks-content" id="reqRemarks">-</div>
                 </section>
 
-                <!-- Rates 입력 테이블 -->
+                <!-- Rates 입력 - 5개 고정 그룹 섹션 -->
                 <section class="qr-section rates-section">
-                    <div class="rates-header">
-                        <h4 class="qr-section-title"><span class="required-mark">*</span> Rates</h4>
-                        <button type="button" class="btn-add-row" onclick="BiddingList.addLineItem()">
-                            <i class="fas fa-plus"></i> Add Row
-                        </button>
-                    </div>
+                    <h4 class="qr-section-title"><span class="required-mark">*</span> Rates</h4>
                     
-                    <div class="rates-table-wrapper">
-                        <table class="rates-table">
+                    <!-- 1. Origin Local Charges -->
+                    <div class="rate-group-box" id="rateGroup_ORIGIN_LOCAL">
+                        <div class="rate-group-header-bar">
+                            <span class="rate-group-title">
+                                <i class="fas fa-warehouse"></i>
+                                Origin Local Charges
+                            </span>
+                            <button type="button" class="btn-add-group" onclick="BiddingList.addLineItemToGroup('ORIGIN_LOCAL')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <table class="rate-group-table">
                             <thead>
-                                <tr class="header-row">
+                                <tr>
                                     <th class="col-del"></th>
                                     <th class="col-code">Code</th>
-                                    <th class="col-category">Category</th>
                                     <th class="col-unit">Unit</th>
-                                    <th class="col-qty-sm">Qty</th>
+                                    <th class="col-qty">Qty</th>
                                     <th class="col-rate">Rate</th>
                                     <th class="col-currency">Curr</th>
                                     <th class="col-tax">Tax</th>
                                     <th class="col-vat">VAT%</th>
-                                    <th class="col-amount-lg">Amount (USD)</th>
+                                    <th class="col-amount">Amount</th>
                                 </tr>
                             </thead>
-                            <tbody id="bidLineItemsBody">
+                            <tbody id="rateGroupBody_ORIGIN_LOCAL">
                                 <!-- 동적 생성 -->
                             </tbody>
                             <tfoot>
-                                <tr class="total-row">
-                                    <td colspan="9" class="total-label">Total Amount (USD)</td>
-                                    <td class="total-amount">$ <span id="bidTotalAmount">0.00</span></td>
+                                <tr class="group-subtotal-row">
+                                    <td colspan="8" class="subtotal-label">Subtotal</td>
+                                    <td class="subtotal-amount">$ <span id="subtotal_ORIGIN_LOCAL">0.00</span></td>
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+
+                    <!-- 2. Origin Port Charges -->
+                    <div class="rate-group-box" id="rateGroup_ORIGIN_PORT">
+                        <div class="rate-group-header-bar">
+                            <span class="rate-group-title">
+                                <i class="fas fa-anchor"></i>
+                                Origin Port Charges
+                            </span>
+                            <button type="button" class="btn-add-group" onclick="BiddingList.addLineItemToGroup('ORIGIN_PORT')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <table class="rate-group-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-del"></th>
+                                    <th class="col-code">Code</th>
+                                    <th class="col-unit">Unit</th>
+                                    <th class="col-qty">Qty</th>
+                                    <th class="col-rate">Rate</th>
+                                    <th class="col-currency">Curr</th>
+                                    <th class="col-tax">Tax</th>
+                                    <th class="col-vat">VAT%</th>
+                                    <th class="col-amount">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rateGroupBody_ORIGIN_PORT">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="group-subtotal-row">
+                                    <td colspan="8" class="subtotal-label">Subtotal</td>
+                                    <td class="subtotal-amount">$ <span id="subtotal_ORIGIN_PORT">0.00</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- 3. Freight (Ocean/Air) - shipping_type에 따라 제목 변경 -->
+                    <div class="rate-group-box rate-group-freight" id="rateGroup_FREIGHT">
+                        <div class="rate-group-header-bar freight-header">
+                            <span class="rate-group-title">
+                                <i class="fas fa-ship" id="freightIcon"></i>
+                                <span id="freightTitle">Ocean Freight</span>
+                            </span>
+                            <button type="button" class="btn-add-group" onclick="BiddingList.addLineItemToGroup('FREIGHT')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <table class="rate-group-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-del"></th>
+                                    <th class="col-code">Code</th>
+                                    <th class="col-unit">Unit</th>
+                                    <th class="col-qty">Qty</th>
+                                    <th class="col-rate">Rate</th>
+                                    <th class="col-currency">Curr</th>
+                                    <th class="col-tax">Tax</th>
+                                    <th class="col-vat">VAT%</th>
+                                    <th class="col-amount">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rateGroupBody_FREIGHT">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="group-subtotal-row">
+                                    <td colspan="8" class="subtotal-label">Subtotal</td>
+                                    <td class="subtotal-amount">$ <span id="subtotal_FREIGHT">0.00</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- 4. Destination Port Charges -->
+                    <div class="rate-group-box" id="rateGroup_DEST_PORT">
+                        <div class="rate-group-header-bar">
+                            <span class="rate-group-title">
+                                <i class="fas fa-anchor"></i>
+                                Destination Port Charges
+                            </span>
+                            <button type="button" class="btn-add-group" onclick="BiddingList.addLineItemToGroup('DEST_PORT')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <table class="rate-group-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-del"></th>
+                                    <th class="col-code">Code</th>
+                                    <th class="col-unit">Unit</th>
+                                    <th class="col-qty">Qty</th>
+                                    <th class="col-rate">Rate</th>
+                                    <th class="col-currency">Curr</th>
+                                    <th class="col-tax">Tax</th>
+                                    <th class="col-vat">VAT%</th>
+                                    <th class="col-amount">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rateGroupBody_DEST_PORT">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="group-subtotal-row">
+                                    <td colspan="8" class="subtotal-label">Subtotal</td>
+                                    <td class="subtotal-amount">$ <span id="subtotal_DEST_PORT">0.00</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- 5. Destination Local Charges -->
+                    <div class="rate-group-box" id="rateGroup_DEST_LOCAL">
+                        <div class="rate-group-header-bar">
+                            <span class="rate-group-title">
+                                <i class="fas fa-warehouse"></i>
+                                Destination Local Charges
+                            </span>
+                            <button type="button" class="btn-add-group" onclick="BiddingList.addLineItemToGroup('DEST_LOCAL')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <table class="rate-group-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-del"></th>
+                                    <th class="col-code">Code</th>
+                                    <th class="col-unit">Unit</th>
+                                    <th class="col-qty">Qty</th>
+                                    <th class="col-rate">Rate</th>
+                                    <th class="col-currency">Curr</th>
+                                    <th class="col-tax">Tax</th>
+                                    <th class="col-vat">VAT%</th>
+                                    <th class="col-amount">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rateGroupBody_DEST_LOCAL">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="group-subtotal-row">
+                                    <td colspan="8" class="subtotal-label">Subtotal</td>
+                                    <td class="subtotal-amount">$ <span id="subtotal_DEST_LOCAL">0.00</span></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Total Amount -->
+                    <div class="rates-total-box">
+                        <div class="rates-total-row">
+                            <span class="total-label">Total Amount (USD)</span>
+                            <span class="total-amount">$ <span id="bidTotalAmount">0.00</span></span>
+                        </div>
                     </div>
                 </section>
 
@@ -430,12 +517,40 @@
                     <h4 class="qr-section-title">Transport Details</h4>
                     <div class="transport-grid">
                         <div class="transport-item">
-                            <label class="transport-label">ETD (제안)</label>
-                            <input type="datetime-local" class="transport-input" id="bidETD" onchange="BiddingList.calculateTT()">
+                            <label class="transport-label">ETD (제안) <span class="text-red">*</span></label>
+                            <div class="date-input-wrapper">
+                                <i class="far fa-calendar"></i>
+                                <div class="date-input-group" id="bid-etd-input-group">
+                                    <input type="text" class="date-year" id="bid-etd-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-month" id="bid-etd-month" placeholder="MM" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-day" id="bid-etd-day" placeholder="DD" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-hour" id="bid-etd-hour" placeholder="HH" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">:</span>
+                                    <input type="text" class="date-minute" id="bid-etd-minute" placeholder="MM" maxlength="2" inputmode="numeric">
+                                </div>
+                                <input type="hidden" id="bidETD">
+                            </div>
                         </div>
                         <div class="transport-item">
-                            <label class="transport-label">ETA (예정)</label>
-                            <input type="datetime-local" class="transport-input" id="bidETA" onchange="BiddingList.calculateTT()">
+                            <label class="transport-label">ETA (예정) <span class="text-red">*</span></label>
+                            <div class="date-input-wrapper">
+                                <i class="far fa-calendar"></i>
+                                <div class="date-input-group" id="bid-eta-input-group">
+                                    <input type="text" class="date-year" id="bid-eta-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-month" id="bid-eta-month" placeholder="MM" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-day" id="bid-eta-day" placeholder="DD" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-hour" id="bid-eta-hour" placeholder="HH" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">:</span>
+                                    <input type="text" class="date-minute" id="bid-eta-minute" placeholder="MM" maxlength="2" inputmode="numeric">
+                                </div>
+                                <input type="hidden" id="bidETA">
+                            </div>
                         </div>
                         <div class="transport-item">
                             <label class="transport-label" id="carrierLabel">Carrier</label>
@@ -447,7 +562,17 @@
                         </div>
                         <div class="transport-item">
                             <label class="transport-label">견적 유효기간</label>
-                            <input type="date" class="transport-input" id="bidValidity">
+                            <div class="date-input-wrapper">
+                                <i class="far fa-calendar"></i>
+                                <div class="date-input-group" id="bid-validity-input-group">
+                                    <input type="text" class="date-year" id="bid-validity-year" placeholder="YYYY" maxlength="4" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-month" id="bid-validity-month" placeholder="MM" maxlength="2" inputmode="numeric">
+                                    <span class="date-separator">/</span>
+                                    <input type="text" class="date-day" id="bid-validity-day" placeholder="DD" maxlength="2" inputmode="numeric">
+                                </div>
+                                <input type="hidden" id="bidValidity">
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -478,9 +603,9 @@
 
     <!-- Bidding Detail Modal -->
     <div class="modal-overlay" id="detailModal">
-        <div class="modal-content" style="max-width: 640px;">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
-                <h3 class="modal-title">Bidding 상세 - <span id="detailBiddingNo">EXSEA00000</span></h3>
+                <h3 class="modal-title">Quote Summary - <span id="detailBiddingNo">EXSEA00000</span></h3>
                 <button class="modal-close" onclick="BiddingList.closeDetailModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -497,8 +622,173 @@
         </div>
     </div>
 
+    <!-- Auth Modal -->
+    <div class="auth-modal-overlay" id="authModalOverlay">
+        <div class="auth-modal">
+            <div class="auth-modal-header">
+                <h3 class="auth-modal-title" id="authModalTitle">로그인</h3>
+                <button class="auth-modal-close" onclick="Auth.closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="auth-modal-body">
+                <!-- Step Indicator -->
+                <div class="auth-steps">
+                    <div class="auth-step active"></div>
+                    <div class="auth-step"></div>
+                </div>
+                
+                <!-- Login Type Selection View -->
+                <div id="loginTypeView">
+                    <p style="text-align: center; color: var(--text-sub); margin-bottom: 1.5rem;">
+                        로그인 유형을 선택해주세요
+                    </p>
+                    <div class="user-type-selector">
+                        <button class="user-type-option" onclick="Auth.selectLoginType('shipper')">
+                            <i class="fas fa-building"></i>
+                            <span class="type-label">화주 (Shipper)</span>
+                            <span class="type-desc">화물 운송을 의뢰하는 기업</span>
+                        </button>
+                        <button class="user-type-option" onclick="Auth.selectLoginType('forwarder')">
+                            <i class="fas fa-truck"></i>
+                            <span class="type-label">포워더 (Forwarder)</span>
+                            <span class="type-desc">운송 서비스를 제공하는 기업</span>
+                        </button>
+                    </div>
+                    <div class="auth-divider">
+                        <span>또는</span>
+                    </div>
+                    <p class="auth-form-hint" style="text-align: center;">
+                        아직 계정이 없으신가요? 
+                        <a onclick="Auth.showRegisterTypeView()">회원가입</a>
+                    </p>
+                </div>
+                
+                <!-- Login Form View -->
+                <div id="loginView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBackToLoginType()">
+                        <i class="fas fa-arrow-left"></i> 로그인 유형 선택
+                    </button>
+                    <div class="auth-error" id="loginError"></div>
+                    <div class="auth-form">
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">이메일</label>
+                            <input type="email" class="auth-form-input" id="loginEmail" 
+                                   placeholder="example@company.com" autocomplete="email">
+                        </div>
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">비밀번호</label>
+                            <div class="password-field">
+                                <input type="password" class="auth-form-input" id="loginPassword" 
+                                       placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+                                <button type="button" class="password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="auth-submit-btn" id="loginSubmitBtn" onclick="Auth.submitLogin()">
+                            로그인
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Register Type Selection View -->
+                <div id="registerTypeView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBack()">
+                        <i class="fas fa-arrow-left"></i> 뒤로
+                    </button>
+                    <p style="text-align: center; color: var(--text-sub); margin-bottom: 1.5rem;">
+                        회원 유형을 선택해주세요
+                    </p>
+                    <div class="user-type-selector">
+                        <button class="user-type-option" onclick="Auth.selectUserType('shipper')">
+                            <i class="fas fa-building"></i>
+                            <span class="type-label">화주 (Shipper)</span>
+                            <span class="type-desc">화물 운송을 의뢰하는 기업</span>
+                        </button>
+                        <button class="user-type-option" onclick="Auth.selectUserType('forwarder')">
+                            <i class="fas fa-truck"></i>
+                            <span class="type-label">포워더 (Forwarder)</span>
+                            <span class="type-desc">운송 서비스를 제공하는 기업</span>
+                        </button>
+                    </div>
+                    <p class="auth-form-hint" style="text-align: center; margin-top: 1.5rem;">
+                        이미 계정이 있으신가요? 
+                        <a onclick="Auth.showLoginTypeView()">로그인</a>
+                    </p>
+                </div>
+                
+                <!-- Register Form View -->
+                <div id="registerFormView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBack()">
+                        <i class="fas fa-arrow-left"></i> 회원 유형 선택
+                    </button>
+                    <div class="auth-error"></div>
+                    <div class="auth-success"></div>
+                    <div class="auth-form">
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">회사명</label>
+                                <input type="text" class="auth-form-input" id="regCompany" 
+                                       placeholder="회사명을 입력하세요">
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label">사업자등록번호</label>
+                                <input type="text" class="auth-form-input" id="regBusinessNo" 
+                                       placeholder="000-00-00000">
+                            </div>
+                        </div>
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">담당자명</label>
+                                <input type="text" class="auth-form-input" id="regName" 
+                                       placeholder="담당자명">
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">연락처</label>
+                                <input type="tel" class="auth-form-input" id="regPhone" 
+                                       placeholder="010-0000-0000">
+                            </div>
+                        </div>
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">이메일</label>
+                            <input type="email" class="auth-form-input" id="regEmail" 
+                                   placeholder="example@company.com" autocomplete="email">
+                        </div>
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">비밀번호</label>
+                                <div class="password-field">
+                                    <input type="password" class="auth-form-input" id="regPassword" 
+                                           placeholder="8자 이상, 영문+숫자" autocomplete="new-password">
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">비밀번호 확인</label>
+                                <div class="password-field">
+                                    <input type="password" class="auth-form-input" id="regPasswordConfirm" 
+                                           placeholder="비밀번호 재입력" autocomplete="new-password">
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="auth-submit-btn" id="registerSubmitBtn" onclick="Auth.submitRegister()">
+                            <i class="fas fa-user-plus"></i> 회원가입
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="../js/config/api.js"></script>
+    <script src="../js/features/auth.js"></script>
     <script src="../js/features/biddingList.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {

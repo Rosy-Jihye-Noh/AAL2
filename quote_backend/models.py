@@ -161,6 +161,99 @@ class Incoterm(Base):
         return f"<Incoterm {self.code}: {self.name}>"
 
 
+class FreightCategory(Base):
+    """
+    Freight Category - 운임 대분류
+    OCEAN, AIR, PORT CHARGES, LOCAL CHARGES 등
+    """
+    __tablename__ = "freight_categories"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(30), unique=True, nullable=False, index=True)  # e.g., OCEAN, AIR
+    name_en = Column(String(100), nullable=False)  # e.g., Ocean Freight
+    name_ko = Column(String(100), nullable=True)  # e.g., 해상운임
+    shipping_types = Column(String(50), nullable=True)  # e.g., "ocean,air,truck"
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    freight_codes = relationship("FreightCode", back_populates="category")
+    
+    def __repr__(self):
+        return f"<FreightCategory {self.code}: {self.name_en}>"
+
+
+class FreightCode(Base):
+    """
+    Freight Code - 운임 코드 마스터
+    FRT, BAF, THC, DOC 등 66개 운임 항목
+    """
+    __tablename__ = "freight_codes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(20), unique=True, nullable=False, index=True)  # e.g., FRT, BAF
+    category_id = Column(Integer, ForeignKey("freight_categories.id"), nullable=False)
+    group_name = Column(String(50), nullable=True)  # e.g., FREIGHT, SURCHARGE, ETC
+    name_en = Column(String(100), nullable=False)  # e.g., OCEAN FREIGHT
+    name_ko = Column(String(100), nullable=True)  # e.g., 해상 운임
+    vat_applicable = Column(Boolean, default=False)  # VAT 적용 여부
+    default_currency = Column(String(3), default="USD")  # 기본 통화
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    category = relationship("FreightCategory", back_populates="freight_codes")
+    allowed_units = relationship("FreightCodeUnit", back_populates="freight_code", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<FreightCode {self.code}: {self.name_en}>"
+
+
+class FreightUnit(Base):
+    """
+    Freight Unit - 운임 단위 마스터
+    R/TON, CNTR, G.W, C.W, Day, B/L(AWB), Pallet, Box, Shipment 등
+    """
+    __tablename__ = "freight_units"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(20), unique=True, nullable=False, index=True)  # e.g., R/TON, CNTR
+    name_en = Column(String(50), nullable=True)  # e.g., Revenue Ton
+    name_ko = Column(String(50), nullable=True)  # e.g., 운임톤
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    freight_code_units = relationship("FreightCodeUnit", back_populates="unit")
+    
+    def __repr__(self):
+        return f"<FreightUnit {self.code}>"
+
+
+class FreightCodeUnit(Base):
+    """
+    Freight Code - Unit 다대다 관계 테이블
+    운임 코드별로 허용되는 단위 목록
+    """
+    __tablename__ = "freight_code_units"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    freight_code_id = Column(Integer, ForeignKey("freight_codes.id"), nullable=False)
+    freight_unit_id = Column(Integer, ForeignKey("freight_units.id"), nullable=False)
+    is_default = Column(Boolean, default=False)  # 기본 단위 여부
+    
+    # Relationships
+    freight_code = relationship("FreightCode", back_populates="allowed_units")
+    unit = relationship("FreightUnit", back_populates="freight_code_units")
+    
+    def __repr__(self):
+        return f"<FreightCodeUnit code_id={self.freight_code_id} unit_id={self.freight_unit_id}>"
+
+
 # ==========================================
 # TRANSACTION TABLES
 # ==========================================

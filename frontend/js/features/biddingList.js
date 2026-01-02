@@ -6,33 +6,167 @@
 // QUOTE_API_BASE는 api.js에서 정의됨 (중복 정의 방지)
 // const QUOTE_API_BASE = 'http://localhost:8001';
 
-// 표준 Freight Codes (백엔드 연동 전 프론트엔드 데이터)
-const FREIGHT_CODES = [
-    { code: 'OFR', category: 'Ocean Freight', defaultCurrency: 'USD' },
-    { code: 'AFR', category: 'Air Freight', defaultCurrency: 'USD' },
-    { code: 'BAF', category: 'Bunker Adjustment Factor', defaultCurrency: 'USD' },
-    { code: 'CAF', category: 'Currency Adjustment Factor', defaultCurrency: 'USD' },
-    { code: 'THC', category: 'Terminal Handling Charge', defaultCurrency: 'USD' },
-    { code: 'DOC', category: 'Documentation Fee', defaultCurrency: 'USD' },
-    { code: 'WFG', category: 'Wharfage', defaultCurrency: 'USD' },
-    { code: 'CFS', category: 'CFS Charge', defaultCurrency: 'USD' },
-    { code: 'SEAL', category: 'Seal Fee', defaultCurrency: 'USD' },
-    { code: 'AMS', category: 'AMS Fee', defaultCurrency: 'USD' },
-    { code: 'ENS', category: 'ENS Fee', defaultCurrency: 'USD' },
-    { code: 'LSS', category: 'Low Sulphur Surcharge', defaultCurrency: 'USD' },
-    { code: 'EBS', category: 'Emergency Bunker Surcharge', defaultCurrency: 'USD' },
-    { code: 'CIC', category: 'Container Imbalance Charge', defaultCurrency: 'USD' },
-    { code: 'PSS', category: 'Peak Season Surcharge', defaultCurrency: 'USD' },
-    { code: 'INLAND', category: 'Inland Transport', defaultCurrency: 'USD' },
-    { code: 'CUSTOMS', category: 'Customs Clearance', defaultCurrency: 'USD' },
-    { code: 'TRUCKING', category: 'Trucking', defaultCurrency: 'USD' },
-    { code: 'HANDLING', category: 'Handling Fee', defaultCurrency: 'USD' },
-    { code: 'OTHER', category: 'Other Charges', defaultCurrency: 'USD' }
+// ==========================================
+// FREIGHT CODE 마스터 데이터 (API에서 로드)
+// ==========================================
+
+// Fallback 데이터 (API 실패 시 사용)
+const FREIGHT_CODES_FALLBACK = [
+    { code: 'FRT', category: 'OCEAN FREIGHT', name_ko: '해상 운임', defaultCurrency: 'USD', units: ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'] },
+    { code: 'AFT', category: 'AIR FREIGHT', name_ko: '항공 운임', defaultCurrency: 'USD', units: ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'] },
+    { code: 'BAF', category: 'BUNKER ADJUSTMENT FACTOR', name_ko: '유류할증료', defaultCurrency: 'USD', units: ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'] },
+    { code: 'THC', category: 'TERMINAL HANDLING CHARGE', name_ko: '터미널 작업비', defaultCurrency: 'KRW', units: ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'] },
+    { code: 'DOC', category: 'DOCUMENT FEE', name_ko: '서류 발급 비용', defaultCurrency: 'KRW', units: ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'] },
 ];
 
-const UNIT_OPTIONS = ['20DC', '40DC', '40HC', '45HC', 'CBM', 'KG', 'BL', 'CNTR', 'SHPT'];
+const UNIT_OPTIONS_FALLBACK = ['R/TON', 'CNTR', 'G.W', 'C.W', 'Day', 'B/L(AWB)', 'Pallet', 'Box', 'Shipment'];
 const CURRENCY_OPTIONS = ['USD', 'KRW', 'EUR', 'JPY', 'CNY'];
 const TAX_OPTIONS = ['영세', '과세'];
+
+/**
+ * Date Input Utilities - Quotation과 동일한 UI 지원
+ */
+const DateInputUtils = {
+    /**
+     * 분리된 입력 필드에서 날짜 값 수집 (ISO 형식 반환)
+     * @param {string} prefix - 필드 prefix (예: 'bid-etd', 'bid-eta', 'bid-validity')
+     * @param {boolean} withTime - 시간 포함 여부
+     * @returns {string|null} ISO 형식 날짜 문자열 또는 null
+     */
+    getDateValue(prefix, withTime = true) {
+        const year = document.getElementById(`${prefix}-year`)?.value;
+        const month = document.getElementById(`${prefix}-month`)?.value;
+        const day = document.getElementById(`${prefix}-day`)?.value;
+        
+        if (!year || !month || !day) return null;
+        
+        const paddedMonth = month.padStart(2, '0');
+        const paddedDay = day.padStart(2, '0');
+        
+        if (withTime) {
+            const hour = document.getElementById(`${prefix}-hour`)?.value || '00';
+            const minute = document.getElementById(`${prefix}-minute`)?.value || '00';
+            const paddedHour = hour.padStart(2, '0');
+            const paddedMinute = minute.padStart(2, '0');
+            return `${year}-${paddedMonth}-${paddedDay}T${paddedHour}:${paddedMinute}`;
+        }
+        
+        return `${year}-${paddedMonth}-${paddedDay}`;
+    },
+    
+    /**
+     * 분리된 입력 필드에 날짜 값 설정
+     * @param {string} prefix - 필드 prefix
+     * @param {string} dateStr - ISO 형식 날짜 문자열
+     * @param {boolean} withTime - 시간 포함 여부
+     */
+    setDateValue(prefix, dateStr, withTime = true) {
+        if (!dateStr) {
+            // Clear all fields
+            const fields = withTime 
+                ? ['year', 'month', 'day', 'hour', 'minute']
+                : ['year', 'month', 'day'];
+            fields.forEach(f => {
+                const el = document.getElementById(`${prefix}-${f}`);
+                if (el) el.value = '';
+            });
+            return;
+        }
+        
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return;
+            
+            const yearEl = document.getElementById(`${prefix}-year`);
+            const monthEl = document.getElementById(`${prefix}-month`);
+            const dayEl = document.getElementById(`${prefix}-day`);
+            
+            if (yearEl) yearEl.value = date.getFullYear();
+            if (monthEl) monthEl.value = String(date.getMonth() + 1).padStart(2, '0');
+            if (dayEl) dayEl.value = String(date.getDate()).padStart(2, '0');
+            
+            if (withTime) {
+                const hourEl = document.getElementById(`${prefix}-hour`);
+                const minuteEl = document.getElementById(`${prefix}-minute`);
+                if (hourEl) hourEl.value = String(date.getHours()).padStart(2, '0');
+                if (minuteEl) minuteEl.value = String(date.getMinutes()).padStart(2, '0');
+            }
+        } catch (e) {
+            console.warn('Date parsing error:', e);
+        }
+    },
+    
+    /**
+     * 날짜 입력 필드에 자동 이동 및 계산 이벤트 설정
+     * @param {string} prefix - 필드 prefix
+     * @param {Function} onChangeCallback - 값 변경 시 콜백
+     */
+    setupDateInputListeners(prefix, onChangeCallback) {
+        const fields = ['year', 'month', 'day', 'hour', 'minute'];
+        const maxLengths = { year: 4, month: 2, day: 2, hour: 2, minute: 2 };
+        const nextField = { year: 'month', month: 'day', day: 'hour', hour: 'minute', minute: null };
+        
+        fields.forEach(field => {
+            const el = document.getElementById(`${prefix}-${field}`);
+            if (!el) return;
+            
+            // 숫자만 입력 허용
+            el.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                
+                // 최대 길이 도달 시 다음 필드로 이동
+                if (e.target.value.length >= maxLengths[field] && nextField[field]) {
+                    const nextEl = document.getElementById(`${prefix}-${nextField[field]}`);
+                    if (nextEl) nextEl.focus();
+                }
+                
+                // 값 변경 콜백 호출
+                if (onChangeCallback) onChangeCallback();
+            });
+            
+            // 값 범위 검증 (blur 시)
+            el.addEventListener('blur', (e) => {
+                let val = parseInt(e.target.value, 10);
+                if (isNaN(val)) return;
+                
+                const limits = {
+                    month: { min: 1, max: 12 },
+                    day: { min: 1, max: 31 },
+                    hour: { min: 0, max: 23 },
+                    minute: { min: 0, max: 59 }
+                };
+                
+                if (limits[field]) {
+                    if (val < limits[field].min) val = limits[field].min;
+                    if (val > limits[field].max) val = limits[field].max;
+                    e.target.value = String(val).padStart(maxLengths[field], '0');
+                }
+            });
+        });
+    },
+    
+    /**
+     * 날짜 입력 그룹 유효성 검사
+     * @param {string} prefix - 필드 prefix
+     * @param {boolean} withTime - 시간 포함 여부
+     * @returns {boolean} 유효 여부
+     */
+    isValidDate(prefix, withTime = true) {
+        const year = document.getElementById(`${prefix}-year`)?.value;
+        const month = document.getElementById(`${prefix}-month`)?.value;
+        const day = document.getElementById(`${prefix}-day`)?.value;
+        
+        if (!year || !month || !day) return false;
+        if (year.length !== 4 || month.length === 0 || day.length === 0) return false;
+        
+        // 유효한 날짜인지 확인
+        const date = new Date(year, parseInt(month) - 1, day);
+        if (isNaN(date.getTime())) return false;
+        if (date.getMonth() + 1 !== parseInt(month) || date.getDate() !== parseInt(day)) return false;
+        
+        return true;
+    }
+};
 
 const BiddingList = {
     // State
@@ -51,6 +185,12 @@ const BiddingList = {
     bidSaved: false,      // SAVE 완료 여부
     bidEdited: false,     // 수정됨 여부
     originalBidData: null, // 원본 데이터 (변경 감지용)
+    
+    // Freight Code 마스터 데이터 (API에서 로드)
+    freightCategories: [],  // 카테고리별 운임 코드
+    freightCodes: [],       // 전체 운임 코드 flat 배열
+    freightUnits: [],       // 단위 목록
+    freightCodesLoaded: false,
 
     /**
      * Initialize the module
@@ -64,12 +204,110 @@ const BiddingList = {
         // Setup event listeners
         this.setupEventListeners();
         
+        // Load freight codes from API
+        this.loadFreightCodes();
+        
         // Load initial data
         this.loadStats();
         this.loadBiddingList();
         
         // Update UI based on login state
         this.updateAuthUI();
+    },
+    
+    /**
+     * Load freight codes from API
+     * @param {string} shippingType - ocean, air, truck (optional)
+     */
+    async loadFreightCodes(shippingType = null) {
+        try {
+            const apiBase = typeof QUOTE_API_BASE !== 'undefined' ? QUOTE_API_BASE : 'http://localhost:8001';
+            let url = `${apiBase}/api/freight-codes`;
+            if (shippingType) {
+                url += `?shipping_type=${shippingType}`;
+            }
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // 카테고리별 데이터 저장
+            this.freightCategories = data.categories || [];
+            
+            // Flat 배열로 변환하여 저장
+            this.freightCodes = [];
+            this.freightCategories.forEach(cat => {
+                (cat.codes || []).forEach(code => {
+                    this.freightCodes.push({
+                        code: code.code,
+                        category: code.name_en,
+                        name_ko: code.name_ko,
+                        group: code.group_name,
+                        categoryCode: cat.code,
+                        defaultCurrency: code.default_currency,
+                        vatApplicable: code.vat_applicable,
+                        units: code.units || []
+                    });
+                });
+            });
+            
+            // 단위 목록 저장
+            this.freightUnits = (data.units || []).map(u => u.code);
+            
+            this.freightCodesLoaded = true;
+            console.log(`✅ Loaded ${this.freightCodes.length} freight codes, ${this.freightUnits.length} units`);
+            
+        } catch (error) {
+            console.warn('⚠️ Failed to load freight codes from API, using fallback:', error.message);
+            // Fallback 데이터 사용
+            this.freightCodes = FREIGHT_CODES_FALLBACK;
+            this.freightUnits = UNIT_OPTIONS_FALLBACK;
+            this.freightCodesLoaded = true;
+        }
+    },
+    
+    /**
+     * Get freight codes for specific shipping type
+     * @param {string} shippingType - ocean, air, truck
+     * @returns {Array} 해당 타입의 운임 코드 배열
+     */
+    getFreightCodesForType(shippingType) {
+        if (!shippingType || !this.freightCodesLoaded) {
+            return this.freightCodes;
+        }
+        
+        // Shipping type에 따라 카테고리 필터링
+        // - Ocean: OCEAN + PORT_CHARGES (해상항만) + LOCAL_CHARGES
+        // - Air: AIR (ATHC 포함) + LOCAL_CHARGES (PORT_CHARGES 제외 - 해상항만이므로)
+        // - Truck: LOCAL_CHARGES
+        const typeMapping = {
+            'ocean': ['OCEAN', 'PORT_CHARGES', 'LOCAL_CHARGES'],
+            'air': ['AIR', 'LOCAL_CHARGES'],  // PORT_CHARGES는 해상항만용, AIR에 ATHC가 있음
+            'truck': ['LOCAL_CHARGES']
+        };
+        
+        const allowedCategories = typeMapping[shippingType] || [];
+        if (allowedCategories.length === 0) {
+            return this.freightCodes;
+        }
+        
+        return this.freightCodes.filter(fc => allowedCategories.includes(fc.categoryCode));
+    },
+    
+    /**
+     * Get units for specific freight code
+     * @param {string} code - 운임 코드
+     * @returns {Array} 허용 단위 배열
+     */
+    getUnitsForCode(code) {
+        const freightCode = this.freightCodes.find(fc => fc.code === code);
+        if (freightCode && freightCode.units && freightCode.units.length > 0) {
+            return freightCode.units;
+        }
+        return this.freightUnits.length > 0 ? this.freightUnits : UNIT_OPTIONS_FALLBACK;
     },
 
     /**
@@ -107,14 +345,42 @@ const BiddingList = {
     },
 
     /**
-     * Load stored session
+     * Load stored session - Auth.js 연동
+     * Auth.js의 aal_user와 기존 forwarder 세션 모두 확인
      */
     loadSession() {
+        // 1. Auth.js 세션 확인 (우선)
+        if (window.Auth && Auth.user && Auth.user.user_type === 'forwarder') {
+            this.forwarder = Auth.user;
+            console.log('✅ Session restored from Auth.js for:', this.forwarder.company);
+            return;
+        }
+        
+        // 2. Auth.js localStorage 직접 확인
+        const authStored = localStorage.getItem('aal_user');
+        if (authStored) {
+            try {
+                const authUser = JSON.parse(authStored);
+                if (authUser.user_type === 'forwarder') {
+                    this.forwarder = authUser;
+                    console.log('✅ Session restored from aal_user for:', this.forwarder.company);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Failed to parse aal_user');
+            }
+        }
+        
+        // 3. 기존 forwarder 세션 확인 (마이그레이션 호환)
         const stored = localStorage.getItem('forwarder');
         if (stored) {
             try {
                 this.forwarder = JSON.parse(stored);
-                console.log('✅ Session restored for:', this.forwarder.company);
+                console.log('✅ Session restored from forwarder for:', this.forwarder.company);
+                // 기존 세션을 Auth.js 형식으로 마이그레이션
+                this.forwarder.user_type = 'forwarder';
+                localStorage.setItem('aal_user', JSON.stringify(this.forwarder));
+                localStorage.removeItem('forwarder'); // 기존 키 제거
             } catch (e) {
                 localStorage.removeItem('forwarder');
             }
@@ -122,18 +388,28 @@ const BiddingList = {
     },
 
     /**
-     * Save session
+     * Sync session with Auth.js
+     * Auth.js 상태 변경 시 호출
      */
-    saveSession() {
-        if (this.forwarder) {
-            localStorage.setItem('forwarder', JSON.stringify(this.forwarder));
+    syncWithAuth() {
+        if (window.Auth && Auth.user && Auth.user.user_type === 'forwarder') {
+            this.forwarder = Auth.user;
+        } else {
+            this.forwarder = null;
         }
+        this.updateAuthUI();
+        this.loadBiddingList();
     },
 
     /**
      * Update auth UI based on login state
      */
     updateAuthUI() {
+        // Auth.js 세션 다시 확인
+        if (!this.forwarder && window.Auth && Auth.user && Auth.user.user_type === 'forwarder') {
+            this.forwarder = Auth.user;
+        }
+        
         const actionsDiv = document.getElementById('forwarderActions');
         const forwarderBar = document.getElementById('forwarderBar');
 
@@ -147,163 +423,30 @@ const BiddingList = {
             document.getElementById('forwarderCompany').textContent = this.forwarder.company;
             document.getElementById('forwarderEmail').textContent = this.forwarder.email;
         } else {
-            // Logged out state
-            actionsDiv.innerHTML = `
-                <button class="action-btn primary" onclick="BiddingList.openAuthModal()">
-                    <i class="fas fa-sign-in-alt"></i> 포워더 로그인
-                </button>
-            `;
+            // Logged out state - 헤더의 로그인 버튼 사용
+            actionsDiv.innerHTML = '';
             forwarderBar.style.display = 'none';
         }
     },
 
     /**
-     * Open auth modal
+     * Open auth modal - Auth.js 사용 (포워더 전용)
      */
     openAuthModal() {
-        document.getElementById('authModal').classList.add('active');
-        this.showLoginForm();
+        if (window.Auth) {
+            // Bidding은 포워더 전용이므로 포워더 로그인 폼 바로 표시
+            Auth.openModalForForwarder();
+        } else {
+            alert('인증 모듈을 불러올 수 없습니다.');
+        }
     },
 
     /**
-     * Close auth modal
+     * Close auth modal - Auth.js 사용
      */
     closeAuthModal() {
-        document.getElementById('authModal').classList.remove('active');
-    },
-
-    /**
-     * Show login form
-     */
-    showLoginForm() {
-        document.getElementById('loginForm').style.display = 'block';
-        document.getElementById('registerForm').style.display = 'none';
-        document.getElementById('authModalTitle').textContent = '포워더 로그인';
-        document.getElementById('authSubmitBtn').textContent = '로그인';
-        document.getElementById('authSubmitBtn').onclick = () => this.submitAuth();
-    },
-
-    /**
-     * Show register form
-     */
-    showRegisterForm() {
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('registerForm').style.display = 'block';
-        document.getElementById('authModalTitle').textContent = '포워더 등록';
-        document.getElementById('authSubmitBtn').textContent = '등록하기';
-        document.getElementById('authSubmitBtn').onclick = () => this.submitRegister();
-    },
-
-    /**
-     * Submit login
-     */
-    async submitAuth() {
-        const email = document.getElementById('loginEmail').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        
-        if (!email) {
-            alert('이메일을 입력해주세요.');
-            return;
-        }
-        
-        if (!password) {
-            alert('비밀번호를 입력해주세요.');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${QUOTE_API_BASE}/api/forwarder/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    alert('등록되지 않은 이메일입니다. 신규 등록을 해주세요.');
-                    this.showRegisterForm();
-                    document.getElementById('regEmail').value = email;
-                } else if (response.status === 401) {
-                    alert('비밀번호가 일치하지 않습니다.');
-                } else {
-                    throw new Error(data.detail || 'Login failed');
-                }
-                return;
-            }
-
-            this.forwarder = data.forwarder;
-            this.saveSession();
-            this.closeAuthModal();
-            this.updateAuthUI();
-            this.loadBiddingList();
-            
-            alert(`환영합니다, ${this.forwarder.company}!`);
-
-        } catch (error) {
-            console.error('Login error:', error);
-            alert('로그인 중 오류가 발생했습니다: ' + error.message);
-        }
-    },
-
-    /**
-     * Submit registration
-     */
-    async submitRegister() {
-        const password = document.getElementById('regPassword').value;
-        const passwordConfirm = document.getElementById('regPasswordConfirm').value;
-        
-        const formData = {
-            company: document.getElementById('regCompany').value.trim(),
-            name: document.getElementById('regName').value.trim(),
-            business_no: document.getElementById('regBusinessNo').value.trim() || null,
-            email: document.getElementById('regEmail').value.trim(),
-            password: password,
-            phone: document.getElementById('regPhone').value.trim()
-        };
-
-        // Validation
-        if (!formData.company || !formData.name || !formData.email || !formData.password || !formData.phone) {
-            alert('필수 항목을 모두 입력해주세요.');
-            return;
-        }
-        
-        // Password validation
-        if (password.length < 6) {
-            alert('비밀번호는 최소 6자 이상이어야 합니다.');
-            return;
-        }
-        
-        if (password !== passwordConfirm) {
-            alert('비밀번호가 일치하지 않습니다.');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${QUOTE_API_BASE}/api/forwarder/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.detail || 'Registration failed');
-            }
-
-            this.forwarder = data.forwarder;
-            this.saveSession();
-            this.closeAuthModal();
-            this.updateAuthUI();
-            this.loadBiddingList();
-            
-            alert(`등록이 완료되었습니다. 환영합니다, ${this.forwarder.company}!`);
-
-        } catch (error) {
-            console.error('Registration error:', error);
-            alert('등록 중 오류가 발생했습니다: ' + error.message);
+        if (window.Auth) {
+            Auth.closeModal();
         }
     },
 
@@ -635,12 +778,11 @@ const BiddingList = {
         // Cargo Details Table (동적 컬럼)
         this.populateCargoDetailsTable(detail);
 
-        // Transport Section - ETD 표시 (datetime-local 형식)
+        // Transport Section - ETD 초기화 (분리된 입력 필드 사용)
+        DateInputUtils.setDateValue('bid-etd', detail.etd, true);
+        // hidden input에도 설정
         const bidETD = document.getElementById('bidETD');
-        if (bidETD) {
-            // datetime-local 형식으로 변환 (YYYY-MM-DDTHH:MM)
-            bidETD.value = detail.etd ? this.formatDateTimeLocal(detail.etd) : '';
-        }
+        if (bidETD) bidETD.value = detail.etd ? this.formatDateTimeLocal(detail.etd) : '';
 
         // Carrier label 동적 변경
         const carrierLabel = document.getElementById('carrierLabel');
@@ -695,15 +837,18 @@ const BiddingList = {
      * Calculate Transit Time (일 단위)
      */
     calculateTT() {
-        const etdEl = document.getElementById('bidETD');
-        const etaEl = document.getElementById('bidETA');
         const ttEl = document.getElementById('bidTT');
+        if (!ttEl) return;
         
-        if (!etdEl || !etaEl || !ttEl) return;
+        // DateInputUtils를 사용하여 날짜 값 가져오기
+        const etdValue = DateInputUtils.getDateValue('bid-etd', true);
+        const etaValue = DateInputUtils.getDateValue('bid-eta', true);
         
-        // ETD는 이제 입력 가능하므로 input 값 사용
-        const etdValue = etdEl.value;
-        const etaValue = etaEl.value;
+        // hidden input에도 값 업데이트
+        const bidETD = document.getElementById('bidETD');
+        const bidETA = document.getElementById('bidETA');
+        if (bidETD) bidETD.value = etdValue || '';
+        if (bidETA) bidETA.value = etaValue || '';
         
         if (etdValue && etaValue) {
             const etd = new Date(etdValue);
@@ -947,22 +1092,27 @@ const BiddingList = {
                 this.currentBid = detail.my_bid;
                 this.bidSaved = true; // 기존 데이터가 있으면 저장된 상태
                 
-                // Transport Details
-                const bidETD = document.getElementById('bidETD');
-                const bidETA = document.getElementById('bidETA');
+                // Transport Details - 분리된 입력 필드 사용
                 const bidCarrier = document.getElementById('bidCarrier');
-                const bidValidity = document.getElementById('bidValidity');
                 const bidRemark = document.getElementById('bidRemark');
                 
-                // ETD: 포워더가 제안한 ETD 또는 원본 ETD (datetime-local 형식)
-                if (bidETD) {
-                    const etdValue = detail.my_bid.etd || detail.etd;
-                    bidETD.value = etdValue ? this.formatDateTimeLocal(etdValue) : '';
-                }
-                // ETA: datetime-local 형식으로 표시
+                // ETD: 포워더가 제안한 ETD 또는 원본 ETD
+                const etdValue = detail.my_bid.etd || detail.etd;
+                DateInputUtils.setDateValue('bid-etd', etdValue, true);
+                const bidETD = document.getElementById('bidETD');
+                if (bidETD) bidETD.value = etdValue ? this.formatDateTimeLocal(etdValue) : '';
+                
+                // ETA: 분리된 입력 필드 사용
+                DateInputUtils.setDateValue('bid-eta', detail.my_bid.eta, true);
+                const bidETA = document.getElementById('bidETA');
                 if (bidETA) bidETA.value = detail.my_bid.eta ? this.formatDateTimeLocal(detail.my_bid.eta) : '';
-                if (bidCarrier) bidCarrier.value = detail.my_bid.carrier || '';
+                
+                // Validity: 날짜만 (시간 없음)
+                DateInputUtils.setDateValue('bid-validity', detail.my_bid.validity_date, false);
+                const bidValidity = document.getElementById('bidValidity');
                 if (bidValidity) bidValidity.value = detail.my_bid.validity_date ? detail.my_bid.validity_date.split('T')[0] : '';
+                
+                if (bidCarrier) bidCarrier.value = detail.my_bid.carrier || '';
                 if (bidRemark) bidRemark.value = detail.my_bid.remark || '';
                 
                 // T/T 계산
@@ -974,6 +1124,9 @@ const BiddingList = {
                         id: idx,
                         code: item.code,
                         category: item.category,
+                        group: item.group || 'ETC',
+                        categoryCode: item.category_code || 'OTHER',
+                        rateGroup: item.rate_group || 'FREIGHT',  // 고정 그룹 키
                         unit: item.unit || '',
                         qty: item.qty || 1,
                         rate: item.rate || 0,
@@ -982,14 +1135,17 @@ const BiddingList = {
                         vat: item.vat_percent || 0
                     }));
                 } else {
-                    // 기존 단순 금액을 라인 아이템으로 변환
+                    // 기존 단순 금액을 라인 아이템으로 변환 (rateGroup 포함)
                     this.lineItems = [];
                     if (detail.my_bid.freight_charge) {
                         this.lineItems.push({
                             id: 0,
-                            code: 'OFR',
-                            category: 'Ocean Freight',
-                            unit: detail.load_type || '20DC',
+                            code: detail.shipping_type === 'air' ? 'AFT' : 'FRT',
+                            category: detail.shipping_type === 'air' ? 'Air Freight' : 'Ocean Freight',
+                            group: 'FREIGHT',
+                            categoryCode: detail.shipping_type === 'air' ? 'AIR' : 'OCEAN',
+                            rateGroup: 'FREIGHT',
+                            unit: detail.load_type || 'CNTR',
                             qty: 1,
                             rate: detail.my_bid.freight_charge,
                             currency: 'USD',
@@ -1002,7 +1158,10 @@ const BiddingList = {
                             id: 1,
                             code: 'THC',
                             category: 'Terminal Handling Charge',
-                            unit: detail.load_type || '20DC',
+                            group: 'HANDLING',
+                            categoryCode: 'PORT_CHARGES',
+                            rateGroup: 'ORIGIN_PORT',
+                            unit: detail.load_type || 'CNTR',
                             qty: 1,
                             rate: detail.my_bid.local_charge,
                             currency: 'USD',
@@ -1013,9 +1172,12 @@ const BiddingList = {
                     if (detail.my_bid.other_charge) {
                         this.lineItems.push({
                             id: 2,
-                            code: 'OTHER',
-                            category: 'Other Charges',
-                            unit: 'SHPT',
+                            code: 'DOC',
+                            category: 'Document Fee',
+                            group: 'DOCUMENT',
+                            categoryCode: 'LOCAL_CHARGES',
+                            rateGroup: 'ORIGIN_LOCAL',
+                            unit: 'B/L(AWB)',
                             qty: 1,
                             rate: detail.my_bid.other_charge,
                             currency: 'USD',
@@ -1026,39 +1188,36 @@ const BiddingList = {
                 }
                 
             } else {
-                // Clear form - 기본 라인 아이템 추가
+                // Clear form - 빈 상태로 시작 (각 그룹에서 Add 버튼으로 추가)
                 this.currentBid = null;
-                this.lineItems = [
-                    {
-                        id: 0,
-                        code: detail.shipping_type === 'air' ? 'AFR' : 'OFR',
-                        category: detail.shipping_type === 'air' ? 'Air Freight' : 'Ocean Freight',
-                        unit: detail.load_type || '20DC',
-                        qty: 1,
-                        rate: 0,
-                        currency: 'USD',
-                        tax: '영세',
-                        vat: 0
-                    }
-                ];
+                this.lineItems = [];
                 
                 // Clear transport fields (ETD는 원본 값 유지)
-                const bidETD = document.getElementById('bidETD');
-                const bidETA = document.getElementById('bidETA');
                 const bidCarrier = document.getElementById('bidCarrier');
-                const bidValidity = document.getElementById('bidValidity');
                 const bidRemark = document.getElementById('bidRemark');
                 const bidTT = document.getElementById('bidTT');
                 
-                // ETD는 원본 요청 값으로 초기화 (수정 가능)
+                // ETD는 원본 요청 값으로 초기화 (수정 가능) - 분리된 입력 필드 사용
+                DateInputUtils.setDateValue('bid-etd', detail.etd, true);
+                const bidETD = document.getElementById('bidETD');
                 if (bidETD) bidETD.value = detail.etd ? this.formatDateTimeLocal(detail.etd) : '';
+                
+                // ETA, Validity 초기화
+                DateInputUtils.setDateValue('bid-eta', null, true);
+                DateInputUtils.setDateValue('bid-validity', null, false);
+                const bidETA = document.getElementById('bidETA');
+                const bidValidity = document.getElementById('bidValidity');
                 if (bidETA) bidETA.value = '';
-                if (bidCarrier) bidCarrier.value = '';
                 if (bidValidity) bidValidity.value = '';
+                
+                if (bidCarrier) bidCarrier.value = '';
                 if (bidRemark) bidRemark.value = '';
                 if (bidTT) bidTT.value = '';
             }
 
+            // 조건에 따라 그룹 가시성 업데이트
+            this.updateGroupVisibility();
+            
             // 라인 아이템 테이블 렌더링
             this.renderLineItems();
             this.calculateTotal();
@@ -1081,13 +1240,30 @@ const BiddingList = {
      * Setup bid form input listeners for edit detection
      */
     setupBidFormListeners() {
-        const inputs = ['bidETA', 'bidCarrier', 'bidValidity', 'bidRemark'];
+        // 기본 입력 필드
+        const inputs = ['bidCarrier', 'bidRemark'];
         inputs.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.removeEventListener('input', this.handleBidInputChange);
                 el.addEventListener('input', () => this.markAsEdited());
             }
+        });
+        
+        // 날짜 입력 필드 (분리된 구조)에 이벤트 리스너 설정
+        const dateCallback = () => {
+            this.calculateTT();
+            this.markAsEdited();
+        };
+        
+        DateInputUtils.setupDateInputListeners('bid-etd', dateCallback);
+        DateInputUtils.setupDateInputListeners('bid-eta', dateCallback);
+        DateInputUtils.setupDateInputListeners('bid-validity', () => {
+            // validity hidden input 업데이트
+            const validityValue = DateInputUtils.getDateValue('bid-validity', false);
+            const bidValidity = document.getElementById('bidValidity');
+            if (bidValidity) bidValidity.value = validityValue || '';
+            this.markAsEdited();
         });
     },
 
@@ -1106,38 +1282,233 @@ const BiddingList = {
     // ==========================================
 
     /**
-     * Render line items table
+     * 5개 고정 그룹 정의
+     * ORIGIN_LOCAL → ORIGIN_PORT → FREIGHT → DEST_PORT → DEST_LOCAL
+     */
+    RATE_GROUPS: ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL'],
+    
+    /**
+     * 그룹별 허용 카테고리 코드 매핑
+     */
+    GROUP_CATEGORY_MAP: {
+        'ORIGIN_LOCAL': ['LOCAL_CHARGES'],
+        'ORIGIN_PORT': ['PORT_CHARGES'],
+        'FREIGHT': ['OCEAN', 'AIR'],
+        'DEST_PORT': ['PORT_CHARGES'],
+        'DEST_LOCAL': ['LOCAL_CHARGES']
+    },
+    
+    /**
+     * 조건별 그룹 출력 규칙
+     * [shipping_type][trade_mode][incoterms] = 표시할 그룹 배열
+     */
+    GROUP_DISPLAY_RULES: {
+        'air': {
+            'export': {
+                'CIF': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT'],
+                'CFR': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT'],
+                'FOB': ['ORIGIN_LOCAL', 'ORIGIN_PORT'],
+                'EXW': [],
+                'DAP': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL'],
+                'DDP': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL']
+            },
+            'import': {
+                'CIF': [],
+                'CFR': [],
+                'FOB': ['FREIGHT', 'DEST_LOCAL'],
+                'EXW': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL'],
+                'DAP': [],
+                'DDP': []
+            }
+        },
+        'ocean': {
+            'export': {
+                'CIF': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT'],
+                'CFR': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT'],
+                'FOB': ['ORIGIN_LOCAL', 'ORIGIN_PORT'],
+                'EXW': [],
+                'DAP': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL'],
+                'DDP': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL']
+            },
+            'import': {
+                'CIF': [],
+                'CFR': [],
+                'FOB': ['FREIGHT', 'DEST_LOCAL'],
+                'EXW': ['ORIGIN_LOCAL', 'ORIGIN_PORT', 'FREIGHT', 'DEST_PORT', 'DEST_LOCAL'],
+                'DAP': ['DEST_LOCAL'],
+                'DDP': ['DEST_LOCAL']
+            }
+        }
+    },
+    
+    /**
+     * 현재 조건에 따라 표시할 그룹 목록 반환
+     * @returns {Array} 표시할 그룹 키 배열
+     */
+    getVisibleGroups() {
+        const tradeMode = this.currentBidding?.trade_mode?.toLowerCase() || 'export';
+        const shippingType = this.currentBidding?.shipping_type?.toLowerCase() || 'ocean';
+        const incoterms = this.currentBidding?.incoterms?.toUpperCase() || 'FOB';
+        
+        const rules = this.GROUP_DISPLAY_RULES[shippingType]?.[tradeMode]?.[incoterms];
+        
+        // 규칙이 없으면 기본값 반환 (FREIGHT만)
+        if (!rules) {
+            console.warn(`No display rule for: ${shippingType}/${tradeMode}/${incoterms}, using default`);
+            return ['FREIGHT'];
+        }
+        
+        return rules;
+    },
+    
+    /**
+     * 조건에 따라 그룹 표시/숨김 처리
+     */
+    updateGroupVisibility() {
+        const visibleGroups = this.getVisibleGroups();
+        
+        console.log(`📋 Visible groups for ${this.currentBidding?.trade_mode}/${this.currentBidding?.shipping_type}/${this.currentBidding?.incoterms}:`, visibleGroups);
+        
+        this.RATE_GROUPS.forEach(groupKey => {
+            const groupEl = document.getElementById(`rateGroup_${groupKey}`);
+            if (groupEl) {
+                const isVisible = visibleGroups.includes(groupKey);
+                groupEl.style.display = isVisible ? 'block' : 'none';
+            }
+        });
+    },
+    
+    /**
+     * Render line items - 5개 고정 그룹 섹션에 각각 렌더링
      */
     renderLineItems() {
-        const tbody = document.getElementById('bidLineItemsBody');
+        // 각 그룹별로 해당하는 라인 아이템을 필터링하여 렌더링
+        this.RATE_GROUPS.forEach(groupKey => {
+            this.renderGroupItems(groupKey);
+        });
+        
+        // Freight 섹션 타이틀 업데이트 (shipping_type에 따라)
+        this.updateFreightTitle();
+        
+        // 소계 및 총계 업데이트
+        this.calculateGroupSubtotals();
+    },
+    
+    /**
+     * 특정 그룹의 라인 아이템만 렌더링
+     * @param {string} groupKey - ORIGIN_LOCAL, ORIGIN_PORT, FREIGHT, DEST_PORT, DEST_LOCAL
+     */
+    renderGroupItems(groupKey) {
+        const tbody = document.getElementById(`rateGroupBody_${groupKey}`);
         if (!tbody) return;
-
-        if (this.lineItems.length === 0) {
+        
+        // 해당 그룹의 아이템만 필터링
+        const groupItems = this.lineItems.filter((item, idx) => {
+            return item.rateGroup === groupKey;
+        });
+        
+        if (groupItems.length === 0) {
             tbody.innerHTML = `
-                <tr class="bid-line-empty-row">
-                    <td colspan="10">
-                        <div class="bid-line-empty">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            <p>비용 항목을 추가해주세요</p>
+                <tr class="rate-group-empty-row">
+                    <td colspan="9">
+                        <div class="rate-group-empty">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>항목을 추가하려면 Add 버튼을 클릭하세요</span>
                         </div>
                     </td>
                 </tr>
             `;
             return;
         }
-
-        tbody.innerHTML = this.lineItems.map((item, idx) => this.renderLineItemRow(item, idx)).join('');
+        
+        // 라인 아이템 렌더링
+        tbody.innerHTML = groupItems.map(item => {
+            const originalIdx = this.lineItems.indexOf(item);
+            return this.renderLineItemRow(item, originalIdx, groupKey);
+        }).join('');
+    },
+    
+    /**
+     * Freight 섹션 타이틀 업데이트 (shipping_type에 따라)
+     */
+    updateFreightTitle() {
+        const titleEl = document.getElementById('freightTitle');
+        const iconEl = document.getElementById('freightIcon');
+        
+        if (!titleEl || !iconEl) return;
+        
+        const shippingType = this.currentBidding?.shipping_type || 'ocean';
+        
+        if (shippingType === 'air') {
+            titleEl.textContent = 'Air Freight';
+            iconEl.className = 'fas fa-plane';
+        } else {
+            titleEl.textContent = 'Ocean Freight';
+            iconEl.className = 'fas fa-ship';
+        }
+    },
+    
+    /**
+     * 각 그룹별 소계 및 전체 합계 계산
+     */
+    calculateGroupSubtotals() {
+        let grandTotal = 0;
+        
+        this.RATE_GROUPS.forEach(groupKey => {
+            const groupItems = this.lineItems.filter(item => item.rateGroup === groupKey);
+            const subtotal = groupItems.reduce((sum, item) => sum + this.calculateLineAmount(item), 0);
+            
+            const subtotalEl = document.getElementById(`subtotal_${groupKey}`);
+            if (subtotalEl) {
+                subtotalEl.textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            
+            grandTotal += subtotal;
+        });
+        
+        // 전체 합계 업데이트
+        const totalEl = document.getElementById('bidTotalAmount');
+        if (totalEl) {
+            totalEl.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    },
+    
+    /**
+     * 그룹별 허용되는 운임 코드 가져오기
+     * @param {string} groupKey - ORIGIN_LOCAL, ORIGIN_PORT, FREIGHT, DEST_PORT, DEST_LOCAL
+     * @returns {Array} 허용되는 freight codes
+     */
+    getCodesForGroup(groupKey) {
+        const shippingType = this.currentBidding?.shipping_type || 'ocean';
+        const allowedCategories = this.GROUP_CATEGORY_MAP[groupKey] || [];
+        
+        // FREIGHT 그룹의 경우 shipping_type에 따라 필터링
+        let filteredCategories = allowedCategories;
+        if (groupKey === 'FREIGHT') {
+            filteredCategories = shippingType === 'air' ? ['AIR'] : ['OCEAN'];
+        }
+        
+        // 해당 카테고리의 코드만 필터링
+        return this.freightCodes.filter(fc => filteredCategories.includes(fc.categoryCode));
     },
 
     /**
      * Render single line item row
+     * @param {Object} item - 라인 아이템 데이터
+     * @param {number} idx - lineItems 배열에서의 인덱스
+     * @param {string} groupKey - 해당 그룹 키 (ORIGIN_LOCAL 등)
      */
-    renderLineItemRow(item, idx) {
-        const codeOptions = FREIGHT_CODES.map(fc => 
-            `<option value="${fc.code}" ${item.code === fc.code ? 'selected' : ''}>${fc.code}</option>`
+    renderLineItemRow(item, idx, groupKey) {
+        // 해당 그룹에서 허용되는 운임 코드만 가져오기
+        const availableCodes = this.getCodesForGroup(groupKey || item.rateGroup);
+        
+        const codeOptions = availableCodes.map(fc => 
+            `<option value="${fc.code}" ${item.code === fc.code ? 'selected' : ''}>${fc.code} - ${fc.name_ko || fc.category}</option>`
         ).join('');
 
-        const unitOptions = UNIT_OPTIONS.map(u => 
+        // 선택된 코드의 허용 단위
+        const availableUnits = this.getUnitsForCode(item.code);
+        const unitOptions = availableUnits.map(u => 
             `<option value="${u}" ${item.unit === u ? 'selected' : ''}>${u}</option>`
         ).join('');
 
@@ -1162,11 +1533,6 @@ const BiddingList = {
                     <select class="bid-line-select" onchange="BiddingList.updateLineItem(${idx}, 'code', this.value)">
                         ${codeOptions}
                     </select>
-                </td>
-                <td class="col-category">
-                    <input type="text" class="bid-line-input" value="${item.category}" 
-                           onchange="BiddingList.updateLineItem(${idx}, 'category', this.value)" 
-                           placeholder="Category">
                 </td>
                 <td class="col-unit">
                     <select class="bid-line-select" onchange="BiddingList.updateLineItem(${idx}, 'unit', this.value)">
@@ -1206,21 +1572,66 @@ const BiddingList = {
     },
 
     /**
-     * Add new line item
+     * Add new line item to specific group
+     * @param {string} groupKey - ORIGIN_LOCAL, ORIGIN_PORT, FREIGHT, DEST_PORT, DEST_LOCAL
      */
-    addLineItem() {
+    addLineItemToGroup(groupKey) {
         const newId = this.lineItems.length > 0 
             ? Math.max(...this.lineItems.map(i => i.id)) + 1 
             : 0;
 
+        // 해당 그룹에서 허용되는 운임 코드 가져오기
+        const availableCodes = this.getCodesForGroup(groupKey);
+        const shippingType = this.currentBidding?.shipping_type || 'ocean';
+        
+        // 그룹별 기본 코드 선택
+        let defaultCode = null;
+        
+        if (groupKey === 'FREIGHT') {
+            // FREIGHT 그룹: shipping_type에 따라
+            const defaultCodeStr = shippingType === 'air' ? 'AFT' : 'FRT';
+            defaultCode = availableCodes.find(fc => fc.code === defaultCodeStr);
+        } else if (groupKey === 'ORIGIN_LOCAL' || groupKey === 'DEST_LOCAL') {
+            // LOCAL: DOC 또는 첫 번째 코드
+            defaultCode = availableCodes.find(fc => fc.code === 'DOC') || availableCodes[0];
+        } else if (groupKey === 'ORIGIN_PORT' || groupKey === 'DEST_PORT') {
+            // PORT: THC 또는 첫 번째 코드
+            defaultCode = availableCodes.find(fc => fc.code === 'THC') || availableCodes[0];
+        }
+        
+        // Fallback: 첫 번째 가용 코드
+        if (!defaultCode && availableCodes.length > 0) {
+            defaultCode = availableCodes[0];
+        }
+        
+        // 최종 Fallback
+        if (!defaultCode) {
+            defaultCode = {
+                code: 'ETC',
+                category: 'ETC',
+                group: 'ETC',
+                categoryCode: 'OTHER',
+                defaultCurrency: 'USD',
+                units: this.freightUnits
+            };
+        }
+        
+        // 기본 단위 선택
+        const defaultUnit = defaultCode.units && defaultCode.units.length > 0 
+            ? defaultCode.units[0] 
+            : (this.freightUnits[0] || 'CNTR');
+
         this.lineItems.push({
             id: newId,
-            code: 'OFR',
-            category: 'Ocean Freight',
-            unit: this.currentBidding?.load_type || '20DC',
+            code: defaultCode.code,
+            category: defaultCode.category,
+            group: defaultCode.group || 'ETC',
+            categoryCode: defaultCode.categoryCode || 'OTHER',
+            rateGroup: groupKey,  // 새 필드: 어떤 그룹에 속하는지
+            unit: defaultUnit,
             qty: 1,
             rate: 0,
-            currency: 'USD',
+            currency: defaultCode.defaultCurrency || 'USD',
             tax: '영세',
             vat: 0
         });
@@ -1228,16 +1639,19 @@ const BiddingList = {
         this.renderLineItems();
         this.calculateTotal();
     },
+    
+    /**
+     * (레거시) 기존 addLineItem 호환용 - FREIGHT 그룹에 추가
+     */
+    addLineItem() {
+        this.addLineItemToGroup('FREIGHT');
+    },
 
     /**
      * Remove line item
      */
     removeLineItem(idx) {
-        if (this.lineItems.length <= 1) {
-            alert('최소 1개의 비용 항목이 필요합니다.');
-            return;
-        }
-
+        // 해당 항목 삭제
         this.lineItems.splice(idx, 1);
         this.renderLineItems();
         this.calculateTotal();
@@ -1249,12 +1663,25 @@ const BiddingList = {
     updateLineItem(idx, field, value) {
         if (!this.lineItems[idx]) return;
 
-        // 특별 처리: Code 변경 시 Category 자동 채움
+        // 특별 처리: Code 변경 시 Category, Group, CategoryCode 자동 채움 및 통화/단위 설정
         if (field === 'code') {
-            const freightCode = FREIGHT_CODES.find(fc => fc.code === value);
+            const freightCode = this.freightCodes.find(fc => fc.code === value);
             if (freightCode) {
                 this.lineItems[idx].code = value;
                 this.lineItems[idx].category = freightCode.category;
+                // Group, CategoryCode 자동 설정
+                this.lineItems[idx].group = freightCode.group || 'ETC';
+                this.lineItems[idx].categoryCode = freightCode.categoryCode || 'OTHER';
+                // 기본 통화 설정
+                if (freightCode.defaultCurrency) {
+                    this.lineItems[idx].currency = freightCode.defaultCurrency;
+                }
+                // 첫 번째 허용 단위로 설정 (현재 단위가 허용 목록에 없으면)
+                if (freightCode.units && freightCode.units.length > 0) {
+                    if (!freightCode.units.includes(this.lineItems[idx].unit)) {
+                        this.lineItems[idx].unit = freightCode.units[0];
+                    }
+                }
                 this.renderLineItems();
                 this.calculateTotal();
                 return;
@@ -1313,33 +1740,45 @@ const BiddingList = {
     },
 
     /**
-     * Calculate total amount from all line items
+     * Calculate total amount from all line items (각 그룹별 소계 포함)
      */
     calculateTotal() {
-        // USD 기준 총합 계산 (다른 통화는 변환 필요 - 현재는 단순 합계)
-        const total = this.lineItems.reduce((sum, item) => {
-            // USD로 환산 (간단한 예시, 실제로는 환율 API 사용)
-            let amount = this.calculateLineAmount(item);
-            
-            // 다른 통화의 경우 임시 환율 적용 (백엔드 연동 시 실제 환율 사용)
-            const exchangeRates = {
-                'USD': 1,
-                'KRW': 0.00075, // 1 KRW ≈ 0.00075 USD
-                'EUR': 1.08,
-                'JPY': 0.0067,
-                'CNY': 0.14
-            };
-            
-            const rate = exchangeRates[item.currency] || 1;
-            return sum + (amount * rate);
-        }, 0);
+        // 환율 정의
+        const exchangeRates = {
+            'USD': 1,
+            'KRW': 0.00075, // 1 KRW ≈ 0.00075 USD
+            'EUR': 1.08,
+            'JPY': 0.0067,
+            'CNY': 0.14
+        };
         
-        document.getElementById('bidTotalAmount').textContent = total.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
+        let grandTotal = 0;
+        
+        // 각 그룹별 소계 계산 및 업데이트
+        this.RATE_GROUPS.forEach(groupKey => {
+            const groupItems = this.lineItems.filter(item => item.rateGroup === groupKey);
+            const subtotal = groupItems.reduce((sum, item) => {
+                let amount = this.calculateLineAmount(item);
+                const rate = exchangeRates[item.currency] || 1;
+                return sum + (amount * rate);
+            }, 0);
+            
+            // 소계 표시 업데이트
+            const subtotalEl = document.getElementById(`subtotal_${groupKey}`);
+            if (subtotalEl) {
+                subtotalEl.textContent = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            
+            grandTotal += subtotal;
         });
+        
+        // 전체 합계 업데이트
+        const totalEl = document.getElementById('bidTotalAmount');
+        if (totalEl) {
+            totalEl.textContent = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
-        return total;
+        return grandTotal;
     },
 
     /**
@@ -1374,6 +1813,11 @@ const BiddingList = {
             sort_order: idx
         }));
 
+        // 날짜 값을 DateInputUtils에서 직접 가져오기
+        const etdValue = DateInputUtils.getDateValue('bid-etd', true);
+        const etaValue = DateInputUtils.getDateValue('bid-eta', true);
+        const validityValue = DateInputUtils.getDateValue('bid-validity', false);
+
         return {
             bidding_id: this.currentBidding.id,
             total_amount: this.calculateTotal(),
@@ -1381,13 +1825,123 @@ const BiddingList = {
             local_charge: localCharge || null,
             other_charge: otherCharge || null,
             carrier: document.getElementById('bidCarrier')?.value.trim() || null,
-            etd: document.getElementById('bidETD')?.value || null,  // 포워더 제안 ETD
-            eta: document.getElementById('bidETA')?.value || null,
+            etd: etdValue || null,  // 포워더 제안 ETD
+            eta: etaValue || null,
             transit_time: document.getElementById('bidTT')?.value || null,
-            validity_date: document.getElementById('bidValidity')?.value || null,
+            validity_date: validityValue || null,
             remark: document.getElementById('bidRemark')?.value.trim() || null,
             line_items: lineItemsData
         };
+    },
+
+    /**
+     * Validate bid form with visual guide
+     * @param {boolean} forSubmit - true for submit validation, false for save validation
+     * @returns {Object} { valid: boolean, errors: string[], firstErrorElement: Element }
+     */
+    validateBidForm(forSubmit = false) {
+        const errors = [];
+        let firstErrorElement = null;
+        
+        // 모든 에러 표시 초기화
+        document.querySelectorAll('.qr-section.error').forEach(el => el.classList.remove('error'));
+        document.querySelectorAll('.validation-highlight').forEach(el => el.classList.remove('validation-highlight'));
+        
+        // 1. Rates 섹션 - 최소 1개 비용 항목 필수
+        const ratesSection = document.querySelector('.rates-section');
+        if (this.lineItems.length === 0) {
+            errors.push('최소 1개의 비용 항목을 입력해주세요.');
+            if (ratesSection) {
+                ratesSection.classList.add('error');
+                if (!firstErrorElement) firstErrorElement = ratesSection;
+            }
+        }
+        
+        // Submit 시 추가 검증
+        if (forSubmit) {
+            // 2. Rate 값이 있는 항목이 최소 1개 필요
+            const hasValidRate = this.lineItems.some(item => (item.rate || 0) > 0);
+            if (this.lineItems.length > 0 && !hasValidRate) {
+                errors.push('최소 1개 항목에 Rate를 입력해주세요.');
+                if (ratesSection) {
+                    ratesSection.classList.add('error');
+                    if (!firstErrorElement) firstErrorElement = ratesSection;
+                }
+            }
+            
+            // 3. Total Amount 검증
+            const total = this.calculateTotal();
+            if (total <= 0) {
+                errors.push('입찰 금액이 0보다 커야 합니다.');
+                if (ratesSection) {
+                    ratesSection.classList.add('error');
+                    if (!firstErrorElement) firstErrorElement = ratesSection;
+                }
+            }
+            
+            // 4. ETD 필수 (Transport Details) - DateInputUtils 사용
+            const transportSection = document.querySelector('.transport-section');
+            const etdValue = DateInputUtils.getDateValue('bid-etd', true);
+            const etdInputGroup = document.getElementById('bid-etd-input-group');
+            if (!etdValue || !DateInputUtils.isValidDate('bid-etd', true)) {
+                errors.push('ETD (예상 출발일)를 입력해주세요.');
+                if (transportSection) {
+                    transportSection.classList.add('error');
+                    if (etdInputGroup) {
+                        etdInputGroup.closest('.date-input-wrapper')?.classList.add('error');
+                    }
+                    if (!firstErrorElement) firstErrorElement = transportSection;
+                }
+            }
+            
+            // 5. ETA 필수 - DateInputUtils 사용
+            const etaValue = DateInputUtils.getDateValue('bid-eta', true);
+            const etaInputGroup = document.getElementById('bid-eta-input-group');
+            if (!etaValue || !DateInputUtils.isValidDate('bid-eta', true)) {
+                errors.push('ETA (예상 도착일)를 입력해주세요.');
+                if (transportSection) {
+                    transportSection.classList.add('error');
+                    if (etaInputGroup) {
+                        etaInputGroup.closest('.date-input-wrapper')?.classList.add('error');
+                    }
+                    if (!firstErrorElement) firstErrorElement = transportSection;
+                }
+            }
+            
+            // 6. Validity Date 필수 - DateInputUtils 사용
+            const validityValue = DateInputUtils.getDateValue('bid-validity', false);
+            const validityInputGroup = document.getElementById('bid-validity-input-group');
+            if (!validityValue || !DateInputUtils.isValidDate('bid-validity', false)) {
+                errors.push('견적 유효기간을 입력해주세요.');
+                if (transportSection) {
+                    transportSection.classList.add('error');
+                    if (validityInputGroup) {
+                        validityInputGroup.closest('.date-input-wrapper')?.classList.add('error');
+                    }
+                    if (!firstErrorElement) firstErrorElement = transportSection;
+                }
+            }
+        }
+        
+        return {
+            valid: errors.length === 0,
+            errors,
+            firstErrorElement
+        };
+    },
+    
+    /**
+     * Show validation error modal
+     */
+    showValidationError(errors, firstErrorElement) {
+        // 첫 번째 에러 요소로 스크롤
+        if (firstErrorElement) {
+            firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // 에러 메시지 표시
+        const errorList = errors.map(e => `• ${e}`).join('\n');
+        alert(`입력 정보를 확인해주세요:\n\n${errorList}`);
     },
 
     /**
@@ -1396,9 +1950,10 @@ const BiddingList = {
     async saveBid() {
         if (!this.forwarder || !this.currentBidding) return;
 
-        // 최소 유효성 검사
-        if (this.lineItems.length === 0) {
-            alert('최소 1개의 비용 항목을 입력해주세요.');
+        // 유효성 검사 (Save는 최소 검증만)
+        const validation = this.validateBidForm(false);
+        if (!validation.valid) {
+            this.showValidationError(validation.errors, validation.firstErrorElement);
             return;
         }
 
@@ -1448,34 +2003,18 @@ const BiddingList = {
     async submitBid() {
         if (!this.forwarder || !this.currentBidding) return;
 
-        // SAVE 먼저 해야 함
-        if (!this.bidSaved) {
-            alert('먼저 Save를 해주세요.');
+        // 전체 유효성 검사 (Submit은 모든 필수 항목 검증)
+        const validation = this.validateBidForm(true);
+        if (!validation.valid) {
+            this.showValidationError(validation.errors, validation.firstErrorElement);
             return;
         }
 
         // 수정된 내용이 있으면 저장 먼저
-        if (this.bidEdited) {
-            alert('수정된 내용이 있습니다. Save를 먼저 해주세요.');
-            return;
-        }
-
-        // 유효성 검사
-        if (this.lineItems.length === 0) {
-            alert('최소 1개의 비용 항목을 입력해주세요.');
-            return;
-        }
-
-        const hasValidRate = this.lineItems.some(item => (item.rate || 0) > 0);
-        if (!hasValidRate) {
-            alert('최소 1개 항목에 Rate를 입력해주세요.');
-            return;
-        }
-
-        const total = this.calculateTotal();
-        if (total <= 0) {
-            alert('입찰 금액을 입력해주세요.');
-            return;
+        if (this.bidEdited || !this.bidSaved) {
+            // 자동 저장 후 제출
+            await this.saveBid();
+            if (!this.bidSaved) return; // 저장 실패 시 중단
         }
 
         if (!confirm('입찰을 제출하시겠습니까? 제출 후에는 수정이 제한됩니다.')) {
@@ -1581,7 +2120,7 @@ const BiddingList = {
     },
 
     /**
-     * Open detail modal
+     * Open detail modal - Quote Summary Style
      */
     async openDetailModal(biddingNo) {
         try {
@@ -1597,87 +2136,117 @@ const BiddingList = {
 
             document.getElementById('detailBiddingNo').textContent = biddingNo;
             
+            // Cargo summary 생성
+            let cargoSummary = '-';
+            if (detail.cargo_details && detail.cargo_details.length > 0) {
+                const cargo = detail.cargo_details;
+                if (detail.load_type === 'FCL') {
+                    cargoSummary = cargo.map(c => `${c.container_type} x ${c.quantity}`).join(', ');
+                } else {
+                    const totalPcs = cargo.reduce((sum, c) => sum + (c.quantity || 0), 0);
+                    const totalWeight = cargo.reduce((sum, c) => sum + (c.gross_weight || 0), 0);
+                    const totalCbm = cargo.reduce((sum, c) => sum + (c.cbm || 0), 0);
+                    cargoSummary = `${totalPcs} PCS / ${totalWeight.toLocaleString()} KG / ${totalCbm.toFixed(1)} CBM`;
+                }
+            }
+
+            // Additional services summary
+            let additionalSummary = [];
+            if (detail.export_customs) additionalSummary.push('Export CC');
+            if (detail.import_customs) additionalSummary.push('Import CC');
+            if (detail.pickup_required) additionalSummary.push('Pickup');
+            if (detail.delivery_required) additionalSummary.push('Delivery');
+            if (detail.marine_insurance) additionalSummary.push('Insurance');
+            
             let html = `
-                <div class="bid-info-card">
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">화주사</span>
-                        <span class="bid-info-value">${detail.customer_company}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">구간</span>
-                        <span class="bid-info-value">${detail.pol} → ${detail.pod}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">운송타입</span>
-                        <span class="bid-info-value">${detail.shipping_type.toUpperCase()} / ${detail.load_type}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">Trade Mode</span>
-                        <span class="bid-info-value">${detail.trade_mode.toUpperCase()}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">Incoterms</span>
-                        <span class="bid-info-value">${detail.incoterms || '-'}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">ETD</span>
-                        <span class="bid-info-value">${this.formatDate(detail.etd)}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">ETA</span>
-                        <span class="bid-info-value">${detail.eta ? this.formatDate(detail.eta) : '-'}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">마감일시</span>
-                        <span class="bid-info-value">${detail.deadline ? this.formatDateTime(detail.deadline) : '-'}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">상태</span>
-                        <span class="bid-info-value">
-                            <span class="status-badge ${detail.status}">${this.getStatusLabel(detail.status)}</span>
-                        </span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">위험물</span>
-                        <span class="bid-info-value">${detail.is_dg ? '예' : '아니오'}</span>
-                    </div>
-                    <div class="bid-info-row">
-                        <span class="bid-info-label">입찰 참여</span>
-                        <span class="bid-info-value">${detail.bid_count}건</span>
-                    </div>
-                </div>
+                <div class="quote-summary-box">
+                    <div class="quote-summary-title">Quote Summary</div>
+                    <ul class="quote-summary-list">
+                        <li>
+                            <span class="qs-label">Customer</span>
+                            <span class="qs-value highlight">${detail.customer_company}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Trade Mode</span>
+                            <span class="qs-value">${detail.trade_mode ? detail.trade_mode.toUpperCase() : '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Shipping Type</span>
+                            <span class="qs-value">${detail.shipping_type ? detail.shipping_type.toUpperCase() : '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Load Type</span>
+                            <span class="qs-value">${detail.load_type || '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Route</span>
+                            <span class="qs-value highlight">${detail.pol} → ${detail.pod}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Shipping Schedule</span>
+                            <span class="qs-value">ETD: ${this.formatDate(detail.etd)}<br>ETA: ${detail.eta ? this.formatDate(detail.eta) : '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Incoterms</span>
+                            <span class="qs-value">${detail.incoterms || '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Cargo Details</span>
+                            <span class="qs-value">${cargoSummary}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Additional Services</span>
+                            <span class="qs-value">${additionalSummary.length > 0 ? additionalSummary.join(', ') : '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Dangerous Goods</span>
+                            <span class="qs-value">${detail.is_dg ? 'Yes' : 'No'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Deadline</span>
+                            <span class="qs-value">${detail.deadline ? this.formatDateTime(detail.deadline) : '-'}</span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Status</span>
+                            <span class="qs-value"><span class="status-badge ${detail.status}">${this.getStatusLabel(detail.status)}</span></span>
+                        </li>
+                        <li>
+                            <span class="qs-label">Bid Count</span>
+                            <span class="qs-value">${detail.bid_count || 0} bids</span>
+                        </li>
+                    </ul>
             `;
 
             if (detail.remark) {
                 html += `
-                    <div style="margin-top: 1rem;">
-                        <strong>비고:</strong>
-                        <p style="color: var(--text-sub); margin-top: 0.5rem;">${detail.remark}</p>
+                    <div class="quote-summary-section">
+                        <div class="quote-summary-section-title">Special Remarks</div>
+                        <p style="color: var(--text-sub); font-size: 0.9rem; line-height: 1.6;">${detail.remark}</p>
                     </div>
                 `;
             }
 
             if (detail.my_bid) {
                 html += `
-                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                        <h4 style="margin-bottom: 1rem;">내 입찰 정보</h4>
-                        <div class="bid-info-card">
-                            <div class="bid-info-row">
-                                <span class="bid-info-label">입찰금액</span>
-                                <span class="bid-info-value" style="color: var(--accent-color); font-weight: 700;">
-                                    $ ${parseFloat(detail.my_bid.total_amount).toLocaleString()}
-                                </span>
-                            </div>
-                            <div class="bid-info-row">
-                                <span class="bid-info-label">상태</span>
-                                <span class="bid-info-value">
-                                    <span class="status-badge ${detail.my_bid.status}">${this.getBidStatusLabel(detail.my_bid.status)}</span>
-                                </span>
-                            </div>
+                    <div class="quote-summary-section">
+                        <div class="quote-summary-section-title">My Bid</div>
+                        <div class="my-bid-card">
+                            <ul class="quote-summary-list">
+                                <li>
+                                    <span class="qs-label">Total Amount</span>
+                                    <span class="qs-value highlight">$ ${parseFloat(detail.my_bid.total_amount).toLocaleString()}</span>
+                                </li>
+                                <li>
+                                    <span class="qs-label">Status</span>
+                                    <span class="qs-value"><span class="status-badge ${detail.my_bid.status}">${this.getBidStatusLabel(detail.my_bid.status)}</span></span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 `;
             }
+
+            html += `</div>`;
 
             document.getElementById('detailModalBody').innerHTML = html;
 
@@ -1722,10 +2291,12 @@ const BiddingList = {
     getStatusLabel(status) {
         const labels = {
             'open': '진행중',
-            'closed': '마감',
+            'closing_soon': '마감예정',
+            'expired': '마감',
             'awarded': '낙찰',
-            'expired': '마감됨',
-            'cancelled': '취소'
+            'closed': '유찰',
+            'cancelled': '유찰',
+            'failed': '유찰'
         };
         return labels[status] || status;
     },

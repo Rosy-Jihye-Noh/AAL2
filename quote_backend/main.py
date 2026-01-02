@@ -16,7 +16,12 @@ import string
 import os
 
 from database import get_db, engine
-from models import Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, CargoDetail, Bidding, Forwarder, Bid
+from models import (
+    Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, 
+    CargoDetail, Bidding, Forwarder, Bid,
+    # Freight Master tables
+    FreightCategory, FreightCode, FreightUnit, FreightCodeUnit
+)
 from schemas import (
     PortResponse, ContainerTypeResponse, TruckTypeResponse, IncotermResponse,
     QuoteRequestCreate, QuoteRequestResponse, QuoteSubmitResponse, APIResponse,
@@ -26,7 +31,10 @@ from schemas import (
     # Bid schemas
     BidCreate, BidUpdate, BidResponse, BidWithForwarderResponse, BidSubmitResponse,
     # Bidding List schemas
-    BiddingListItem, BiddingListResponse, BiddingStatsResponse, BiddingDetailResponse
+    BiddingListItem, BiddingListResponse, BiddingStatsResponse, BiddingDetailResponse,
+    # Freight Code schemas
+    FreightUnitResponse, FreightCodeResponse, FreightCategoryResponse,
+    FreightCategoryWithCodesResponse, FreightCodesListResponse
 )
 from pdf_generator import RFQPDFGenerator
 import hashlib
@@ -69,7 +77,14 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development
+    allow_origins=[
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -902,9 +917,11 @@ def get_bidding_list(
     
     # Apply filters
     now = datetime.now()
+    deadline_24h = now + timedelta(hours=24)
+    
     if status:
         if status == "expired":
-            # expired includes: explicitly expired OR (open AND deadline passed)
+            # expired (마감): explicitly expired OR (open AND deadline passed)
             query = query.filter(
                 or_(
                     Bidding.status == "expired",
@@ -916,12 +933,28 @@ def get_bidding_list(
                 )
             )
         elif status == "open":
-            # open means: status is open AND deadline NOT passed
+            # open (진행중): status is open AND deadline NOT passed
             query = query.filter(
                 Bidding.status == "open",
                 or_(
                     Bidding.deadline == None,
                     Bidding.deadline > now
+                )
+            )
+        elif status == "closing_soon":
+            # closing_soon (마감예정): open AND deadline within 24 hours
+            query = query.filter(
+                Bidding.status == "open",
+                Bidding.deadline != None,
+                Bidding.deadline > now,
+                Bidding.deadline <= deadline_24h
+            )
+        elif status == "failed":
+            # failed (유찰): closed OR cancelled
+            query = query.filter(
+                or_(
+                    Bidding.status == "closed",
+                    Bidding.status == "cancelled"
                 )
             )
         else:
@@ -955,10 +988,10 @@ def get_bidding_list(
         avg_bid_price = None
         if bid_count > 0:
             from sqlalchemy import func
-            avg_result = db.query(func.avg(Bid.total_price)).filter(
+            avg_result = db.query(func.avg(Bid.total_amount)).filter(
                 Bid.bidding_id == b.id,
                 Bid.status == "submitted",
-                Bid.total_price.isnot(None)
+                Bid.total_amount.isnot(None)
             ).scalar()
             avg_bid_price = round(float(avg_result), 2) if avg_result else None
         
@@ -1496,6 +1529,173 @@ def close_bidding(
         message="Bidding closed successfully",
         data={"bidding_no": bidding_no, "status": "closed", "rejected_bids": len(bids)}
     )
+
+
+# ==========================================
+# FREIGHT CODE API
+# ==========================================
+
+@app.get("/api/freight-codes", response_model=FreightCodesListResponse, tags=["Freight Codes"])
+def get_freight_codes(
+    shipping_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운임 코드 목록 조회 (카테고리별 그룹핑)
+    
+    - shipping_type: ocean, air, truck 중 하나 (없으면 전체)
+    """
+    # 카테고리 조회 (shipping_type 필터링)
+    categories_query = db.query(FreightCategory).filter(FreightCategory.is_active == True)
+    
+    if shipping_type:
+        # shipping_types 컬럼에 해당 타입이 포함된 카테고리만
+        categories_query = categories_query.filter(
+            FreightCategory.shipping_types.contains(shipping_type)
+        )
+    
+    categories = categories_query.order_by(FreightCategory.sort_order).all()
+    
+    # 단위 목록 조회
+    units = db.query(FreightUnit).filter(
+        FreightUnit.is_active == True
+    ).order_by(FreightUnit.sort_order).all()
+    
+    result_categories = []
+    
+    for cat in categories:
+        # 각 카테고리별 운임 코드 조회
+        codes = db.query(FreightCode).filter(
+            FreightCode.category_id == cat.id,
+            FreightCode.is_active == True
+        ).order_by(FreightCode.sort_order).all()
+        
+        codes_response = []
+        for code in codes:
+            # 각 코드별 허용 단위 조회
+            code_units = db.query(FreightUnit.code).join(
+                FreightCodeUnit, FreightCodeUnit.freight_unit_id == FreightUnit.id
+            ).filter(
+                FreightCodeUnit.freight_code_id == code.id
+            ).all()
+            
+            codes_response.append(FreightCodeResponse(
+                id=code.id,
+                code=code.code,
+                group_name=code.group_name,
+                name_en=code.name_en,
+                name_ko=code.name_ko,
+                vat_applicable=code.vat_applicable,
+                default_currency=code.default_currency,
+                is_active=code.is_active,
+                sort_order=code.sort_order,
+                units=[u[0] for u in code_units]
+            ))
+        
+        result_categories.append(FreightCategoryWithCodesResponse(
+            id=cat.id,
+            code=cat.code,
+            name_en=cat.name_en,
+            name_ko=cat.name_ko,
+            shipping_types=cat.shipping_types,
+            sort_order=cat.sort_order,
+            codes=codes_response
+        ))
+    
+    units_response = [FreightUnitResponse(
+        id=u.id,
+        code=u.code,
+        name_en=u.name_en,
+        name_ko=u.name_ko,
+        sort_order=u.sort_order
+    ) for u in units]
+    
+    return FreightCodesListResponse(
+        categories=result_categories,
+        units=units_response
+    )
+
+
+@app.get("/api/freight-codes/{code}", response_model=FreightCodeResponse, tags=["Freight Codes"])
+def get_freight_code_detail(
+    code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    특정 운임 코드 상세 조회
+    """
+    freight_code = db.query(FreightCode).filter(
+        FreightCode.code == code.upper(),
+        FreightCode.is_active == True
+    ).first()
+    
+    if not freight_code:
+        raise HTTPException(status_code=404, detail=f"Freight code '{code}' not found")
+    
+    # 허용 단위 조회
+    code_units = db.query(FreightUnit.code).join(
+        FreightCodeUnit, FreightCodeUnit.freight_unit_id == FreightUnit.id
+    ).filter(
+        FreightCodeUnit.freight_code_id == freight_code.id
+    ).all()
+    
+    return FreightCodeResponse(
+        id=freight_code.id,
+        code=freight_code.code,
+        group_name=freight_code.group_name,
+        name_en=freight_code.name_en,
+        name_ko=freight_code.name_ko,
+        vat_applicable=freight_code.vat_applicable,
+        default_currency=freight_code.default_currency,
+        is_active=freight_code.is_active,
+        sort_order=freight_code.sort_order,
+        units=[u[0] for u in code_units]
+    )
+
+
+@app.get("/api/freight-units", response_model=List[FreightUnitResponse], tags=["Freight Codes"])
+def get_freight_units(db: Session = Depends(get_db)):
+    """
+    운임 단위 목록 조회
+    """
+    units = db.query(FreightUnit).filter(
+        FreightUnit.is_active == True
+    ).order_by(FreightUnit.sort_order).all()
+    
+    return [FreightUnitResponse(
+        id=u.id,
+        code=u.code,
+        name_en=u.name_en,
+        name_ko=u.name_ko,
+        sort_order=u.sort_order
+    ) for u in units]
+
+
+@app.get("/api/freight-categories", response_model=List[FreightCategoryResponse], tags=["Freight Codes"])
+def get_freight_categories(
+    shipping_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운임 카테고리 목록 조회
+    
+    - shipping_type: ocean, air, truck 중 하나 (없으면 전체)
+    """
+    query = db.query(FreightCategory).filter(FreightCategory.is_active == True)
+    
+    if shipping_type:
+        query = query.filter(FreightCategory.shipping_types.contains(shipping_type))
+    
+    categories = query.order_by(FreightCategory.sort_order).all()
+    
+    return [FreightCategoryResponse(
+        id=c.id,
+        code=c.code,
+        name_en=c.name_en,
+        name_ko=c.name_ko,
+        shipping_types=c.shipping_types,
+        sort_order=c.sort_order
+    ) for c in categories]
 
 
 # ==========================================

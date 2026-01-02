@@ -2,6 +2,11 @@
    Market Section Styles - Refactored with Design Tokens
    ===================================================== */
 
+/* --- Page Layout Override --- */
+.container.section-padding {
+    padding-top: 120px;
+}
+
 /* Market Controller */
 .market-controller { 
     margin-bottom: var(--space-2xl); 

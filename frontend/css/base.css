@@ -35,7 +35,7 @@ h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; }
     .container { max-width: 2000px; padding: 0 2%; }
 }
 
-.section-padding { padding: 6rem 0; }
+.section-padding { padding: 6rem 0; padding-top: 120px; }
 .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s ease-out; }
 .reveal.active { opacity: 1; transform: translateY(0); }
 

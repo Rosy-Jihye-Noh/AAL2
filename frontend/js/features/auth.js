@@ -3,8 +3,12 @@
  * 사용자 인증 (로그인/회원가입) 기능
  */
 
-const AUTH_API_BASE = 'http://localhost:5000/api/auth';
-const QUOTE_API_BASE = 'http://localhost:8001';
+// API URLs - 이미 선언된 전역 변수가 있으면 사용, 없으면 기본값
+const AUTH_API_URL = (typeof API_CONFIG !== 'undefined' && API_CONFIG.AUTH_API_BASE) 
+    || 'http://localhost:5000/api/auth';
+const QUOTE_API_URL = (typeof QUOTE_API_BASE !== 'undefined') 
+    ? QUOTE_API_BASE 
+    : ((typeof API_CONFIG !== 'undefined' && API_CONFIG.QUOTE_API_BASE) || 'http://localhost:8001');
 
 const Auth = {
     // State
@@ -121,6 +125,11 @@ const Auth = {
                 </button>
             `;
         }
+        
+        // Sync with BiddingList module if present
+        if (window.BiddingList && typeof BiddingList.syncWithAuth === 'function') {
+            BiddingList.syncWithAuth();
+        }
     },
     
     /**
@@ -131,6 +140,19 @@ const Auth = {
         if (overlay) {
             overlay.classList.add('active');
             this.showLoginTypeView();
+        }
+    },
+    
+    /**
+     * Open auth modal for forwarder only (Bidding page)
+     * 포워더 전용 로그인 - 자동으로 포워더 선택 후 로그인 폼 표시
+     */
+    openModalForForwarder() {
+        const overlay = document.getElementById('authModalOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            this.selectedLoginType = 'forwarder';
+            this.showLoginView();
         }
     },
     
@@ -341,7 +363,7 @@ const Auth = {
             
             if (this.selectedLoginType === 'forwarder') {
                 // 포워더 로그인 - quote_backend 사용
-                response = await fetch(`${QUOTE_API_BASE}/api/forwarder/login`, {
+                response = await fetch(`${QUOTE_API_URL}/api/forwarder/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -365,7 +387,7 @@ const Auth = {
                 };
             } else {
                 // 화주 로그인 - auth 백엔드 사용
-                response = await fetch(`${AUTH_API_BASE}/login`, {
+                response = await fetch(`${AUTH_API_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, password })
@@ -438,7 +460,7 @@ const Auth = {
             
             if (this.selectedUserType === 'forwarder') {
                 // 포워더 회원가입 - quote_backend 사용
-                response = await fetch(`${QUOTE_API_BASE}/api/forwarder/register`, {
+                response = await fetch(`${QUOTE_API_URL}/api/forwarder/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -469,7 +491,7 @@ const Auth = {
                 };
             } else {
                 // 화주 회원가입 - auth 백엔드 사용
-                response = await fetch(`${AUTH_API_BASE}/register`, {
+                response = await fetch(`${AUTH_API_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)

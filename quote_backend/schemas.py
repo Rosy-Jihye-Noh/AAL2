@@ -105,6 +105,72 @@ class IncotermResponse(IncotermBase):
 
 
 # ==========================================
+# FREIGHT CODE SCHEMAS
+# ==========================================
+
+class FreightUnitResponse(BaseModel):
+    """운임 단위 응답"""
+    id: int
+    code: str
+    name_en: Optional[str] = None
+    name_ko: Optional[str] = None
+    sort_order: int = 0
+    
+    class Config:
+        from_attributes = True
+
+
+class FreightCodeResponse(BaseModel):
+    """운임 코드 응답 (단위 포함)"""
+    id: int
+    code: str
+    group_name: Optional[str] = None
+    name_en: str
+    name_ko: Optional[str] = None
+    vat_applicable: bool = False
+    default_currency: str = "USD"
+    is_active: bool = True
+    sort_order: int = 0
+    units: List[str] = []  # 허용 단위 코드 목록
+    
+    class Config:
+        from_attributes = True
+
+
+class FreightCategoryResponse(BaseModel):
+    """운임 카테고리 응답"""
+    id: int
+    code: str
+    name_en: str
+    name_ko: Optional[str] = None
+    shipping_types: Optional[str] = None
+    sort_order: int = 0
+    
+    class Config:
+        from_attributes = True
+
+
+class FreightCategoryWithCodesResponse(BaseModel):
+    """운임 카테고리 + 소속 코드 목록"""
+    id: int
+    code: str
+    name_en: str
+    name_ko: Optional[str] = None
+    shipping_types: Optional[str] = None
+    sort_order: int = 0
+    codes: List[FreightCodeResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+
+class FreightCodesListResponse(BaseModel):
+    """운임 코드 전체 목록 응답 (카테고리별 그룹핑)"""
+    categories: List[FreightCategoryWithCodesResponse]
+    units: List[FreightUnitResponse]
+
+
+# ==========================================
 # CUSTOMER SCHEMAS
 # ==========================================
 
@@ -327,14 +393,23 @@ class BidUpdate(BidBase):
     pass
 
 
-class BidResponse(BidBase):
+class BidResponse(BaseModel):
     id: int
     bidding_id: int
     forwarder_id: int
+    total_amount: float
+    freight_charge: Optional[float] = None
+    local_charge: Optional[float] = None
+    other_charge: Optional[float] = None
+    validity_date: Optional[datetime] = None  # DateTime from DB
+    transit_time: Optional[str] = None
+    remark: Optional[str] = None
     status: str
     submitted_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    etd: Optional[datetime] = None
+    eta: Optional[datetime] = None
     
     class Config:
         from_attributes = True
