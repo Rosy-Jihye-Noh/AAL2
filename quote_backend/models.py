@@ -418,6 +418,10 @@ class Forwarder(Base):
     password_hash = Column(String(255), nullable=True)  # bcrypt 해시된 비밀번호
     is_verified = Column(Boolean, default=False)
     
+    # Rating System (0.0 ~ 5.0, 0.5 단위)
+    rating = Column(DECIMAL(2, 1), default=3.0)  # 평균 평점
+    rating_count = Column(Integer, default=0)  # 평점 참여 수
+    
     # Timestamps
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -439,8 +443,9 @@ class Bid(Base):
     bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
     forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
     
-    # 입찰 금액 (USD)
-    total_amount = Column(DECIMAL(15, 2), nullable=False)
+    # 입찰 금액 (KRW 기준)
+    total_amount = Column(DECIMAL(15, 2), nullable=False)  # KRW 기준 총액
+    total_amount_krw = Column(DECIMAL(15, 0), nullable=True)  # KRW 환산 금액
     freight_charge = Column(DECIMAL(15, 2), nullable=True)  # 운임
     local_charge = Column(DECIMAL(15, 2), nullable=True)  # 로컬비용
     other_charge = Column(DECIMAL(15, 2), nullable=True)  # 기타비용
@@ -448,6 +453,9 @@ class Bid(Base):
     # 추가 정보
     validity_date = Column(DateTime, nullable=True)  # 견적 유효기간
     transit_time = Column(String(50), nullable=True)  # 예상 운송기간
+    carrier = Column(String(100), nullable=True)  # 선사/항공사
+    etd = Column(DateTime, nullable=True)  # 포워더 제안 ETD
+    eta = Column(DateTime, nullable=True)  # 포워더 제안 ETA
     remark = Column(Text, nullable=True)  # 비고/조건
     
     # 상태
@@ -464,3 +472,408 @@ class Bid(Base):
     
     def __repr__(self):
         return f"<Bid #{self.id} for Bidding #{self.bidding_id} by Forwarder #{self.forwarder_id}>"
+
+
+class Rating(Base):
+    """
+    Rating - 운송사 평점 시스템
+    운송 완료 후 화주가 운송사에 평점을 부여
+    """
+    __tablename__ = "ratings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # 관련 정보
+    bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    
+    # 평점 (0.5 ~ 5.0, 0.5 단위)
+    score = Column(DECIMAL(2, 1), nullable=False)  # 종합 평점
+    
+    # 세부 평점 (선택사항)
+    price_score = Column(DECIMAL(2, 1), nullable=True)  # 가격 만족도
+    service_score = Column(DECIMAL(2, 1), nullable=True)  # 서비스 품질
+    punctuality_score = Column(DECIMAL(2, 1), nullable=True)  # 정시성
+    communication_score = Column(DECIMAL(2, 1), nullable=True)  # 커뮤니케이션
+    
+    # 리뷰 내용
+    comment = Column(Text, nullable=True)
+    
+    # 상태
+    is_visible = Column(Boolean, default=True)  # 공개 여부
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<Rating #{self.id} score={self.score} for Forwarder #{self.forwarder_id}>"
+
+
+class Notification(Base):
+    """
+    Notification - 알림 시스템
+    """
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # 수신자 정보 (forwarder 또는 customer)
+    recipient_type = Column(String(20), nullable=False)  # forwarder, customer
+    recipient_id = Column(Integer, nullable=False)
+    
+    # 알림 내용
+    notification_type = Column(String(50), nullable=False)  # bid_awarded, bid_rejected, new_bidding, etc.
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=True)
+    
+    # 관련 데이터
+    related_type = Column(String(50), nullable=True)  # bidding, bid, quote_request
+    related_id = Column(Integer, nullable=True)
+    
+    # 상태
+    is_read = Column(Boolean, default=False)
+    read_at = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    
+    def __repr__(self):
+        return f"<Notification #{self.id} to {self.recipient_type}#{self.recipient_id}>"
+
+
+# ==========================================
+# CONTRACT & SHIPMENT MANAGEMENT
+# ==========================================
+
+class ContractStatusEnum(str, enum.Enum):
+    pending = "pending"          # 계약 대기 (선정 후 초기 상태)
+    confirmed = "confirmed"      # 양측 확정 완료
+    active = "active"            # 배송 진행 중
+    completed = "completed"      # 배송 완료
+    cancelled = "cancelled"      # 취소됨
+
+
+class ShipmentStatusEnum(str, enum.Enum):
+    booked = "booked"                    # 계약 확정됨
+    picked_up = "picked_up"              # 화물 픽업 완료
+    in_transit = "in_transit"            # 운송 중
+    arrived_port = "arrived_port"        # 목적지항 도착
+    customs = "customs"                  # 통관 진행 중
+    out_for_delivery = "out_for_delivery"  # 배송 출발
+    delivered = "delivered"              # 배송 완료
+    completed = "completed"              # 화주 확인 완료
+
+
+class SettlementStatusEnum(str, enum.Enum):
+    pending = "pending"          # 정산 대기
+    requested = "requested"      # 정산 요청됨
+    processing = "processing"    # 처리 중
+    completed = "completed"      # 정산 완료
+    disputed = "disputed"        # 분쟁 중
+
+
+class Contract(Base):
+    """
+    Contract - 계약 관리
+    운송사 선정 후 양측 확정 과정 관리
+    """
+    __tablename__ = "contracts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    contract_no = Column(String(20), unique=True, nullable=False, index=True)  # CT-YYYYMMDD-XXX
+    
+    # 관련 정보
+    bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
+    awarded_bid_id = Column(Integer, ForeignKey("bids.id"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    
+    # 계약 조건 (입찰 내용 스냅샷)
+    total_amount_krw = Column(DECIMAL(15, 0), nullable=False)
+    freight_charge = Column(DECIMAL(15, 2), nullable=True)
+    local_charge = Column(DECIMAL(15, 2), nullable=True)
+    other_charge = Column(DECIMAL(15, 2), nullable=True)
+    transit_time = Column(String(50), nullable=True)
+    carrier = Column(String(100), nullable=True)
+    contract_terms = Column(Text, nullable=True)  # 추가 계약 조건
+    
+    # 확정 상태
+    shipper_confirmed = Column(Boolean, default=False)
+    shipper_confirmed_at = Column(DateTime, nullable=True)
+    forwarder_confirmed = Column(Boolean, default=False)
+    forwarder_confirmed_at = Column(DateTime, nullable=True)
+    
+    # 계약 상태
+    status = Column(String(20), default="pending")  # pending, confirmed, active, completed, cancelled
+    confirmed_at = Column(DateTime, nullable=True)  # 양측 모두 확정된 시간
+    
+    # 취소 정보
+    cancelled_by = Column(String(20), nullable=True)  # shipper, forwarder
+    cancelled_at = Column(DateTime, nullable=True)
+    cancel_reason = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    bidding = relationship("Bidding", backref="contract")
+    awarded_bid = relationship("Bid")
+    customer = relationship("Customer")
+    forwarder = relationship("Forwarder")
+    shipment = relationship("Shipment", back_populates="contract", uselist=False)
+    
+    def __repr__(self):
+        return f"<Contract {self.contract_no} status={self.status}>"
+
+
+class Shipment(Base):
+    """
+    Shipment - 배송 추적 관리
+    """
+    __tablename__ = "shipments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_no = Column(String(20), unique=True, nullable=False, index=True)  # SH-YYYYMMDD-XXX
+    
+    # 관련 정보
+    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
+    
+    # 현재 상태
+    current_status = Column(String(30), default="booked")
+    current_location = Column(String(200), nullable=True)
+    
+    # 일정
+    estimated_pickup = Column(DateTime, nullable=True)
+    actual_pickup = Column(DateTime, nullable=True)
+    estimated_delivery = Column(DateTime, nullable=True)
+    actual_delivery = Column(DateTime, nullable=True)
+    
+    # B/L 또는 AWB 정보
+    bl_no = Column(String(50), nullable=True)  # Bill of Lading / Airway Bill
+    vessel_flight = Column(String(100), nullable=True)  # 선박명/항공편
+    
+    # 배송 완료 확인
+    delivery_confirmed = Column(Boolean, default=False)
+    delivery_confirmed_at = Column(DateTime, nullable=True)
+    auto_confirmed = Column(Boolean, default=False)  # 자동 확인 여부
+    
+    # 알림 관련
+    reminder_sent = Column(Boolean, default=False)  # 7일 알림 발송 여부
+    reminder_sent_at = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    contract = relationship("Contract", back_populates="shipment")
+    tracking_history = relationship("ShipmentTracking", back_populates="shipment", order_by="ShipmentTracking.created_at")
+    
+    def __repr__(self):
+        return f"<Shipment {self.shipment_no} status={self.current_status}>"
+
+
+class ShipmentTracking(Base):
+    """
+    ShipmentTracking - 배송 상태 이력
+    """
+    __tablename__ = "shipment_tracking"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    shipment_id = Column(Integer, ForeignKey("shipments.id"), nullable=False)
+    
+    # 상태 정보
+    status = Column(String(30), nullable=False)
+    location = Column(String(200), nullable=True)
+    remark = Column(Text, nullable=True)
+    
+    # 업데이트 정보
+    updated_by_type = Column(String(20), nullable=False)  # forwarder, system
+    updated_by_id = Column(Integer, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    shipment = relationship("Shipment", back_populates="tracking_history")
+    
+    def __repr__(self):
+        return f"<ShipmentTracking #{self.id} status={self.status}>"
+
+
+class Settlement(Base):
+    """
+    Settlement - 정산 관리
+    """
+    __tablename__ = "settlements"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    settlement_no = Column(String(20), unique=True, nullable=False, index=True)  # ST-YYYYMMDD-XXX
+    
+    # 관련 정보
+    contract_id = Column(Integer, ForeignKey("contracts.id"), nullable=False)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    
+    # 금액 정보
+    total_amount_krw = Column(DECIMAL(15, 0), nullable=False)
+    service_fee = Column(DECIMAL(15, 0), default=0)  # 플랫폼 수수료
+    net_amount = Column(DECIMAL(15, 0), nullable=False)  # 실 정산 금액
+    
+    # 정산 상태
+    status = Column(String(20), default="pending")  # pending, requested, processing, completed, disputed, cancelled
+    requested_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # 결제 정보
+    payment_method = Column(String(50), nullable=True)
+    payment_reference = Column(String(100), nullable=True)
+    
+    # 비고
+    remark = Column(Text, nullable=True)
+    
+    # 분쟁 관련 필드
+    disputed_at = Column(DateTime, nullable=True)  # 분쟁 제기 일시
+    dispute_reason = Column(Text, nullable=True)  # 분쟁 사유
+    dispute_evidence = Column(Text, nullable=True)  # 증빙자료 링크/설명
+    
+    forwarder_response = Column(Text, nullable=True)  # 포워더 반박 의견
+    forwarder_response_at = Column(DateTime, nullable=True)  # 포워더 응답 일시
+    
+    resolved_at = Column(DateTime, nullable=True)  # 해결 일시
+    resolution_type = Column(String(30), nullable=True)  # agreement, mediation, cancel
+    resolution_note = Column(Text, nullable=True)  # 해결 내용
+    adjusted_amount = Column(DECIMAL(15, 0), nullable=True)  # 조정된 금액
+    resolved_by = Column(Integer, nullable=True)  # 해결 처리자 (관리자 ID)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    contract = relationship("Contract")
+    forwarder = relationship("Forwarder")
+    customer = relationship("Customer")
+    
+    def __repr__(self):
+        return f"<Settlement {self.settlement_no} status={self.status}>"
+
+
+class Message(Base):
+    """
+    Message - 화주/포워더 간 메시지
+    """
+    __tablename__ = "messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # 관련 비딩 (대화 컨텍스트)
+    bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
+    
+    # 발신자
+    sender_type = Column(String(20), nullable=False)  # shipper, forwarder
+    sender_id = Column(Integer, nullable=False)
+    
+    # 수신자
+    recipient_type = Column(String(20), nullable=False)  # shipper, forwarder
+    recipient_id = Column(Integer, nullable=False)
+    
+    # 메시지 내용
+    content = Column(Text, nullable=False)
+    
+    # 읽음 상태
+    is_read = Column(Boolean, default=False)
+    read_at = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    
+    def __repr__(self):
+        return f"<Message #{self.id} from {self.sender_type} to {self.recipient_type}>"
+
+
+class FavoriteRoute(Base):
+    """
+    FavoriteRoute - 화주 즐겨찾기 구간
+    """
+    __tablename__ = "favorite_routes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    
+    # 구간 정보
+    pol = Column(String(50), nullable=False)
+    pod = Column(String(50), nullable=False)
+    shipping_type = Column(String(20), nullable=True)  # ocean, air, truck
+    
+    # 별칭
+    alias = Column(String(50), nullable=True)  # 예: "중국 상하이 정기편"
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    customer = relationship("Customer")
+    
+    def __repr__(self):
+        return f"<FavoriteRoute {self.pol} → {self.pod}>"
+
+
+class BidTemplate(Base):
+    """
+    BidTemplate - 포워더 입찰 템플릿
+    """
+    __tablename__ = "bid_templates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    
+    # 템플릿 정보
+    name = Column(String(100), nullable=False)  # 템플릿 이름
+    
+    # 구간 조건
+    pol = Column(String(50), nullable=True)
+    pod = Column(String(50), nullable=True)
+    shipping_type = Column(String(20), nullable=True)
+    
+    # 기본 견적
+    base_freight = Column(DECIMAL(15, 2), nullable=True)
+    base_local = Column(DECIMAL(15, 2), nullable=True)
+    base_other = Column(DECIMAL(15, 2), nullable=True)
+    transit_time = Column(String(50), nullable=True)
+    carrier = Column(String(100), nullable=True)
+    default_remark = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    forwarder = relationship("Forwarder")
+    
+    def __repr__(self):
+        return f"<BidTemplate {self.name}>"
+
+
+class BookmarkedBidding(Base):
+    """
+    BookmarkedBidding - 포워더 관심 비딩
+    """
+    __tablename__ = "bookmarked_biddings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forwarder_id = Column(Integer, ForeignKey("forwarders.id"), nullable=False)
+    bidding_id = Column(Integer, ForeignKey("biddings.id"), nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    forwarder = relationship("Forwarder")
+    bidding = relationship("Bidding")
+    
+    def __repr__(self):
+        return f"<BookmarkedBidding forwarder={self.forwarder_id} bidding={self.bidding_id}>"

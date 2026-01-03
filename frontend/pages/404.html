@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - 페이지를 찾을 수 없습니다 | AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    
+    <style>
+        .error-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-primary);
+        }
+        
+        .error-icon {
+            font-size: 8rem;
+            color: var(--accent-primary);
+            margin-bottom: 2rem;
+            opacity: 0.8;
+        }
+        
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 400px;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .error-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .error-btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+        
+        .error-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .error-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .error-btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .error-suggestions {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            max-width: 500px;
+        }
+        
+        .error-suggestions h3 {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .suggestion-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+        
+        .suggestion-link {
+            padding: 0.5rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .suggestion-link:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        
+        .error-animation {
+            position: relative;
+        }
+        
+        .error-animation::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse-bg 3s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes pulse-bg {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-page">
+        <div class="error-animation">
+            <i class="fas fa-compass error-icon"></i>
+        </div>
+        <div class="error-code">404</div>
+        <h1 class="error-title">페이지를 찾을 수 없습니다</h1>
+        <p class="error-message">
+            요청하신 페이지가 존재하지 않거나 이동되었을 수 있습니다. 
+            URL을 확인하시거나 아래 링크를 이용해 주세요.
+        </p>
+        
+        <div class="error-actions">
+            <a href="../ai_studio_code_F2.html" class="error-btn error-btn-primary">
+                <i class="fas fa-home"></i> 홈으로 이동
+            </a>
+            <a href="javascript:history.back()" class="error-btn error-btn-secondary">
+                <i class="fas fa-arrow-left"></i> 이전 페이지
+            </a>
+        </div>
+        
+        <div class="error-suggestions">
+            <h3>자주 찾는 페이지</h3>
+            <div class="suggestion-links">
+                <a href="quotation.html" class="suggestion-link">견적 요청</a>
+                <a href="bidding-list.html" class="suggestion-link">입찰 목록</a>
+                <a href="contract-management.html" class="suggestion-link">계약 관리</a>
+                <a href="shipment-tracking.html" class="suggestion-link">배송 추적</a>
+                <a href="mypage.html" class="suggestion-link">마이페이지</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

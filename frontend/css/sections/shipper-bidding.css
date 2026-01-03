@@ -1,0 +1,562 @@
+/**
+ * Shipper Bidding Management Styles
+ * 화주용 운송 요청 및 입찰 관리 스타일
+ */
+
+/* ==========================================
+   SECTION SUBTITLE
+   ========================================== */
+
+.section-subtitle {
+    color: var(--text-sub);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+}
+
+/* ==========================================
+   SHIPPER BAR
+   ========================================== */
+
+.shipper-bar {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.shipper-avatar {
+    background: linear-gradient(135deg, #22c55e, #10b981) !important;
+}
+
+.shipper-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-new-quote {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: linear-gradient(135deg, #22c55e, #10b981);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.btn-new-quote:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.btn-new-quote-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    background: linear-gradient(135deg, #22c55e, #10b981);
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+}
+
+.btn-new-quote-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+}
+
+/* ==========================================
+   SHIPPER TABLE
+   ========================================== */
+
+.shipper-table th:last-child,
+.shipper-table td:last-child {
+    text-align: center;
+}
+
+.bid-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.5rem;
+    background: rgba(107, 114, 128, 0.1);
+    color: var(--text-sub);
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.bid-count.has-bids {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(99, 102, 241, 0.1));
+    color: #3b82f6;
+}
+
+.min-price {
+    font-weight: 600;
+    color: #22c55e;
+}
+
+.status-text.waiting {
+    color: var(--text-sub);
+    font-size: 0.85rem;
+}
+
+/* ==========================================
+   LOGIN REQUIRED STATE
+   ========================================== */
+
+.login-required-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.login-required-state i {
+    font-size: 4rem;
+    color: var(--text-disabled);
+    margin-bottom: 1.5rem;
+}
+
+.login-required-state h3 {
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.login-required-state p {
+    color: var(--text-sub);
+    margin-bottom: 1.5rem;
+}
+
+.btn-login-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 2rem;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-login-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+}
+
+/* ==========================================
+   BID SELECTION MODAL
+   ========================================== */
+
+.bid-selection-modal .modal-content {
+    max-width: 1000px;
+    width: 95%;
+}
+
+.bid-selection-content {
+    background: var(--bg-card);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(99, 102, 241, 0.05));
+    border-bottom: 1px solid var(--border-main);
+}
+
+.modal-header-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.modal-bidding-no {
+    padding: 0.35rem 0.75rem;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.modal-route-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.route-badge {
+    padding: 0.35rem 0.75rem;
+    background: var(--bg-hover);
+    color: var(--text-main);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.etd-badge {
+    padding: 0.35rem 0.75rem;
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-sub);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+/* ==========================================
+   BID LIST TABLE
+   ========================================== */
+
+.bid-list-container {
+    padding: 1.5rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.bid-list-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.bid-list-table th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border-main);
+}
+
+.bid-list-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-sub);
+    vertical-align: middle;
+}
+
+.bid-list-table tr:hover {
+    background: rgba(59, 130, 246, 0.03);
+}
+
+.bid-list-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Column Widths */
+.col-rank { width: 60px; text-align: center !important; }
+.col-company { width: 100px; }
+.col-rating { width: 150px; }
+.col-price { width: 140px; }
+.col-schedule { width: 120px; }
+.col-transit { width: 80px; }
+.col-carrier { width: 120px; }
+.col-action { width: 100px; text-align: center !important; }
+
+/* Rank Badge */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: var(--bg-hover);
+    color: var(--text-sub);
+}
+
+.rank-badge.rank-1 {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #000;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.rank-badge.rank-2 {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+    color: #fff;
+}
+
+.rank-badge.rank-3 {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #fff;
+}
+
+/* Company Masked */
+.company-masked {
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+/* Rating Display */
+.rating-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stars {
+    display: flex;
+    gap: 2px;
+}
+
+.stars i {
+    font-size: 0.85rem;
+    color: #fbbf24;
+}
+
+.stars i.far {
+    color: #4b5563;
+}
+
+.rating-value {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.rating-count {
+    color: var(--text-disabled);
+    font-size: 0.8rem;
+}
+
+/* Bid Price */
+.bid-price {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #22c55e;
+}
+
+/* Schedule */
+.col-schedule .text-muted {
+    color: var(--text-sub);
+    font-size: 0.85rem;
+}
+
+/* Award Button */
+.award-btn {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #22c55e, #10b981);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.award-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+/* No Bids State */
+.no-bids-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.no-bids-state i {
+    font-size: 3rem;
+    color: var(--text-disabled);
+    margin-bottom: 1rem;
+}
+
+.no-bids-state h4 {
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+.no-bids-state p {
+    color: var(--text-sub);
+}
+
+/* ==========================================
+   CONFIRM MODAL
+   ========================================== */
+
+.confirm-modal .modal-content {
+    max-width: 450px;
+}
+
+.confirm-content {
+    padding: 2rem;
+    text-align: center;
+    background: var(--bg-card);
+    border-radius: 16px;
+}
+
+.confirm-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.1));
+    border-radius: 50%;
+}
+
+.confirm-icon i {
+    font-size: 2.5rem;
+    color: #22c55e;
+}
+
+.confirm-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 0.75rem;
+}
+
+.confirm-message {
+    color: var(--text-sub);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.confirm-details {
+    background: var(--bg-hover);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.confirm-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.confirm-detail-item:not(:last-child) {
+    border-bottom: 1px solid var(--border-sub);
+}
+
+.detail-label {
+    color: var(--text-sub);
+    font-size: 0.9rem;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.detail-value.highlight {
+    color: #22c55e;
+    font-size: 1.1rem;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.confirm-actions .action-btn {
+    min-width: 120px;
+    padding: 0.75rem 1.5rem;
+}
+
+.confirm-actions .action-btn.secondary {
+    background: var(--bg-hover);
+    color: var(--text-main);
+    border: 1px solid var(--border-main);
+}
+
+.confirm-actions .action-btn.primary {
+    background: linear-gradient(135deg, #22c55e, #10b981);
+    color: white;
+}
+
+/* ==========================================
+   MODAL FOOTER
+   ========================================== */
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    background: var(--bg-hover);
+    border-top: 1px solid var(--border-main);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .shipper-bar-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-header {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .modal-route-info {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .bid-list-table {
+        font-size: 0.85rem;
+    }
+    
+    .bid-list-table th,
+    .bid-list-table td {
+        padding: 0.5rem;
+    }
+    
+    .col-carrier,
+    .col-transit {
+        display: none;
+    }
+}

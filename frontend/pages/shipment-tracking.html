@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>배송 추적 - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
+    <link rel="stylesheet" href="../css/components/unified-cards.css">
+    <link rel="stylesheet" href="../css/components/unified-buttons.css">
+    <link rel="stylesheet" href="../css/sections/shipment.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="shipper-bidding.html">My Quotations</a></li>
+                <li><a href="bidding-list.html">Bidding</a></li>
+                <li><a href="market-data.html">Market Data</a></li>
+                <li><a href="news-intelligence.html">News Intel</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding">
+        <!-- Page Header -->
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">배송 추적</h1>
+                <p class="section-subtitle">진행 중인 배송 현황 실시간 확인</p>
+            </div>
+        </div>
+
+        <!-- Quick Search -->
+        <div class="tracking-search-box">
+            <div class="search-input-group">
+                <i class="fas fa-search"></i>
+                <input type="text" id="trackingSearch" placeholder="배송번호, B/L번호 또는 계약번호로 검색...">
+                <button onclick="ShipmentTracking.searchShipment()">조회</button>
+            </div>
+        </div>
+
+        <!-- Shipment Stats -->
+        <div class="shipment-stats" id="shipmentStats">
+            <div class="stat-card in-transit">
+                <div class="stat-icon"><i class="fas fa-ship"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statInTransit">0</span>
+                    <span class="stat-label">운송 중</span>
+                </div>
+            </div>
+            <div class="stat-card delivered">
+                <div class="stat-icon"><i class="fas fa-truck"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statDelivered">0</span>
+                    <span class="stat-label">배송 완료</span>
+                </div>
+            </div>
+            <div class="stat-card pending-confirm">
+                <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPendingConfirm">0</span>
+                    <span class="stat-label">확인 대기</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <select id="filterStatus" onchange="ShipmentTracking.applyFilters()">
+                    <option value="">모든 상태</option>
+                    <option value="booked">예약됨</option>
+                    <option value="picked_up">픽업 완료</option>
+                    <option value="in_transit">운송 중</option>
+                    <option value="arrived_port">항구 도착</option>
+                    <option value="customs">통관 중</option>
+                    <option value="out_for_delivery">배송 출발</option>
+                    <option value="delivered">배송 완료</option>
+                    <option value="completed">완료</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Shipment List -->
+        <div class="shipment-list" id="shipmentList">
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>배송 목록을 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <!-- Shipment Detail Modal -->
+    <div class="modal-overlay" id="shipmentDetailModal">
+        <div class="modal-container shipment-modal">
+            <div class="modal-header">
+                <h2>배송 상세</h2>
+                <button class="modal-close" onclick="ShipmentTracking.closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="shipmentDetailContent">
+                <!-- Shipment header -->
+                <div class="shipment-header">
+                    <div class="shipment-info">
+                        <h3 id="modalShipmentNo">SH-20260103-001</h3>
+                        <span class="shipment-route" id="modalRoute">KRPUS → USLAX</span>
+                    </div>
+                    <div class="shipment-status" id="modalStatus">
+                        <span class="status-badge in-transit">운송 중</span>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="tracking-timeline" id="trackingTimeline">
+                    <!-- Timeline items will be loaded here -->
+                </div>
+
+                <!-- Shipment Details -->
+                <div class="shipment-details-grid" id="shipmentDetailsGrid">
+                    <!-- Details will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer" id="shipmentModalFooter">
+                <!-- Action buttons for shipper/forwarder -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Status Modal (Forwarder) -->
+    <div class="modal-overlay" id="updateStatusModal">
+        <div class="modal-container status-modal">
+            <div class="modal-header">
+                <h2>배송 상태 업데이트</h2>
+                <button class="modal-close" onclick="ShipmentTracking.closeStatusModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="newStatus">새 상태</label>
+                    <select id="newStatus">
+                        <option value="picked_up">픽업 완료</option>
+                        <option value="in_transit">운송 중</option>
+                        <option value="arrived_port">목적지항 도착</option>
+                        <option value="customs">통관 진행 중</option>
+                        <option value="out_for_delivery">배송 출발</option>
+                        <option value="delivered">배송 완료</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="statusLocation">현재 위치</label>
+                    <input type="text" id="statusLocation" placeholder="예: 인천항, 부산세관...">
+                </div>
+                <div class="form-group">
+                    <label for="statusRemark">비고</label>
+                    <textarea id="statusRemark" rows="2" placeholder="추가 정보..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="ShipmentTracking.closeStatusModal()">취소</button>
+                <button class="btn-primary" onclick="ShipmentTracking.submitStatusUpdate()">업데이트</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/core/auth.js"></script>
+    <script src="../js/features/shipmentTracking.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            ShipmentTracking.init();
+        });
+    </script>
+</body>
+</html>

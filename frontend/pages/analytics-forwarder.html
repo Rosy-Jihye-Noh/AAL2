@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Forwarder | AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Styles - Design System -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <!-- Components -->
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
+    <link rel="stylesheet" href="../css/components/unified-cards.css">
+    <link rel="stylesheet" href="../css/components/unified-buttons.css">
+    <!-- Sections -->
+    <link rel="stylesheet" href="../css/sections/analytics.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="shipper-bidding.html">My Quotations</a></li>
+                <li><a href="bidding-list.html">Bidding</a></li>
+                <li><a href="market-data.html">Market Data</a></li>
+                <li><a href="news-intelligence.html">News Intel</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+        <!-- Auth Container -->
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding analytics-main">
+        <!-- Page Header -->
+        <div class="analytics-header">
+            <div class="analytics-title-group">
+                <h1 class="analytics-title">
+                    <i class="fas fa-chart-bar"></i>
+                    Performance Analytics
+                </h1>
+                <p class="analytics-subtitle">입찰 성과 및 경쟁력 분석</p>
+            </div>
+            
+            <!-- Controls -->
+            <div class="analytics-controls">
+                <!-- Period Selector -->
+                <div class="period-selector">
+                    <button class="period-btn" data-period="1m">1개월</button>
+                    <button class="period-btn" data-period="3m">3개월</button>
+                    <button class="period-btn active" data-period="6m">6개월</button>
+                    <button class="period-btn" data-period="1y">1년</button>
+                    <button class="period-btn" data-period="all">전체</button>
+                </div>
+                
+                <!-- Export Button -->
+                <button class="export-btn" onclick="Analytics.exportData()">
+                    <i class="fas fa-download"></i>
+                    내보내기
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Required Message -->
+        <div id="loginRequired" class="login-required-panel" style="display: none;">
+            <div class="login-icon">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <h2>성과 분석 대시보드</h2>
+            <p>입찰 성과 및 경쟁력 분석 데이터를 확인하려면 로그인이 필요합니다.</p>
+            <button class="btn-login-action" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 운송사로 로그인
+            </button>
+        </div>
+
+        <!-- Dashboard Content (shown when logged in) -->
+        <div id="dashboardContent" style="display: none;">
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card gradient-blue">
+                    <div class="kpi-icon">
+                        <i class="fas fa-gavel"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <span class="kpi-label">총 입찰 건수</span>
+                        <span class="kpi-value" id="kpiTotalBids">-</span>
+                        <span class="kpi-subtext">제출된 입찰</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card gradient-green">
+                    <div class="kpi-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <span class="kpi-label">낙찰률</span>
+                        <span class="kpi-value" id="kpiAwardRate">-</span>
+                        <span class="kpi-subtext" id="kpiAwardCounts">선정 - / 탈락 -</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card gradient-purple">
+                    <div class="kpi-icon">
+                        <i class="fas fa-sort-numeric-up"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <span class="kpi-label">평균 순위</span>
+                        <span class="kpi-value" id="kpiAvgRank">-</span>
+                        <span class="kpi-subtext">가격 경쟁력 기준</span>
+                    </div>
+                </div>
+                
+                <div class="kpi-card gradient-orange">
+                    <div class="kpi-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <span class="kpi-label">평균 평점</span>
+                        <span class="kpi-value" id="kpiAvgRating">-</span>
+                        <span class="kpi-subtext">고객 평가 점수</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 1 -->
+            <div class="charts-row">
+                <!-- Monthly Trend Chart -->
+                <div class="chart-card large">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-line"></i>
+                            월별 입찰 현황
+                        </h3>
+                        <div class="chart-legend" id="trendLegend"></div>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="monthlyTrendChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Bid Stats by Type Pie Chart -->
+                <div class="chart-card small">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-chart-pie"></i>
+                            운송타입별 실적
+                        </h3>
+                    </div>
+                    <div class="chart-body pie-chart-container">
+                        <canvas id="bidStatsByTypeChart"></canvas>
+                    </div>
+                    <div class="chart-footer" id="bidStatsSummary">
+                        <!-- Summary will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row 2 -->
+            <div class="charts-row">
+                <!-- Competitiveness Analysis -->
+                <div class="chart-card medium">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-balance-scale"></i>
+                            경쟁력 분석
+                        </h3>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="competitivenessChart"></canvas>
+                    </div>
+                    <div class="competitiveness-summary" id="competitivenessSummary">
+                        <div class="comp-item">
+                            <span class="comp-label">가격 경쟁력</span>
+                            <span class="comp-value positive" id="priceCompetitiveness">-</span>
+                        </div>
+                        <div class="comp-item">
+                            <span class="comp-label">낙찰률 vs 시장</span>
+                            <span class="comp-value" id="winRateVsMarket">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rating Trend -->
+                <div class="chart-card medium">
+                    <div class="chart-header">
+                        <h3 class="chart-title">
+                            <i class="fas fa-star-half-alt"></i>
+                            평점 추이
+                        </h3>
+                    </div>
+                    <div class="chart-body">
+                        <canvas id="ratingTrendChart"></canvas>
+                    </div>
+                    <div class="rating-summary" id="ratingSummary">
+                        <div class="rating-current">
+                            <span class="rating-stars" id="ratingStars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star-half-alt"></i>
+                                <i class="far fa-star"></i>
+                            </span>
+                            <span class="rating-score" id="currentRating">3.5</span>
+                            <span class="rating-count" id="totalRatings">(0개 평가)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total Revenue Summary -->
+            <div class="total-cost-summary revenue-summary">
+                <div class="summary-content">
+                    <div class="summary-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="summary-details">
+                        <span class="summary-label">총 수주액</span>
+                        <span class="summary-value" id="totalRevenueValue">KRW 0</span>
+                        <span class="summary-period" id="summaryPeriod">선택 기간 내 낙찰된 건 합계</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Auth Modal (reused) -->
+    <div id="authModal" class="modal-overlay auth-modal">
+        <div class="auth-modal-content">
+            <button class="close-button" onclick="Auth.closeModal()">&times;</button>
+            <div id="authModalBody">
+                <!-- Auth content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="../js/features/auth.js"></script>
+    <script type="module" src="../js/features/analytics.js"></script>
+    <script type="module">
+        import { Analytics } from '../js/features/analytics.js';
+        import { Auth } from '../js/features/auth.js';
+        
+        window.Analytics = Analytics;
+        window.Auth = Auth;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Analytics.init('forwarder');
+        });
+    </script>
+</body>
+</html>

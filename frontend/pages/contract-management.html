@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약 관리 - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
+    <link rel="stylesheet" href="../css/components/unified-cards.css">
+    <link rel="stylesheet" href="../css/components/unified-buttons.css">
+    <link rel="stylesheet" href="../css/sections/contract.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="shipper-bidding.html">My Quotations</a></li>
+                <li><a href="bidding-list.html">Bidding</a></li>
+                <li><a href="market-data.html">Market Data</a></li>
+                <li><a href="news-intelligence.html">News Intel</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding">
+        <!-- Page Header -->
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">계약 관리</h1>
+                <p class="section-subtitle">운송사 선정 후 계약 확정 및 관리</p>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="contract-stats" id="contractStats">
+            <div class="stat-card pending">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statPending">0</span>
+                    <span class="stat-label">확정 대기</span>
+                </div>
+            </div>
+            <div class="stat-card confirmed">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statConfirmed">0</span>
+                    <span class="stat-label">계약 확정</span>
+                </div>
+            </div>
+            <div class="stat-card active">
+                <div class="stat-icon"><i class="fas fa-shipping-fast"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statActive">0</span>
+                    <span class="stat-label">배송 진행중</span>
+                </div>
+            </div>
+            <div class="stat-card completed">
+                <div class="stat-icon"><i class="fas fa-flag-checkered"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statCompleted">0</span>
+                    <span class="stat-label">완료</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <select id="filterStatus" onchange="ContractManagement.applyFilters()">
+                    <option value="">모든 상태</option>
+                    <option value="pending">확정 대기</option>
+                    <option value="confirmed">계약 확정</option>
+                    <option value="active">배송 진행</option>
+                    <option value="completed">완료</option>
+                    <option value="cancelled">취소</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <input type="text" id="filterSearch" placeholder="계약번호 또는 구간 검색..." 
+                       onkeyup="ContractManagement.applyFilters()">
+            </div>
+        </div>
+
+        <!-- Contract List -->
+        <div class="contract-list" id="contractList">
+            <div class="loading-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>계약 목록을 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <!-- Contract Detail Modal -->
+    <div class="modal-overlay" id="contractDetailModal">
+        <div class="modal-container contract-modal">
+            <div class="modal-header">
+                <h2>계약 상세</h2>
+                <button class="modal-close" onclick="ContractManagement.closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="contractDetailContent">
+                <!-- Contract details will be loaded here -->
+            </div>
+            <div class="modal-footer" id="contractModalFooter">
+                <!-- Action buttons will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Reason Modal -->
+    <div class="modal-overlay" id="cancelReasonModal">
+        <div class="modal-container cancel-modal">
+            <div class="modal-header">
+                <h2>계약 취소</h2>
+                <button class="modal-close" onclick="ContractManagement.closeCancelModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="cancel-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    계약을 취소하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+                </p>
+                <div class="form-group">
+                    <label for="cancelReason">취소 사유</label>
+                    <textarea id="cancelReason" rows="3" placeholder="취소 사유를 입력해주세요..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="ContractManagement.closeCancelModal()">닫기</button>
+                <button class="btn-danger" onclick="ContractManagement.confirmCancel()">계약 취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/core/auth.js"></script>
+    <script src="../js/features/contractManagement.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            ContractManagement.init();
+        });
+    </script>
+</body>
+</html>

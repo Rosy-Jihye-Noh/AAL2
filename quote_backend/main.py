@@ -18,9 +18,12 @@ import os
 from database import get_db, engine
 from models import (
     Base, Port, ContainerType, TruckType, Incoterm, Customer, QuoteRequest, 
-    CargoDetail, Bidding, Forwarder, Bid,
+    CargoDetail, Bidding, Forwarder, Bid, Notification, Rating,
     # Freight Master tables
-    FreightCategory, FreightCode, FreightUnit, FreightCodeUnit
+    FreightCategory, FreightCode, FreightUnit, FreightCodeUnit,
+    # Contract & Shipment
+    Contract, Shipment, ShipmentTracking, Settlement, Message,
+    FavoriteRoute, BidTemplate, BookmarkedBidding
 )
 from schemas import (
     PortResponse, ContainerTypeResponse, TruckTypeResponse, IncotermResponse,
@@ -34,7 +37,35 @@ from schemas import (
     BiddingListItem, BiddingListResponse, BiddingStatsResponse, BiddingDetailResponse,
     # Freight Code schemas
     FreightUnitResponse, FreightCodeResponse, FreightCategoryResponse,
-    FreightCategoryWithCodesResponse, FreightCodesListResponse
+    FreightCategoryWithCodesResponse, FreightCodesListResponse,
+    # Shipper Bidding Management schemas
+    ShipperBidItem, ShipperBiddingListItem, ShipperBiddingListResponse,
+    ShipperBiddingStatsResponse, ShipperBiddingBidsResponse, AwardBidResponse,
+    # Notification schemas
+    NotificationResponse, NotificationListResponse, MarkNotificationReadRequest,
+    # Rating schemas
+    RatingCreate, RatingResponse, ForwarderRatingStats, SubmitRatingResponse,
+    # Analytics schemas
+    AnalyticsPeriod, ShipperAnalyticsSummary, ShipperMonthlyTrendResponse,
+    MonthlyTrendItem, ShipperCostByTypeResponse, CostByTypeItem,
+    ShipperRouteStatsResponse, RouteStatItem, ShipperForwarderRankingResponse,
+    ForwarderRankingItem, ForwarderAnalyticsSummary, ForwarderMonthlyTrendResponse,
+    ForwarderMonthlyTrendItem, ForwarderBidStatsResponse, BidStatsByTypeItem,
+    ForwarderCompetitivenessResponse, CompetitivenessData,
+    ForwarderRatingTrendResponse, RatingTrendItem, ComparisonData,
+    # Contract & Shipment schemas
+    ContractConfirmRequest, ContractCancelRequest, ContractResponse, 
+    ContractDetailResponse, ContractListItem, ContractListResponse,
+    ShipmentStatusUpdate, ShipmentDeliveryConfirm, ShipmentTrackingItem,
+    ShipmentResponse, ShipmentDetailResponse, ShipmentListItem, ShipmentListResponse,
+    SettlementRequest, SettlementResponse, SettlementListItem, SettlementListResponse, SettlementSummary,
+    MessageCreate, MessageResponse, MessageThreadResponse, UnreadMessagesResponse,
+    FavoriteRouteCreate, FavoriteRouteResponse, FavoriteRouteListResponse,
+    BidTemplateCreate, BidTemplateResponse, BidTemplateListResponse,
+    BookmarkBiddingRequest, BookmarkedBiddingResponse, BookmarkedBiddingListResponse,
+    QuoteRequestUpdate, QuoteRequestCopyRequest,
+    RecommendedForwarder, ForwarderRecommendationResponse,
+    RecommendedBidding, BiddingRecommendationResponse, PriceGuideResponse
 )
 from pdf_generator import RFQPDFGenerator
 import hashlib
@@ -1711,6 +1742,3302 @@ def health_check(db: Session = Depends(get_db)):
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "database": str(e)}
+
+
+# ==========================================
+# SHIPPER BIDDING MANAGEMENT ENDPOINTS
+# ==========================================
+
+# KRW 환율 (실제 서비스에서는 실시간 환율 API 연동 필요)
+EXCHANGE_RATES = {
+    'USD': 1350,  # 1 USD = 1350 KRW
+    'EUR': 1450,
+    'JPY': 9,
+    'CNY': 185,
+    'KRW': 1
+}
+
+
+def convert_to_krw(amount: float, currency: str = 'USD') -> float:
+    """금액을 KRW로 변환"""
+    rate = EXCHANGE_RATES.get(currency.upper(), 1350)
+    return amount * rate
+
+
+def mask_company_name(company_name: str) -> str:
+    """회사명 익명화: 첫 글자만 표시하고 나머지는 ****"""
+    if not company_name:
+        return "****"
+    return company_name[0] + "****"
+
+
+@app.get("/api/shipper/biddings/stats", response_model=ShipperBiddingStatsResponse, tags=["Shipper Bidding"])
+def get_shipper_bidding_stats(
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    화주의 비딩 통계 조회
+    """
+    # 해당 고객의 Quote Request ID 목록 조회
+    quote_ids = db.query(QuoteRequest.id).filter(
+        QuoteRequest.customer_id == customer_id
+    ).subquery()
+    
+    # 기본 쿼리
+    base_query = db.query(Bidding).filter(Bidding.quote_request_id.in_(quote_ids))
+    
+    total_count = base_query.count()
+    open_count = base_query.filter(Bidding.status == "open").count()
+    
+    # 24시간 이내 마감 예정
+    now = datetime.now()
+    closing_soon_deadline = now + timedelta(hours=24)
+    closing_soon_count = base_query.filter(
+        Bidding.status == "open",
+        Bidding.deadline != None,
+        Bidding.deadline <= closing_soon_deadline,
+        Bidding.deadline > now
+    ).count()
+    
+    awarded_count = base_query.filter(Bidding.status == "awarded").count()
+    failed_count = base_query.filter(
+        Bidding.status.in_(["closed", "cancelled", "expired"])
+    ).count()
+    
+    return ShipperBiddingStatsResponse(
+        total_count=total_count,
+        open_count=open_count,
+        closing_soon_count=closing_soon_count,
+        awarded_count=awarded_count,
+        failed_count=failed_count
+    )
+
+
+@app.get("/api/shipper/biddings", response_model=ShipperBiddingListResponse, tags=["Shipper Bidding"])
+def get_shipper_bidding_list(
+    customer_id: int,
+    page: int = 1,
+    limit: int = 20,
+    status: Optional[str] = None,
+    shipping_type: Optional[str] = None,
+    search: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    화주의 비딩 목록 조회
+    
+    - customer_id: 고객 ID (필수)
+    - status: open, closing_soon, awarded, expired, closed
+    - shipping_type: ocean, air, truck
+    - search: Bidding No 검색
+    """
+    # 해당 고객의 Quote Request와 Bidding 조인
+    query = db.query(Bidding, QuoteRequest).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id
+    )
+    
+    # 상태 필터
+    now = datetime.now()
+    if status == "open":
+        query = query.filter(Bidding.status == "open")
+    elif status == "closing_soon":
+        closing_deadline = now + timedelta(hours=24)
+        query = query.filter(
+            Bidding.status == "open",
+            Bidding.deadline != None,
+            Bidding.deadline <= closing_deadline,
+            Bidding.deadline > now
+        )
+    elif status == "awarded":
+        query = query.filter(Bidding.status == "awarded")
+    elif status == "expired":
+        query = query.filter(Bidding.status.in_(["expired", "closed", "cancelled"]))
+    
+    # 운송 타입 필터
+    if shipping_type:
+        query = query.filter(QuoteRequest.shipping_type == shipping_type)
+    
+    # 검색
+    if search:
+        query = query.filter(Bidding.bidding_no.ilike(f"%{search}%"))
+    
+    # 전체 건수
+    total = query.count()
+    
+    # 페이지네이션
+    offset = (page - 1) * limit
+    results = query.order_by(Bidding.created_at.desc()).offset(offset).limit(limit).all()
+    
+    # 응답 데이터 구성
+    data = []
+    for bidding, quote_req in results:
+        # 입찰 수 및 통계 조회
+        bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.status == "submitted"
+        ).all()
+        
+        bid_count = len(bids)
+        min_bid_krw = None
+        avg_bid_krw = None
+        
+        if bids:
+            # KRW 환산 금액으로 계산
+            krw_amounts = []
+            for bid in bids:
+                if bid.total_amount_krw:
+                    krw_amounts.append(float(bid.total_amount_krw))
+                else:
+                    krw_amounts.append(convert_to_krw(float(bid.total_amount)))
+            
+            min_bid_krw = min(krw_amounts)
+            avg_bid_krw = sum(krw_amounts) / len(krw_amounts)
+        
+        # 낙찰 운송사 (익명화)
+        awarded_forwarder = None
+        if bidding.awarded_bid_id:
+            awarded_bid = db.query(Bid).filter(Bid.id == bidding.awarded_bid_id).first()
+            if awarded_bid:
+                forwarder = db.query(Forwarder).filter(Forwarder.id == awarded_bid.forwarder_id).first()
+                if forwarder:
+                    awarded_forwarder = mask_company_name(forwarder.company)
+        
+        data.append(ShipperBiddingListItem(
+            id=bidding.id,
+            bidding_no=bidding.bidding_no,
+            pol=quote_req.pol,
+            pod=quote_req.pod,
+            shipping_type=quote_req.shipping_type,
+            load_type=quote_req.load_type,
+            etd=quote_req.etd,
+            eta=quote_req.eta,
+            deadline=bidding.deadline,
+            status=bidding.status,
+            bid_count=bid_count,
+            min_bid_price_krw=min_bid_krw,
+            avg_bid_price_krw=avg_bid_krw,
+            awarded_forwarder=awarded_forwarder,
+            created_at=bidding.created_at
+        ))
+    
+    return ShipperBiddingListResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        data=data
+    )
+
+
+@app.get("/api/shipper/bidding/{bidding_no}/bids", response_model=ShipperBiddingBidsResponse, tags=["Shipper Bidding"])
+def get_shipper_bidding_bids(
+    bidding_no: str,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    특정 비딩의 입찰 목록 조회 (화주용, 익명화)
+    
+    - 업체명은 첫 글자만 표시 (예: 삼****)
+    - 입찰가 순서로 rank 부여
+    - 평점 포함
+    """
+    # 비딩 조회 및 권한 확인
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first()
+    if not quote_req or quote_req.customer_id != customer_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # 제출된 입찰 목록 조회 (총액 순서)
+    bids = db.query(Bid, Forwarder).join(
+        Forwarder, Bid.forwarder_id == Forwarder.id
+    ).filter(
+        Bid.bidding_id == bidding.id,
+        Bid.status == "submitted"
+    ).all()
+    
+    # KRW 환산 및 정렬
+    bid_data = []
+    for bid, forwarder in bids:
+        krw_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+        bid_data.append({
+            'bid': bid,
+            'forwarder': forwarder,
+            'krw_amount': krw_amount
+        })
+    
+    # KRW 기준 오름차순 정렬
+    bid_data.sort(key=lambda x: x['krw_amount'])
+    
+    # 응답 데이터 구성
+    bid_items = []
+    for rank, item in enumerate(bid_data, 1):
+        bid = item['bid']
+        forwarder = item['forwarder']
+        
+        bid_items.append(ShipperBidItem(
+            id=bid.id,
+            rank=rank,
+            company_masked=mask_company_name(forwarder.company),
+            rating=float(forwarder.rating) if forwarder.rating else 3.0,
+            rating_count=forwarder.rating_count or 0,
+            total_amount_krw=item['krw_amount'],
+            total_amount=float(bid.total_amount),
+            etd=bid.etd,
+            eta=bid.eta,
+            transit_time=bid.transit_time,
+            carrier=bid.carrier,
+            validity_date=bid.validity_date,
+            remark=bid.remark,
+            status=bid.status,
+            submitted_at=bid.submitted_at
+        ))
+    
+    return ShipperBiddingBidsResponse(
+        bidding_no=bidding.bidding_no,
+        bidding_status=bidding.status,
+        pol=quote_req.pol,
+        pod=quote_req.pod,
+        shipping_type=quote_req.shipping_type,
+        etd=quote_req.etd,
+        deadline=bidding.deadline,
+        bid_count=len(bid_items),
+        bids=bid_items
+    )
+
+
+@app.post("/api/shipper/bidding/{bidding_no}/award/{bid_id}", response_model=AwardBidResponse, tags=["Shipper Bidding"])
+def award_bid(
+    bidding_no: str,
+    bid_id: int,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사 선정 (낙찰)
+    
+    - 해당 비딩의 상태를 'awarded'로 변경
+    - 선정된 입찰의 상태를 'awarded'로 변경
+    - 나머지 입찰은 'rejected'로 변경
+    - 선정된 운송사에 알림 발송
+    """
+    # 비딩 조회 및 권한 확인
+    bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first()
+    if not quote_req or quote_req.customer_id != customer_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    if bidding.status != "open":
+        raise HTTPException(status_code=400, detail="Bidding is not open")
+    
+    # 선정할 입찰 조회
+    awarded_bid = db.query(Bid).filter(
+        Bid.id == bid_id,
+        Bid.bidding_id == bidding.id,
+        Bid.status == "submitted"
+    ).first()
+    
+    if not awarded_bid:
+        raise HTTPException(status_code=404, detail="Bid not found or not submitted")
+    
+    try:
+        # 1. 비딩 상태 변경
+        bidding.status = "awarded"
+        bidding.awarded_bid_id = bid_id
+        bidding.updated_at = datetime.now()
+        
+        # 2. 선정된 입찰 상태 변경
+        awarded_bid.status = "awarded"
+        awarded_bid.updated_at = datetime.now()
+        
+        # 3. 나머지 입찰 rejected 처리
+        db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.id != bid_id,
+            Bid.status == "submitted"
+        ).update({"status": "rejected", "updated_at": datetime.now()})
+        
+        # 4. 선정 알림 생성
+        notification = Notification(
+            recipient_type="forwarder",
+            recipient_id=awarded_bid.forwarder_id,
+            notification_type="bid_awarded",
+            title=f"축하합니다! {bidding_no} 건에 선정되었습니다.",
+            message=f"{quote_req.pol} → {quote_req.pod} 운송 건에 대해 귀사가 운송사로 선정되었습니다. 고객사에서 곧 연락드릴 예정입니다.",
+            related_type="bidding",
+            related_id=bidding.id
+        )
+        db.add(notification)
+        
+        # 5. 탈락 알림 생성 (다른 입찰자들에게)
+        rejected_bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.id != bid_id,
+            Bid.status == "rejected"
+        ).all()
+        
+        for rejected_bid in rejected_bids:
+            reject_notification = Notification(
+                recipient_type="forwarder",
+                recipient_id=rejected_bid.forwarder_id,
+                notification_type="bid_rejected",
+                title=f"{bidding_no} 건 입찰 결과 안내",
+                message=f"{quote_req.pol} → {quote_req.pod} 운송 건에 대해 아쉽게도 다른 운송사가 선정되었습니다. 다음 기회에 좋은 결과 있기를 바랍니다.",
+                related_type="bidding",
+                related_id=bidding.id
+            )
+            db.add(reject_notification)
+        
+        db.commit()
+        
+        return AwardBidResponse(
+            success=True,
+            message="운송사가 선정되었습니다.",
+            bidding_no=bidding_no,
+            awarded_bid_id=bid_id,
+            notification_sent=True
+        )
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to award bid: {str(e)}")
+
+
+# ==========================================
+# NOTIFICATION ENDPOINTS
+# ==========================================
+
+@app.get("/api/notifications", response_model=NotificationListResponse, tags=["Notifications"])
+def get_notifications(
+    recipient_type: str,
+    recipient_id: int,
+    limit: int = 20,
+    include_read: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    알림 목록 조회
+    
+    - recipient_type: forwarder, customer
+    - recipient_id: 수신자 ID
+    - include_read: 읽은 알림도 포함할지 여부
+    """
+    query = db.query(Notification).filter(
+        Notification.recipient_type == recipient_type,
+        Notification.recipient_id == recipient_id
+    )
+    
+    if not include_read:
+        query = query.filter(Notification.is_read == False)
+    
+    total = query.count()
+    unread_count = db.query(Notification).filter(
+        Notification.recipient_type == recipient_type,
+        Notification.recipient_id == recipient_id,
+        Notification.is_read == False
+    ).count()
+    
+    notifications = query.order_by(Notification.created_at.desc()).limit(limit).all()
+    
+    return NotificationListResponse(
+        total=total,
+        unread_count=unread_count,
+        data=[NotificationResponse(
+            id=n.id,
+            notification_type=n.notification_type,
+            title=n.title,
+            message=n.message,
+            related_type=n.related_type,
+            related_id=n.related_id,
+            is_read=n.is_read,
+            read_at=n.read_at,
+            created_at=n.created_at
+        ) for n in notifications]
+    )
+
+
+@app.post("/api/notifications/mark-read", tags=["Notifications"])
+def mark_notifications_read(
+    request: MarkNotificationReadRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    알림 읽음 처리
+    """
+    try:
+        db.query(Notification).filter(
+            Notification.id.in_(request.notification_ids)
+        ).update({
+            "is_read": True,
+            "read_at": datetime.now()
+        }, synchronize_session=False)
+        
+        db.commit()
+        
+        return {"success": True, "message": f"{len(request.notification_ids)}개 알림을 읽음 처리했습니다."}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# RATING ENDPOINTS
+# ==========================================
+
+@app.post("/api/ratings", response_model=SubmitRatingResponse, tags=["Ratings"])
+def submit_rating(
+    rating_data: RatingCreate,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사 평점 등록
+    
+    운송 완료 후 화주가 운송사에 평점을 부여합니다.
+    - score: 종합 평점 (0.5 ~ 5.0, 0.5 단위)
+    - 세부 평점: 가격, 서비스, 정시성, 커뮤니케이션 (선택)
+    """
+    # 비딩 조회 및 권한 확인
+    bidding = db.query(Bidding).filter(Bidding.id == rating_data.bidding_id).first()
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first()
+    if not quote_req or quote_req.customer_id != customer_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # 낙찰된 비딩인지 확인
+    if bidding.status != "awarded":
+        raise HTTPException(status_code=400, detail="Rating can only be submitted for awarded biddings")
+    
+    # 해당 운송사가 낙찰된 운송사인지 확인
+    awarded_bid = db.query(Bid).filter(Bid.id == bidding.awarded_bid_id).first()
+    if not awarded_bid or awarded_bid.forwarder_id != rating_data.forwarder_id:
+        raise HTTPException(status_code=400, detail="Invalid forwarder for this bidding")
+    
+    # 이미 평점을 부여했는지 확인
+    existing_rating = db.query(Rating).filter(
+        Rating.bidding_id == rating_data.bidding_id,
+        Rating.customer_id == customer_id
+    ).first()
+    
+    if existing_rating:
+        raise HTTPException(status_code=400, detail="Rating already submitted for this bidding")
+    
+    try:
+        # 0.5 단위로 반올림
+        score = round(rating_data.score * 2) / 2
+        
+        # 평점 생성
+        rating = Rating(
+            bidding_id=rating_data.bidding_id,
+            forwarder_id=rating_data.forwarder_id,
+            customer_id=customer_id,
+            score=score,
+            price_score=round(rating_data.price_score * 2) / 2 if rating_data.price_score else None,
+            service_score=round(rating_data.service_score * 2) / 2 if rating_data.service_score else None,
+            punctuality_score=round(rating_data.punctuality_score * 2) / 2 if rating_data.punctuality_score else None,
+            communication_score=round(rating_data.communication_score * 2) / 2 if rating_data.communication_score else None,
+            comment=rating_data.comment
+        )
+        db.add(rating)
+        
+        # 운송사 평균 평점 업데이트
+        forwarder = db.query(Forwarder).filter(Forwarder.id == rating_data.forwarder_id).first()
+        if forwarder:
+            # 모든 평점의 평균 계산
+            all_ratings = db.query(Rating).filter(
+                Rating.forwarder_id == rating_data.forwarder_id,
+                Rating.is_visible == True
+            ).all()
+            
+            total_score = sum(float(r.score) for r in all_ratings) + score
+            total_count = len(all_ratings) + 1
+            
+            forwarder.rating = round((total_score / total_count) * 2) / 2
+            forwarder.rating_count = total_count
+        
+        db.commit()
+        db.refresh(rating)
+        
+        return SubmitRatingResponse(
+            success=True,
+            message="평점이 등록되었습니다.",
+            rating=RatingResponse(
+                id=rating.id,
+                bidding_id=rating.bidding_id,
+                forwarder_id=rating.forwarder_id,
+                customer_id=rating.customer_id,
+                score=float(rating.score),
+                price_score=float(rating.price_score) if rating.price_score else None,
+                service_score=float(rating.service_score) if rating.service_score else None,
+                punctuality_score=float(rating.punctuality_score) if rating.punctuality_score else None,
+                communication_score=float(rating.communication_score) if rating.communication_score else None,
+                comment=rating.comment,
+                is_visible=rating.is_visible,
+                created_at=rating.created_at
+            )
+        )
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to submit rating: {str(e)}")
+
+
+@app.get("/api/ratings/forwarder/{forwarder_id}", response_model=ForwarderRatingStats, tags=["Ratings"])
+def get_forwarder_rating_stats(
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사 평점 통계 조회
+    """
+    forwarder = db.query(Forwarder).filter(Forwarder.id == forwarder_id).first()
+    if not forwarder:
+        raise HTTPException(status_code=404, detail="Forwarder not found")
+    
+    # 모든 평점 조회
+    ratings = db.query(Rating).filter(
+        Rating.forwarder_id == forwarder_id,
+        Rating.is_visible == True
+    ).all()
+    
+    if not ratings:
+        return ForwarderRatingStats(
+            forwarder_id=forwarder_id,
+            company=forwarder.company,
+            average_score=float(forwarder.rating) if forwarder.rating else 3.0,
+            total_ratings=0,
+            score_distribution={}
+        )
+    
+    # 점수 분포 계산
+    distribution = {}
+    for r in ratings:
+        score_key = str(float(r.score))
+        distribution[score_key] = distribution.get(score_key, 0) + 1
+    
+    # 세부 평점 평균 계산
+    price_scores = [float(r.price_score) for r in ratings if r.price_score]
+    service_scores = [float(r.service_score) for r in ratings if r.service_score]
+    punctuality_scores = [float(r.punctuality_score) for r in ratings if r.punctuality_score]
+    communication_scores = [float(r.communication_score) for r in ratings if r.communication_score]
+    
+    return ForwarderRatingStats(
+        forwarder_id=forwarder_id,
+        company=forwarder.company,
+        average_score=float(forwarder.rating) if forwarder.rating else 3.0,
+        total_ratings=len(ratings),
+        score_distribution=distribution,
+        avg_price_score=sum(price_scores) / len(price_scores) if price_scores else None,
+        avg_service_score=sum(service_scores) / len(service_scores) if service_scores else None,
+        avg_punctuality_score=sum(punctuality_scores) / len(punctuality_scores) if punctuality_scores else None,
+        avg_communication_score=sum(communication_scores) / len(communication_scores) if communication_scores else None
+    )
+
+
+@app.get("/api/ratings/bidding/{bidding_id}", response_model=Optional[RatingResponse], tags=["Ratings"])
+def get_bidding_rating(
+    bidding_id: int,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    특정 비딩에 대한 평점 조회
+    """
+    rating = db.query(Rating).filter(
+        Rating.bidding_id == bidding_id,
+        Rating.customer_id == customer_id
+    ).first()
+    
+    if not rating:
+        return None
+    
+    return RatingResponse(
+        id=rating.id,
+        bidding_id=rating.bidding_id,
+        forwarder_id=rating.forwarder_id,
+        customer_id=rating.customer_id,
+        score=float(rating.score),
+        price_score=float(rating.price_score) if rating.price_score else None,
+        service_score=float(rating.service_score) if rating.service_score else None,
+        punctuality_score=float(rating.punctuality_score) if rating.punctuality_score else None,
+        communication_score=float(rating.communication_score) if rating.communication_score else None,
+        comment=rating.comment,
+        is_visible=rating.is_visible,
+        created_at=rating.created_at
+    )
+
+
+# ==========================================
+# ANALYTICS ENDPOINTS - SHIPPER
+# ==========================================
+
+def parse_date_range(from_date: Optional[str], to_date: Optional[str]):
+    """날짜 범위 파싱 (기본: 최근 12개월)"""
+    if to_date:
+        end_date = datetime.strptime(to_date, "%Y-%m-%d")
+    else:
+        end_date = datetime.now()
+    
+    if from_date:
+        start_date = datetime.strptime(from_date, "%Y-%m-%d")
+    else:
+        start_date = end_date - timedelta(days=365)
+    
+    return start_date, end_date
+
+
+@app.get("/api/analytics/shipper/summary", response_model=ShipperAnalyticsSummary, tags=["Analytics - Shipper"])
+def get_shipper_analytics_summary(
+    customer_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    화주용 분석 요약 KPI
+    
+    - total_requests: 총 요청 건수
+    - avg_bids_per_request: 요청당 평균 입찰 수
+    - award_rate: 낙찰률 (%)
+    - total_cost_krw: 총 운송비 (KRW)
+    - avg_saving_rate: 평균 절감률 (%)
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 해당 기간의 Quote Request 조회
+    quote_requests = db.query(QuoteRequest).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.created_at >= start_date,
+        QuoteRequest.created_at <= end_date
+    ).all()
+    
+    total_requests = len(quote_requests)
+    quote_ids = [q.id for q in quote_requests]
+    
+    # 비딩 조회
+    biddings = db.query(Bidding).filter(
+        Bidding.quote_request_id.in_(quote_ids)
+    ).all() if quote_ids else []
+    
+    total_biddings = len(biddings)
+    bidding_ids = [b.id for b in biddings]
+    
+    # 입찰 통계
+    if bidding_ids:
+        bids = db.query(Bid).filter(
+            Bid.bidding_id.in_(bidding_ids),
+            Bid.status == "submitted"
+        ).all()
+        
+        awarded_bids = [b for b in bids if b.status == "awarded"]
+        total_bids = len(bids)
+        awarded_count = len([b for b in biddings if b.status == "awarded"])
+        
+        # 평균 입찰 수
+        avg_bids = total_bids / total_biddings if total_biddings > 0 else 0
+        
+        # 낙찰률
+        award_rate = (awarded_count / total_biddings * 100) if total_biddings > 0 else 0
+        
+        # 총 비용 및 절감률 계산
+        total_cost_krw = 0
+        saving_rates = []
+        
+        for bidding in biddings:
+            if bidding.status == "awarded" and bidding.awarded_bid_id:
+                awarded_bid = db.query(Bid).filter(Bid.id == bidding.awarded_bid_id).first()
+                if awarded_bid:
+                    bid_amount = float(awarded_bid.total_amount_krw) if awarded_bid.total_amount_krw else convert_to_krw(float(awarded_bid.total_amount))
+                    total_cost_krw += bid_amount
+                    
+                    # 최고가 대비 절감률 계산
+                    all_bids = db.query(Bid).filter(
+                        Bid.bidding_id == bidding.id,
+                        Bid.status.in_(["submitted", "awarded", "rejected"])
+                    ).all()
+                    
+                    if all_bids:
+                        max_bid = max(float(b.total_amount_krw) if b.total_amount_krw else convert_to_krw(float(b.total_amount)) for b in all_bids)
+                        if max_bid > 0:
+                            saving = (max_bid - bid_amount) / max_bid * 100
+                            saving_rates.append(saving)
+        
+        avg_saving_rate = sum(saving_rates) / len(saving_rates) if saving_rates else 0
+    else:
+        avg_bids = 0
+        award_rate = 0
+        total_cost_krw = 0
+        avg_saving_rate = 0
+    
+    return ShipperAnalyticsSummary(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        total_requests=total_requests,
+        total_biddings=total_biddings,
+        avg_bids_per_request=round(avg_bids, 1),
+        award_rate=round(award_rate, 1),
+        total_cost_krw=round(total_cost_krw, 0),
+        avg_saving_rate=round(avg_saving_rate, 1)
+    )
+
+
+@app.get("/api/analytics/shipper/monthly-trend", response_model=ShipperMonthlyTrendResponse, tags=["Analytics - Shipper"])
+def get_shipper_monthly_trend(
+    customer_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    화주용 월별 추이 데이터
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 월별 데이터 집계
+    monthly_data = {}
+    
+    # Quote Request와 Bidding 조인 쿼리
+    results = db.query(
+        QuoteRequest, Bidding
+    ).join(
+        Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.created_at >= start_date,
+        QuoteRequest.created_at <= end_date
+    ).all()
+    
+    for quote_req, bidding in results:
+        month_key = quote_req.created_at.strftime("%Y-%m")
+        
+        if month_key not in monthly_data:
+            monthly_data[month_key] = {
+                "request_count": 0,
+                "bid_count": 0,
+                "awarded_count": 0,
+                "total_cost_krw": 0,
+                "bid_prices": []
+            }
+        
+        monthly_data[month_key]["request_count"] += 1
+        
+        # 입찰 수 집계
+        bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.status.in_(["submitted", "awarded", "rejected"])
+        ).all()
+        
+        monthly_data[month_key]["bid_count"] += len(bids)
+        
+        if bidding.status == "awarded":
+            monthly_data[month_key]["awarded_count"] += 1
+            
+            if bidding.awarded_bid_id:
+                awarded_bid = db.query(Bid).filter(Bid.id == bidding.awarded_bid_id).first()
+                if awarded_bid:
+                    bid_amount = float(awarded_bid.total_amount_krw) if awarded_bid.total_amount_krw else convert_to_krw(float(awarded_bid.total_amount))
+                    monthly_data[month_key]["total_cost_krw"] += bid_amount
+                    monthly_data[month_key]["bid_prices"].append(bid_amount)
+    
+    # 응답 데이터 구성
+    trend_items = []
+    for month in sorted(monthly_data.keys()):
+        data = monthly_data[month]
+        avg_price = sum(data["bid_prices"]) / len(data["bid_prices"]) if data["bid_prices"] else 0
+        
+        trend_items.append(MonthlyTrendItem(
+            month=month,
+            request_count=data["request_count"],
+            bid_count=data["bid_count"],
+            awarded_count=data["awarded_count"],
+            total_cost_krw=round(data["total_cost_krw"], 0),
+            avg_bid_price_krw=round(avg_price, 0)
+        ))
+    
+    return ShipperMonthlyTrendResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=trend_items
+    )
+
+
+@app.get("/api/analytics/shipper/cost-by-type", response_model=ShipperCostByTypeResponse, tags=["Analytics - Shipper"])
+def get_shipper_cost_by_type(
+    customer_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    화주용 운송타입별 비용 분석
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 운송타입별 집계
+    type_data = {}
+    
+    results = db.query(
+        QuoteRequest, Bidding
+    ).join(
+        Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.created_at >= start_date,
+        QuoteRequest.created_at <= end_date,
+        Bidding.status == "awarded"
+    ).all()
+    
+    total_cost = 0
+    
+    for quote_req, bidding in results:
+        ship_type = quote_req.shipping_type
+        
+        if ship_type not in type_data:
+            type_data[ship_type] = {"count": 0, "total_cost_krw": 0}
+        
+        type_data[ship_type]["count"] += 1
+        
+        if bidding.awarded_bid_id:
+            awarded_bid = db.query(Bid).filter(Bid.id == bidding.awarded_bid_id).first()
+            if awarded_bid:
+                bid_amount = float(awarded_bid.total_amount_krw) if awarded_bid.total_amount_krw else convert_to_krw(float(awarded_bid.total_amount))
+                type_data[ship_type]["total_cost_krw"] += bid_amount
+                total_cost += bid_amount
+    
+    # 응답 데이터 구성
+    cost_items = []
+    for ship_type, data in type_data.items():
+        percentage = (data["total_cost_krw"] / total_cost * 100) if total_cost > 0 else 0
+        cost_items.append(CostByTypeItem(
+            shipping_type=ship_type,
+            count=data["count"],
+            total_cost_krw=round(data["total_cost_krw"], 0),
+            percentage=round(percentage, 1)
+        ))
+    
+    # 비용 순으로 정렬
+    cost_items.sort(key=lambda x: x.total_cost_krw, reverse=True)
+    
+    return ShipperCostByTypeResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=cost_items
+    )
+
+
+@app.get("/api/analytics/shipper/route-stats", response_model=ShipperRouteStatsResponse, tags=["Analytics - Shipper"])
+def get_shipper_route_stats(
+    customer_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    화주용 구간별 통계 (자주 이용하는 구간)
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 구간별 집계
+    route_data = {}
+    
+    results = db.query(
+        QuoteRequest, Bidding
+    ).join(
+        Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.created_at >= start_date,
+        QuoteRequest.created_at <= end_date
+    ).all()
+    
+    for quote_req, bidding in results:
+        route_key = f"{quote_req.pol}|{quote_req.pod}"
+        
+        if route_key not in route_data:
+            route_data[route_key] = {
+                "pol": quote_req.pol,
+                "pod": quote_req.pod,
+                "count": 0,
+                "bid_prices": []
+            }
+        
+        route_data[route_key]["count"] += 1
+        
+        # 입찰가 수집
+        bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.status.in_(["submitted", "awarded", "rejected"])
+        ).all()
+        
+        for bid in bids:
+            bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+            route_data[route_key]["bid_prices"].append(bid_amount)
+    
+    # 응답 데이터 구성
+    route_items = []
+    for route_key, data in route_data.items():
+        if data["bid_prices"]:
+            route_items.append(RouteStatItem(
+                pol=data["pol"],
+                pod=data["pod"],
+                count=data["count"],
+                avg_bid_price_krw=round(sum(data["bid_prices"]) / len(data["bid_prices"]), 0),
+                min_bid_price_krw=round(min(data["bid_prices"]), 0),
+                max_bid_price_krw=round(max(data["bid_prices"]), 0)
+            ))
+    
+    # 이용 횟수 순으로 정렬
+    route_items.sort(key=lambda x: x.count, reverse=True)
+    
+    return ShipperRouteStatsResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=route_items[:limit]
+    )
+
+
+@app.get("/api/analytics/shipper/forwarder-ranking", response_model=ShipperForwarderRankingResponse, tags=["Analytics - Shipper"])
+def get_shipper_forwarder_ranking(
+    customer_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    화주용 운송사 순위 (선정 횟수 기준)
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 운송사별 집계
+    forwarder_data = {}
+    
+    # 해당 기간의 낙찰된 비딩 조회
+    results = db.query(
+        QuoteRequest, Bidding, Bid, Forwarder
+    ).join(
+        Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).join(
+        Bid, Bid.id == Bidding.awarded_bid_id
+    ).join(
+        Forwarder, Forwarder.id == Bid.forwarder_id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.created_at >= start_date,
+        QuoteRequest.created_at <= end_date,
+        Bidding.status == "awarded"
+    ).all()
+    
+    for quote_req, bidding, bid, forwarder in results:
+        fwd_id = forwarder.id
+        
+        if fwd_id not in forwarder_data:
+            forwarder_data[fwd_id] = {
+                "forwarder": forwarder,
+                "awarded_count": 0,
+                "total_amount_krw": 0
+            }
+        
+        forwarder_data[fwd_id]["awarded_count"] += 1
+        bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+        forwarder_data[fwd_id]["total_amount_krw"] += bid_amount
+    
+    # 응답 데이터 구성
+    ranking_items = []
+    for fwd_id, data in forwarder_data.items():
+        forwarder = data["forwarder"]
+        ranking_items.append({
+            "forwarder_id": fwd_id,
+            "company_masked": mask_company_name(forwarder.company),
+            "awarded_count": data["awarded_count"],
+            "total_amount_krw": data["total_amount_krw"],
+            "avg_rating": float(forwarder.rating) if forwarder.rating else 3.0,
+            "rating_count": forwarder.rating_count or 0
+        })
+    
+    # 선정 횟수 순으로 정렬
+    ranking_items.sort(key=lambda x: x["awarded_count"], reverse=True)
+    
+    # 순위 부여
+    final_items = []
+    for rank, item in enumerate(ranking_items[:limit], 1):
+        final_items.append(ForwarderRankingItem(
+            rank=rank,
+            forwarder_id=item["forwarder_id"],
+            company_masked=item["company_masked"],
+            awarded_count=item["awarded_count"],
+            total_amount_krw=round(item["total_amount_krw"], 0),
+            avg_rating=item["avg_rating"],
+            rating_count=item["rating_count"]
+        ))
+    
+    return ShipperForwarderRankingResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=final_items
+    )
+
+
+# ==========================================
+# ANALYTICS ENDPOINTS - FORWARDER
+# ==========================================
+
+@app.get("/api/analytics/forwarder/summary", response_model=ForwarderAnalyticsSummary, tags=["Analytics - Forwarder"])
+def get_forwarder_analytics_summary(
+    forwarder_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사용 분석 요약 KPI
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 해당 기간의 입찰 조회
+    bids = db.query(Bid).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.created_at >= start_date,
+        Bid.created_at <= end_date,
+        Bid.status.in_(["submitted", "awarded", "rejected"])
+    ).all()
+    
+    total_bids = len(bids)
+    awarded_bids = [b for b in bids if b.status == "awarded"]
+    rejected_bids = [b for b in bids if b.status == "rejected"]
+    
+    awarded_count = len(awarded_bids)
+    rejected_count = len(rejected_bids)
+    award_rate = (awarded_count / total_bids * 100) if total_bids > 0 else 0
+    
+    # 총 수주액
+    total_revenue = sum(
+        float(b.total_amount_krw) if b.total_amount_krw else convert_to_krw(float(b.total_amount))
+        for b in awarded_bids
+    )
+    
+    # 평균 순위 계산
+    ranks = []
+    for bid in bids:
+        # 해당 비딩의 모든 입찰 조회
+        all_bids = db.query(Bid).filter(
+            Bid.bidding_id == bid.bidding_id,
+            Bid.status.in_(["submitted", "awarded", "rejected"])
+        ).all()
+        
+        # 입찰가 순으로 정렬하여 순위 계산
+        sorted_bids = sorted(all_bids, key=lambda x: float(x.total_amount_krw) if x.total_amount_krw else convert_to_krw(float(x.total_amount)))
+        for rank, b in enumerate(sorted_bids, 1):
+            if b.id == bid.id:
+                ranks.append(rank)
+                break
+    
+    avg_rank = sum(ranks) / len(ranks) if ranks else 0
+    
+    # 평균 평점
+    forwarder = db.query(Forwarder).filter(Forwarder.id == forwarder_id).first()
+    avg_rating = float(forwarder.rating) if forwarder and forwarder.rating else 3.0
+    
+    return ForwarderAnalyticsSummary(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        total_bids=total_bids,
+        awarded_count=awarded_count,
+        rejected_count=rejected_count,
+        award_rate=round(award_rate, 1),
+        avg_rank=round(avg_rank, 1),
+        total_revenue_krw=round(total_revenue, 0),
+        avg_rating=avg_rating
+    )
+
+
+@app.get("/api/analytics/forwarder/monthly-trend", response_model=ForwarderMonthlyTrendResponse, tags=["Analytics - Forwarder"])
+def get_forwarder_monthly_trend(
+    forwarder_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사용 월별 추이 데이터
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 월별 데이터 집계
+    monthly_data = {}
+    
+    bids = db.query(Bid).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.created_at >= start_date,
+        Bid.created_at <= end_date,
+        Bid.status.in_(["submitted", "awarded", "rejected"])
+    ).all()
+    
+    for bid in bids:
+        month_key = bid.created_at.strftime("%Y-%m")
+        
+        if month_key not in monthly_data:
+            monthly_data[month_key] = {
+                "bid_count": 0,
+                "awarded_count": 0,
+                "rejected_count": 0,
+                "revenue_krw": 0,
+                "ranks": []
+            }
+        
+        monthly_data[month_key]["bid_count"] += 1
+        
+        if bid.status == "awarded":
+            monthly_data[month_key]["awarded_count"] += 1
+            bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+            monthly_data[month_key]["revenue_krw"] += bid_amount
+        elif bid.status == "rejected":
+            monthly_data[month_key]["rejected_count"] += 1
+        
+        # 순위 계산
+        all_bids = db.query(Bid).filter(
+            Bid.bidding_id == bid.bidding_id,
+            Bid.status.in_(["submitted", "awarded", "rejected"])
+        ).all()
+        
+        sorted_bids = sorted(all_bids, key=lambda x: float(x.total_amount_krw) if x.total_amount_krw else convert_to_krw(float(x.total_amount)))
+        for rank, b in enumerate(sorted_bids, 1):
+            if b.id == bid.id:
+                monthly_data[month_key]["ranks"].append(rank)
+                break
+    
+    # 응답 데이터 구성
+    trend_items = []
+    for month in sorted(monthly_data.keys()):
+        data = monthly_data[month]
+        avg_rank = sum(data["ranks"]) / len(data["ranks"]) if data["ranks"] else 0
+        
+        trend_items.append(ForwarderMonthlyTrendItem(
+            month=month,
+            bid_count=data["bid_count"],
+            awarded_count=data["awarded_count"],
+            rejected_count=data["rejected_count"],
+            revenue_krw=round(data["revenue_krw"], 0),
+            avg_rank=round(avg_rank, 1)
+        ))
+    
+    return ForwarderMonthlyTrendResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=trend_items
+    )
+
+
+@app.get("/api/analytics/forwarder/bid-stats", response_model=ForwarderBidStatsResponse, tags=["Analytics - Forwarder"])
+def get_forwarder_bid_stats(
+    forwarder_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사용 운송타입별 입찰 통계
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 운송타입별 집계
+    type_data = {}
+    
+    bids = db.query(Bid, Bidding, QuoteRequest).join(
+        Bidding, Bid.bidding_id == Bidding.id
+    ).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.created_at >= start_date,
+        Bid.created_at <= end_date,
+        Bid.status.in_(["submitted", "awarded", "rejected"])
+    ).all()
+    
+    for bid, bidding, quote_req in bids:
+        ship_type = quote_req.shipping_type
+        
+        if ship_type not in type_data:
+            type_data[ship_type] = {
+                "bid_count": 0,
+                "awarded_count": 0,
+                "total_revenue_krw": 0
+            }
+        
+        type_data[ship_type]["bid_count"] += 1
+        
+        if bid.status == "awarded":
+            type_data[ship_type]["awarded_count"] += 1
+            bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+            type_data[ship_type]["total_revenue_krw"] += bid_amount
+    
+    # 응답 데이터 구성
+    stat_items = []
+    for ship_type, data in type_data.items():
+        award_rate = (data["awarded_count"] / data["bid_count"] * 100) if data["bid_count"] > 0 else 0
+        stat_items.append(BidStatsByTypeItem(
+            shipping_type=ship_type,
+            bid_count=data["bid_count"],
+            awarded_count=data["awarded_count"],
+            award_rate=round(award_rate, 1),
+            total_revenue_krw=round(data["total_revenue_krw"], 0)
+        ))
+    
+    return ForwarderBidStatsResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=stat_items
+    )
+
+
+@app.get("/api/analytics/forwarder/competitiveness", response_model=ForwarderCompetitivenessResponse, tags=["Analytics - Forwarder"])
+def get_forwarder_competitiveness(
+    forwarder_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사용 경쟁력 분석
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 내 입찰 조회
+    my_bids = db.query(Bid).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.created_at >= start_date,
+        Bid.created_at <= end_date,
+        Bid.status.in_(["submitted", "awarded", "rejected"])
+    ).all()
+    
+    my_bid_amounts = []
+    market_bid_amounts = []
+    winning_bid_amounts = []
+    my_bidding_ids = set()
+    
+    for bid in my_bids:
+        bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+        my_bid_amounts.append(bid_amount)
+        my_bidding_ids.add(bid.bidding_id)
+    
+    # 같은 비딩의 모든 입찰 조회 (시장 평균)
+    for bidding_id in my_bidding_ids:
+        all_bids = db.query(Bid).filter(
+            Bid.bidding_id == bidding_id,
+            Bid.status.in_(["submitted", "awarded", "rejected"])
+        ).all()
+        
+        for bid in all_bids:
+            bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+            market_bid_amounts.append(bid_amount)
+            
+            if bid.status == "awarded":
+                winning_bid_amounts.append(bid_amount)
+    
+    my_avg = sum(my_bid_amounts) / len(my_bid_amounts) if my_bid_amounts else 0
+    market_avg = sum(market_bid_amounts) / len(market_bid_amounts) if market_bid_amounts else 0
+    winning_avg = sum(winning_bid_amounts) / len(winning_bid_amounts) if winning_bid_amounts else 0
+    
+    # 가격 경쟁력 (시장 평균 대비 내 평균이 얼마나 낮은지)
+    price_competitiveness = ((market_avg - my_avg) / market_avg * 100) if market_avg > 0 else 0
+    
+    # 시장 대비 낙찰률
+    my_awarded = len([b for b in my_bids if b.status == "awarded"])
+    my_award_rate = (my_awarded / len(my_bids) * 100) if my_bids else 0
+    
+    # 시장 전체 낙찰률 계산
+    total_biddings = len(my_bidding_ids)
+    market_award_rate = (total_biddings / len(market_bid_amounts) * 100) if market_bid_amounts else 0
+    
+    win_rate_vs_market = my_award_rate - market_award_rate
+    
+    return ForwarderCompetitivenessResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        data=CompetitivenessData(
+            my_avg_bid_krw=round(my_avg, 0),
+            market_avg_bid_krw=round(market_avg, 0),
+            winning_avg_bid_krw=round(winning_avg, 0),
+            price_competitiveness=round(price_competitiveness, 1),
+            win_rate_vs_market=round(win_rate_vs_market, 1)
+        )
+    )
+
+
+@app.get("/api/analytics/forwarder/rating-trend", response_model=ForwarderRatingTrendResponse, tags=["Analytics - Forwarder"])
+def get_forwarder_rating_trend(
+    forwarder_id: int,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    운송사용 평점 추이
+    """
+    start_date, end_date = parse_date_range(from_date, to_date)
+    
+    # 운송사 정보
+    forwarder = db.query(Forwarder).filter(Forwarder.id == forwarder_id).first()
+    if not forwarder:
+        raise HTTPException(status_code=404, detail="Forwarder not found")
+    
+    # 해당 기간의 평점 조회
+    ratings = db.query(Rating).filter(
+        Rating.forwarder_id == forwarder_id,
+        Rating.created_at >= start_date,
+        Rating.created_at <= end_date,
+        Rating.is_visible == True
+    ).all()
+    
+    # 월별 집계
+    monthly_data = {}
+    
+    for rating in ratings:
+        month_key = rating.created_at.strftime("%Y-%m")
+        
+        if month_key not in monthly_data:
+            monthly_data[month_key] = {
+                "scores": [],
+                "price_scores": [],
+                "service_scores": [],
+                "punctuality_scores": [],
+                "communication_scores": []
+            }
+        
+        monthly_data[month_key]["scores"].append(float(rating.score))
+        
+        if rating.price_score:
+            monthly_data[month_key]["price_scores"].append(float(rating.price_score))
+        if rating.service_score:
+            monthly_data[month_key]["service_scores"].append(float(rating.service_score))
+        if rating.punctuality_score:
+            monthly_data[month_key]["punctuality_scores"].append(float(rating.punctuality_score))
+        if rating.communication_score:
+            monthly_data[month_key]["communication_scores"].append(float(rating.communication_score))
+    
+    # 응답 데이터 구성
+    trend_items = []
+    for month in sorted(monthly_data.keys()):
+        data = monthly_data[month]
+        
+        trend_items.append(RatingTrendItem(
+            month=month,
+            avg_score=round(sum(data["scores"]) / len(data["scores"]), 1) if data["scores"] else 0,
+            rating_count=len(data["scores"]),
+            avg_price_score=round(sum(data["price_scores"]) / len(data["price_scores"]), 1) if data["price_scores"] else None,
+            avg_service_score=round(sum(data["service_scores"]) / len(data["service_scores"]), 1) if data["service_scores"] else None,
+            avg_punctuality_score=round(sum(data["punctuality_scores"]) / len(data["punctuality_scores"]), 1) if data["punctuality_scores"] else None,
+            avg_communication_score=round(sum(data["communication_scores"]) / len(data["communication_scores"]), 1) if data["communication_scores"] else None
+        ))
+    
+    return ForwarderRatingTrendResponse(
+        period=AnalyticsPeriod(
+            from_date=start_date.strftime("%Y-%m-%d"),
+            to_date=end_date.strftime("%Y-%m-%d")
+        ),
+        current_rating=float(forwarder.rating) if forwarder.rating else 3.0,
+        total_ratings=forwarder.rating_count or 0,
+        data=trend_items
+    )
+
+
+# ==========================================
+# CONTRACT ENDPOINTS
+# ==========================================
+
+def generate_contract_no(db: Session) -> str:
+    """Generate unique Contract Number: CT-YYYYMMDD-XXX"""
+    date_str = datetime.now().strftime("%Y%m%d")
+    
+    # Get max sequence for today
+    today_contracts = db.query(Contract).filter(
+        Contract.contract_no.like(f"CT-{date_str}-%")
+    ).count()
+    
+    seq = str(today_contracts + 1).zfill(3)
+    return f"CT-{date_str}-{seq}"
+
+
+@app.get("/api/contract/{contract_id}", response_model=ContractDetailResponse, tags=["Contract"])
+def get_contract_detail(
+    contract_id: int,
+    db: Session = Depends(get_db)
+):
+    """계약 상세 조회"""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    bidding = db.query(Bidding).filter(Bidding.id == contract.bidding_id).first()
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first() if bidding else None
+    customer = db.query(Customer).filter(Customer.id == contract.customer_id).first()
+    forwarder = db.query(Forwarder).filter(Forwarder.id == contract.forwarder_id).first()
+    
+    # Get shipment if exists
+    shipment = db.query(Shipment).filter(Shipment.contract_id == contract.id).first()
+    shipment_data = None
+    if shipment:
+        shipment_data = ShipmentResponse(
+            id=shipment.id,
+            shipment_no=shipment.shipment_no,
+            contract_id=shipment.contract_id,
+            current_status=shipment.current_status,
+            current_location=shipment.current_location,
+            estimated_pickup=shipment.estimated_pickup,
+            actual_pickup=shipment.actual_pickup,
+            estimated_delivery=shipment.estimated_delivery,
+            actual_delivery=shipment.actual_delivery,
+            bl_no=shipment.bl_no,
+            vessel_flight=shipment.vessel_flight,
+            delivery_confirmed=shipment.delivery_confirmed,
+            delivery_confirmed_at=shipment.delivery_confirmed_at,
+            auto_confirmed=shipment.auto_confirmed,
+            created_at=shipment.created_at,
+            updated_at=shipment.updated_at
+        )
+    
+    return ContractDetailResponse(
+        id=contract.id,
+        contract_no=contract.contract_no,
+        bidding_id=contract.bidding_id,
+        awarded_bid_id=contract.awarded_bid_id,
+        customer_id=contract.customer_id,
+        forwarder_id=contract.forwarder_id,
+        total_amount_krw=float(contract.total_amount_krw),
+        freight_charge=float(contract.freight_charge) if contract.freight_charge else None,
+        local_charge=float(contract.local_charge) if contract.local_charge else None,
+        other_charge=float(contract.other_charge) if contract.other_charge else None,
+        transit_time=contract.transit_time,
+        carrier=contract.carrier,
+        contract_terms=contract.contract_terms,
+        shipper_confirmed=contract.shipper_confirmed,
+        shipper_confirmed_at=contract.shipper_confirmed_at,
+        forwarder_confirmed=contract.forwarder_confirmed,
+        forwarder_confirmed_at=contract.forwarder_confirmed_at,
+        status=contract.status,
+        confirmed_at=contract.confirmed_at,
+        cancelled_by=contract.cancelled_by,
+        cancelled_at=contract.cancelled_at,
+        cancel_reason=contract.cancel_reason,
+        created_at=contract.created_at,
+        updated_at=contract.updated_at,
+        bidding_no=bidding.bidding_no if bidding else None,
+        pol=quote_req.pol if quote_req else None,
+        pod=quote_req.pod if quote_req else None,
+        shipping_type=quote_req.shipping_type if quote_req else None,
+        customer_company=customer.company if customer else None,
+        forwarder_company=forwarder.company if forwarder else None,
+        shipment=shipment_data
+    )
+
+
+@app.get("/api/contracts", response_model=ContractListResponse, tags=["Contract"])
+def get_contract_list(
+    user_type: str,  # shipper, forwarder
+    user_id: int,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """계약 목록 조회"""
+    query = db.query(Contract)
+    
+    if user_type == "shipper":
+        query = query.filter(Contract.customer_id == user_id)
+    else:
+        query = query.filter(Contract.forwarder_id == user_id)
+    
+    if status:
+        query = query.filter(Contract.status == status)
+    
+    total = query.count()
+    contracts = query.order_by(Contract.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    items = []
+    for contract in contracts:
+        bidding = db.query(Bidding).filter(Bidding.id == contract.bidding_id).first()
+        quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first() if bidding else None
+        
+        items.append(ContractListItem(
+            id=contract.id,
+            contract_no=contract.contract_no,
+            bidding_no=bidding.bidding_no if bidding else "",
+            pol=quote_req.pol if quote_req else "",
+            pod=quote_req.pod if quote_req else "",
+            shipping_type=quote_req.shipping_type if quote_req else "",
+            total_amount_krw=float(contract.total_amount_krw),
+            status=contract.status,
+            shipper_confirmed=contract.shipper_confirmed,
+            forwarder_confirmed=contract.forwarder_confirmed,
+            created_at=contract.created_at
+        ))
+    
+    return ContractListResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        data=items
+    )
+
+
+@app.post("/api/contract/{contract_id}/confirm", tags=["Contract"])
+def confirm_contract(
+    contract_id: int,
+    request: ContractConfirmRequest,
+    db: Session = Depends(get_db)
+):
+    """계약 확정 (화주/포워더 각각 확정)"""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    if contract.status == "cancelled":
+        raise HTTPException(status_code=400, detail="Contract is cancelled")
+    
+    if contract.status == "confirmed":
+        raise HTTPException(status_code=400, detail="Contract is already confirmed")
+    
+    now = datetime.now()
+    
+    if request.user_type == "shipper":
+        if contract.customer_id != request.user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        contract.shipper_confirmed = True
+        contract.shipper_confirmed_at = now
+    elif request.user_type == "forwarder":
+        if contract.forwarder_id != request.user_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        contract.forwarder_confirmed = True
+        contract.forwarder_confirmed_at = now
+    else:
+        raise HTTPException(status_code=400, detail="Invalid user type")
+    
+    # Check if both confirmed
+    if contract.shipper_confirmed and contract.forwarder_confirmed:
+        contract.status = "confirmed"
+        contract.confirmed_at = now
+        
+        # Create shipment automatically
+        shipment = Shipment(
+            shipment_no=f"SH-{datetime.now().strftime('%Y%m%d')}-{str(contract.id).zfill(3)}",
+            contract_id=contract.id,
+            current_status="booked"
+        )
+        db.add(shipment)
+        
+        # Add initial tracking
+        tracking = ShipmentTracking(
+            shipment_id=shipment.id,
+            status="booked",
+            remark="계약 확정됨",
+            updated_by_type="system"
+        )
+        db.add(tracking)
+        
+        # Send notifications
+        notification_shipper = Notification(
+            recipient_type="customer",
+            recipient_id=contract.customer_id,
+            notification_type="contract_confirmed",
+            title="계약이 확정되었습니다",
+            message=f"계약번호 {contract.contract_no}의 계약이 양측 확정되었습니다.",
+            related_type="contract",
+            related_id=contract.id
+        )
+        notification_forwarder = Notification(
+            recipient_type="forwarder",
+            recipient_id=contract.forwarder_id,
+            notification_type="contract_confirmed",
+            title="계약이 확정되었습니다",
+            message=f"계약번호 {contract.contract_no}의 계약이 양측 확정되었습니다.",
+            related_type="contract",
+            related_id=contract.id
+        )
+        db.add(notification_shipper)
+        db.add(notification_forwarder)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Contract confirmed successfully",
+        "contract_no": contract.contract_no,
+        "status": contract.status,
+        "shipper_confirmed": contract.shipper_confirmed,
+        "forwarder_confirmed": contract.forwarder_confirmed
+    }
+
+
+@app.post("/api/contract/{contract_id}/cancel", tags=["Contract"])
+def cancel_contract(
+    contract_id: int,
+    request: ContractCancelRequest,
+    db: Session = Depends(get_db)
+):
+    """계약 취소"""
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+    
+    if contract.status in ["completed", "cancelled"]:
+        raise HTTPException(status_code=400, detail=f"Contract cannot be cancelled (status: {contract.status})")
+    
+    # Verify user
+    if request.user_type == "shipper" and contract.customer_id != request.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if request.user_type == "forwarder" and contract.forwarder_id != request.user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    contract.status = "cancelled"
+    contract.cancelled_by = request.user_type
+    contract.cancelled_at = datetime.now()
+    contract.cancel_reason = request.reason
+    
+    # Notify the other party
+    if request.user_type == "shipper":
+        notification = Notification(
+            recipient_type="forwarder",
+            recipient_id=contract.forwarder_id,
+            notification_type="contract_cancelled",
+            title="계약이 취소되었습니다",
+            message=f"계약번호 {contract.contract_no}이 화주에 의해 취소되었습니다. 사유: {request.reason or '미기재'}",
+            related_type="contract",
+            related_id=contract.id
+        )
+    else:
+        notification = Notification(
+            recipient_type="customer",
+            recipient_id=contract.customer_id,
+            notification_type="contract_cancelled",
+            title="계약이 취소되었습니다",
+            message=f"계약번호 {contract.contract_no}이 운송사에 의해 취소되었습니다. 사유: {request.reason or '미기재'}",
+            related_type="contract",
+            related_id=contract.id
+        )
+    db.add(notification)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Contract cancelled",
+        "contract_no": contract.contract_no
+    }
+
+
+# ==========================================
+# SHIPMENT ENDPOINTS
+# ==========================================
+
+@app.get("/api/shipment/{shipment_id}", response_model=ShipmentDetailResponse, tags=["Shipment"])
+def get_shipment_detail(
+    shipment_id: int,
+    db: Session = Depends(get_db)
+):
+    """배송 상세 조회"""
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    contract = db.query(Contract).filter(Contract.id == shipment.contract_id).first()
+    bidding = db.query(Bidding).filter(Bidding.id == contract.bidding_id).first() if contract else None
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first() if bidding else None
+    
+    tracking_history = db.query(ShipmentTracking).filter(
+        ShipmentTracking.shipment_id == shipment.id
+    ).order_by(ShipmentTracking.created_at.desc()).all()
+    
+    tracking_items = [
+        ShipmentTrackingItem(
+            id=t.id,
+            status=t.status,
+            location=t.location,
+            remark=t.remark,
+            updated_by_type=t.updated_by_type,
+            created_at=t.created_at
+        ) for t in tracking_history
+    ]
+    
+    return ShipmentDetailResponse(
+        id=shipment.id,
+        shipment_no=shipment.shipment_no,
+        contract_id=shipment.contract_id,
+        current_status=shipment.current_status,
+        current_location=shipment.current_location,
+        estimated_pickup=shipment.estimated_pickup,
+        actual_pickup=shipment.actual_pickup,
+        estimated_delivery=shipment.estimated_delivery,
+        actual_delivery=shipment.actual_delivery,
+        bl_no=shipment.bl_no,
+        vessel_flight=shipment.vessel_flight,
+        delivery_confirmed=shipment.delivery_confirmed,
+        delivery_confirmed_at=shipment.delivery_confirmed_at,
+        auto_confirmed=shipment.auto_confirmed,
+        created_at=shipment.created_at,
+        updated_at=shipment.updated_at,
+        tracking_history=tracking_items,
+        contract_no=contract.contract_no if contract else None,
+        bidding_no=bidding.bidding_no if bidding else None,
+        pol=quote_req.pol if quote_req else None,
+        pod=quote_req.pod if quote_req else None
+    )
+
+
+@app.get("/api/shipments", response_model=ShipmentListResponse, tags=["Shipment"])
+def get_shipment_list(
+    user_type: str,
+    user_id: int,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """배송 목록 조회"""
+    query = db.query(Shipment).join(Contract)
+    
+    if user_type == "shipper":
+        query = query.filter(Contract.customer_id == user_id)
+    else:
+        query = query.filter(Contract.forwarder_id == user_id)
+    
+    if status:
+        query = query.filter(Shipment.current_status == status)
+    
+    total = query.count()
+    shipments = query.order_by(Shipment.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    items = []
+    for shipment in shipments:
+        contract = db.query(Contract).filter(Contract.id == shipment.contract_id).first()
+        bidding = db.query(Bidding).filter(Bidding.id == contract.bidding_id).first() if contract else None
+        quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first() if bidding else None
+        
+        items.append(ShipmentListItem(
+            id=shipment.id,
+            shipment_no=shipment.shipment_no,
+            contract_no=contract.contract_no if contract else "",
+            bidding_no=bidding.bidding_no if bidding else "",
+            pol=quote_req.pol if quote_req else "",
+            pod=quote_req.pod if quote_req else "",
+            current_status=shipment.current_status,
+            estimated_delivery=shipment.estimated_delivery,
+            delivery_confirmed=shipment.delivery_confirmed
+        ))
+    
+    return ShipmentListResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        data=items
+    )
+
+
+@app.post("/api/shipment/{shipment_id}/status", tags=["Shipment"])
+def update_shipment_status(
+    shipment_id: int,
+    request: ShipmentStatusUpdate,
+    db: Session = Depends(get_db)
+):
+    """배송 상태 업데이트 (포워더)"""
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    contract = db.query(Contract).filter(Contract.id == shipment.contract_id).first()
+    if contract.forwarder_id != request.forwarder_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # Update shipment
+    shipment.current_status = request.status
+    if request.location:
+        shipment.current_location = request.location
+    
+    # Handle specific statuses
+    if request.status == "picked_up":
+        shipment.actual_pickup = datetime.now()
+    elif request.status == "delivered":
+        shipment.actual_delivery = datetime.now()
+        contract.status = "active"  # 배송 완료 상태로 변경
+    
+    # Add tracking history
+    tracking = ShipmentTracking(
+        shipment_id=shipment.id,
+        status=request.status,
+        location=request.location,
+        remark=request.remark,
+        updated_by_type="forwarder",
+        updated_by_id=request.forwarder_id
+    )
+    db.add(tracking)
+    
+    # Notify shipper
+    status_labels = {
+        "picked_up": "화물 픽업 완료",
+        "in_transit": "운송 중",
+        "arrived_port": "목적지항 도착",
+        "customs": "통관 진행 중",
+        "out_for_delivery": "배송 출발",
+        "delivered": "배송 완료"
+    }
+    
+    notification = Notification(
+        recipient_type="customer",
+        recipient_id=contract.customer_id,
+        notification_type="shipment_status_update",
+        title=f"배송 상태 업데이트: {status_labels.get(request.status, request.status)}",
+        message=f"배송번호 {shipment.shipment_no}의 상태가 업데이트되었습니다.",
+        related_type="shipment",
+        related_id=shipment.id
+    )
+    db.add(notification)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Shipment status updated",
+        "shipment_no": shipment.shipment_no,
+        "status": shipment.current_status
+    }
+
+
+@app.post("/api/shipment/{shipment_id}/confirm-delivery", tags=["Shipment"])
+def confirm_delivery(
+    shipment_id: int,
+    request: ShipmentDeliveryConfirm,
+    db: Session = Depends(get_db)
+):
+    """배송 완료 확인 (화주)"""
+    shipment = db.query(Shipment).filter(Shipment.id == shipment_id).first()
+    if not shipment:
+        raise HTTPException(status_code=404, detail="Shipment not found")
+    
+    contract = db.query(Contract).filter(Contract.id == shipment.contract_id).first()
+    if contract.customer_id != request.customer_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    if shipment.current_status != "delivered":
+        raise HTTPException(status_code=400, detail="Shipment is not in delivered status")
+    
+    # Confirm delivery
+    shipment.current_status = "completed"
+    shipment.delivery_confirmed = True
+    shipment.delivery_confirmed_at = datetime.now()
+    
+    # Update contract status
+    contract.status = "completed"
+    
+    # Add tracking
+    tracking = ShipmentTracking(
+        shipment_id=shipment.id,
+        status="completed",
+        remark="화주 배송 완료 확인",
+        updated_by_type="system"
+    )
+    db.add(tracking)
+    
+    # Create settlement
+    settlement = Settlement(
+        settlement_no=f"ST-{datetime.now().strftime('%Y%m%d')}-{str(contract.id).zfill(3)}",
+        contract_id=contract.id,
+        forwarder_id=contract.forwarder_id,
+        customer_id=contract.customer_id,
+        total_amount_krw=contract.total_amount_krw,
+        service_fee=0,
+        net_amount=contract.total_amount_krw,
+        status="pending"
+    )
+    db.add(settlement)
+    
+    # Notify forwarder
+    notification = Notification(
+        recipient_type="forwarder",
+        recipient_id=contract.forwarder_id,
+        notification_type="delivery_confirmed",
+        title="배송 완료가 확인되었습니다",
+        message=f"배송번호 {shipment.shipment_no}의 배송 완료가 화주에 의해 확인되었습니다. 정산을 진행해주세요.",
+        related_type="shipment",
+        related_id=shipment.id
+    )
+    db.add(notification)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Delivery confirmed",
+        "shipment_no": shipment.shipment_no
+    }
+
+
+# ==========================================
+# SETTLEMENT ENDPOINTS
+# ==========================================
+
+@app.post("/api/settlement/request", tags=["Settlement"])
+def request_settlement(
+    request: SettlementRequest,
+    db: Session = Depends(get_db)
+):
+    """정산 요청"""
+    settlement = db.query(Settlement).filter(
+        Settlement.contract_id == request.contract_id,
+        Settlement.forwarder_id == request.forwarder_id
+    ).first()
+    
+    if not settlement:
+        raise HTTPException(status_code=404, detail="Settlement not found")
+    
+    if settlement.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Settlement status is {settlement.status}")
+    
+    settlement.status = "requested"
+    settlement.requested_at = datetime.now()
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Settlement requested",
+        "settlement_no": settlement.settlement_no
+    }
+
+
+@app.get("/api/settlements", response_model=SettlementListResponse, tags=["Settlement"])
+def get_settlement_list(
+    user_type: str,
+    user_id: int,
+    status: Optional[str] = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """정산 목록 조회"""
+    query = db.query(Settlement)
+    
+    if user_type == "shipper":
+        query = query.filter(Settlement.customer_id == user_id)
+    else:
+        query = query.filter(Settlement.forwarder_id == user_id)
+    
+    if status:
+        query = query.filter(Settlement.status == status)
+    
+    total = query.count()
+    settlements = query.order_by(Settlement.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    items = []
+    for settlement in settlements:
+        contract = db.query(Contract).filter(Contract.id == settlement.contract_id).first()
+        bidding = db.query(Bidding).filter(Bidding.id == contract.bidding_id).first() if contract else None
+        
+        items.append(SettlementListItem(
+            id=settlement.id,
+            settlement_no=settlement.settlement_no,
+            contract_no=contract.contract_no if contract else "",
+            bidding_no=bidding.bidding_no if bidding else "",
+            total_amount_krw=float(settlement.total_amount_krw),
+            net_amount=float(settlement.net_amount),
+            status=settlement.status,
+            requested_at=settlement.requested_at,
+            completed_at=settlement.completed_at
+        ))
+    
+    return SettlementListResponse(
+        total=total,
+        page=page,
+        limit=limit,
+        data=items
+    )
+
+
+@app.get("/api/settlements/summary", response_model=SettlementSummary, tags=["Settlement"])
+def get_settlement_summary(
+    user_type: str,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """정산 요약 (대시보드용)"""
+    query = db.query(Settlement)
+    
+    if user_type == "shipper":
+        query = query.filter(Settlement.customer_id == user_id)
+    else:
+        query = query.filter(Settlement.forwarder_id == user_id)
+    
+    completed = query.filter(Settlement.status == "completed").all()
+    pending = query.filter(Settlement.status.in_(["pending", "requested", "processing"])).all()
+    
+    return SettlementSummary(
+        total_completed=sum(float(s.net_amount) for s in completed),
+        total_pending=sum(float(s.net_amount) for s in pending),
+        count_completed=len(completed),
+        count_pending=len(pending)
+    )
+
+
+# ==========================================
+# MESSAGE ENDPOINTS
+# ==========================================
+
+@app.post("/api/messages", response_model=MessageResponse, tags=["Message"])
+def send_message(
+    request: MessageCreate,
+    db: Session = Depends(get_db)
+):
+    """메시지 전송"""
+    # Verify bidding exists
+    bidding = db.query(Bidding).filter(Bidding.id == request.bidding_id).first()
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    message = Message(
+        bidding_id=request.bidding_id,
+        sender_type=request.sender_type,
+        sender_id=request.sender_id,
+        recipient_type=request.recipient_type,
+        recipient_id=request.recipient_id,
+        content=request.content
+    )
+    db.add(message)
+    
+    # Send notification
+    notification = Notification(
+        recipient_type=request.recipient_type,
+        recipient_id=request.recipient_id,
+        notification_type="new_message",
+        title="새 메시지가 도착했습니다",
+        message=request.content[:100] + "..." if len(request.content) > 100 else request.content,
+        related_type="message",
+        related_id=message.id
+    )
+    db.add(notification)
+    
+    db.commit()
+    db.refresh(message)
+    
+    # Get sender info
+    sender_name = None
+    sender_company = None
+    if request.sender_type == "shipper":
+        customer = db.query(Customer).filter(Customer.id == request.sender_id).first()
+        if customer:
+            sender_name = customer.name
+            sender_company = customer.company
+    else:
+        forwarder = db.query(Forwarder).filter(Forwarder.id == request.sender_id).first()
+        if forwarder:
+            sender_name = forwarder.name
+            sender_company = forwarder.company
+    
+    return MessageResponse(
+        id=message.id,
+        bidding_id=message.bidding_id,
+        sender_type=message.sender_type,
+        sender_id=message.sender_id,
+        recipient_type=message.recipient_type,
+        recipient_id=message.recipient_id,
+        content=message.content,
+        is_read=message.is_read,
+        read_at=message.read_at,
+        created_at=message.created_at,
+        sender_name=sender_name,
+        sender_company=sender_company
+    )
+
+
+@app.get("/api/messages/thread/{bidding_id}", response_model=MessageThreadResponse, tags=["Message"])
+def get_message_thread(
+    bidding_id: int,
+    user_type: str,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """비딩별 메시지 스레드 조회"""
+    bidding = db.query(Bidding).filter(Bidding.id == bidding_id).first()
+    if not bidding:
+        raise HTTPException(status_code=404, detail="Bidding not found")
+    
+    quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first()
+    
+    messages = db.query(Message).filter(
+        Message.bidding_id == bidding_id,
+        or_(
+            and_(Message.sender_type == user_type, Message.sender_id == user_id),
+            and_(Message.recipient_type == user_type, Message.recipient_id == user_id)
+        )
+    ).order_by(Message.created_at.asc()).all()
+    
+    message_items = []
+    unread_count = 0
+    
+    for msg in messages:
+        # Get sender info
+        sender_name = None
+        sender_company = None
+        if msg.sender_type == "shipper":
+            customer = db.query(Customer).filter(Customer.id == msg.sender_id).first()
+            if customer:
+                sender_name = customer.name
+                sender_company = customer.company
+        else:
+            forwarder = db.query(Forwarder).filter(Forwarder.id == msg.sender_id).first()
+            if forwarder:
+                sender_name = forwarder.name
+                sender_company = forwarder.company
+        
+        message_items.append(MessageResponse(
+            id=msg.id,
+            bidding_id=msg.bidding_id,
+            sender_type=msg.sender_type,
+            sender_id=msg.sender_id,
+            recipient_type=msg.recipient_type,
+            recipient_id=msg.recipient_id,
+            content=msg.content,
+            is_read=msg.is_read,
+            read_at=msg.read_at,
+            created_at=msg.created_at,
+            sender_name=sender_name,
+            sender_company=sender_company
+        ))
+        
+        if not msg.is_read and msg.recipient_type == user_type and msg.recipient_id == user_id:
+            unread_count += 1
+    
+    return MessageThreadResponse(
+        bidding_id=bidding_id,
+        bidding_no=bidding.bidding_no,
+        pol=quote_req.pol if quote_req else "",
+        pod=quote_req.pod if quote_req else "",
+        messages=message_items,
+        unread_count=unread_count
+    )
+
+
+@app.get("/api/messages/unread", response_model=UnreadMessagesResponse, tags=["Message"])
+def get_unread_messages(
+    user_type: str,
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    """읽지 않은 메시지 조회"""
+    unread_messages = db.query(Message).filter(
+        Message.recipient_type == user_type,
+        Message.recipient_id == user_id,
+        Message.is_read == False
+    ).all()
+    
+    # Group by bidding
+    threads_dict = {}
+    for msg in unread_messages:
+        if msg.bidding_id not in threads_dict:
+            bidding = db.query(Bidding).filter(Bidding.id == msg.bidding_id).first()
+            quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first() if bidding else None
+            
+            threads_dict[msg.bidding_id] = {
+                "bidding_id": msg.bidding_id,
+                "bidding_no": bidding.bidding_no if bidding else "",
+                "pol": quote_req.pol if quote_req else "",
+                "pod": quote_req.pod if quote_req else "",
+                "messages": [],
+                "unread_count": 0
+            }
+        
+        threads_dict[msg.bidding_id]["messages"].append(msg)
+        threads_dict[msg.bidding_id]["unread_count"] += 1
+    
+    threads = []
+    for bidding_id, thread_data in threads_dict.items():
+        message_items = []
+        for msg in thread_data["messages"]:
+            message_items.append(MessageResponse(
+                id=msg.id,
+                bidding_id=msg.bidding_id,
+                sender_type=msg.sender_type,
+                sender_id=msg.sender_id,
+                recipient_type=msg.recipient_type,
+                recipient_id=msg.recipient_id,
+                content=msg.content,
+                is_read=msg.is_read,
+                read_at=msg.read_at,
+                created_at=msg.created_at
+            ))
+        
+        threads.append(MessageThreadResponse(
+            bidding_id=thread_data["bidding_id"],
+            bidding_no=thread_data["bidding_no"],
+            pol=thread_data["pol"],
+            pod=thread_data["pod"],
+            messages=message_items,
+            unread_count=thread_data["unread_count"]
+        ))
+    
+    return UnreadMessagesResponse(
+        total_unread=len(unread_messages),
+        threads=threads
+    )
+
+
+@app.put("/api/messages/{message_id}/read", tags=["Message"])
+def mark_message_read(
+    message_id: int,
+    db: Session = Depends(get_db)
+):
+    """메시지 읽음 처리"""
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    message.is_read = True
+    message.read_at = datetime.now()
+    db.commit()
+    
+    return {"success": True, "message": "Message marked as read"}
+
+
+# ==========================================
+# FAVORITE ROUTES ENDPOINTS
+# ==========================================
+
+@app.get("/api/shipper/favorite-routes", response_model=FavoriteRouteListResponse, tags=["Shipper"])
+def get_favorite_routes(
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """즐겨찾기 구간 목록 조회"""
+    routes = db.query(FavoriteRoute).filter(
+        FavoriteRoute.customer_id == customer_id
+    ).order_by(FavoriteRoute.created_at.desc()).all()
+    
+    return FavoriteRouteListResponse(
+        data=[FavoriteRouteResponse(
+            id=r.id,
+            customer_id=r.customer_id,
+            pol=r.pol,
+            pod=r.pod,
+            shipping_type=r.shipping_type,
+            alias=r.alias,
+            created_at=r.created_at
+        ) for r in routes]
+    )
+
+
+@app.post("/api/shipper/favorite-routes", response_model=FavoriteRouteResponse, tags=["Shipper"])
+def add_favorite_route(
+    request: FavoriteRouteCreate,
+    db: Session = Depends(get_db)
+):
+    """즐겨찾기 구간 추가"""
+    # Check duplicate
+    existing = db.query(FavoriteRoute).filter(
+        FavoriteRoute.customer_id == request.customer_id,
+        FavoriteRoute.pol == request.pol,
+        FavoriteRoute.pod == request.pod
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Route already in favorites")
+    
+    route = FavoriteRoute(
+        customer_id=request.customer_id,
+        pol=request.pol,
+        pod=request.pod,
+        shipping_type=request.shipping_type,
+        alias=request.alias
+    )
+    db.add(route)
+    db.commit()
+    db.refresh(route)
+    
+    return FavoriteRouteResponse(
+        id=route.id,
+        customer_id=route.customer_id,
+        pol=route.pol,
+        pod=route.pod,
+        shipping_type=route.shipping_type,
+        alias=route.alias,
+        created_at=route.created_at
+    )
+
+
+@app.delete("/api/shipper/favorite-routes/{route_id}", tags=["Shipper"])
+def delete_favorite_route(
+    route_id: int,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """즐겨찾기 구간 삭제"""
+    route = db.query(FavoriteRoute).filter(
+        FavoriteRoute.id == route_id,
+        FavoriteRoute.customer_id == customer_id
+    ).first()
+    
+    if not route:
+        raise HTTPException(status_code=404, detail="Route not found")
+    
+    db.delete(route)
+    db.commit()
+    
+    return {"success": True, "message": "Route deleted"}
+
+
+# ==========================================
+# BID TEMPLATES ENDPOINTS
+# ==========================================
+
+@app.get("/api/forwarder/bid-templates", response_model=BidTemplateListResponse, tags=["Forwarder"])
+def get_bid_templates(
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """입찰 템플릿 목록 조회"""
+    templates = db.query(BidTemplate).filter(
+        BidTemplate.forwarder_id == forwarder_id
+    ).order_by(BidTemplate.created_at.desc()).all()
+    
+    return BidTemplateListResponse(
+        data=[BidTemplateResponse(
+            id=t.id,
+            forwarder_id=t.forwarder_id,
+            name=t.name,
+            pol=t.pol,
+            pod=t.pod,
+            shipping_type=t.shipping_type,
+            base_freight=float(t.base_freight) if t.base_freight else None,
+            base_local=float(t.base_local) if t.base_local else None,
+            base_other=float(t.base_other) if t.base_other else None,
+            transit_time=t.transit_time,
+            carrier=t.carrier,
+            default_remark=t.default_remark,
+            created_at=t.created_at,
+            updated_at=t.updated_at
+        ) for t in templates]
+    )
+
+
+@app.post("/api/forwarder/bid-templates", response_model=BidTemplateResponse, tags=["Forwarder"])
+def create_bid_template(
+    request: BidTemplateCreate,
+    db: Session = Depends(get_db)
+):
+    """입찰 템플릿 생성"""
+    template = BidTemplate(
+        forwarder_id=request.forwarder_id,
+        name=request.name,
+        pol=request.pol,
+        pod=request.pod,
+        shipping_type=request.shipping_type,
+        base_freight=request.base_freight,
+        base_local=request.base_local,
+        base_other=request.base_other,
+        transit_time=request.transit_time,
+        carrier=request.carrier,
+        default_remark=request.default_remark
+    )
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+    
+    return BidTemplateResponse(
+        id=template.id,
+        forwarder_id=template.forwarder_id,
+        name=template.name,
+        pol=template.pol,
+        pod=template.pod,
+        shipping_type=template.shipping_type,
+        base_freight=float(template.base_freight) if template.base_freight else None,
+        base_local=float(template.base_local) if template.base_local else None,
+        base_other=float(template.base_other) if template.base_other else None,
+        transit_time=template.transit_time,
+        carrier=template.carrier,
+        default_remark=template.default_remark,
+        created_at=template.created_at,
+        updated_at=template.updated_at
+    )
+
+
+@app.delete("/api/forwarder/bid-templates/{template_id}", tags=["Forwarder"])
+def delete_bid_template(
+    template_id: int,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """입찰 템플릿 삭제"""
+    template = db.query(BidTemplate).filter(
+        BidTemplate.id == template_id,
+        BidTemplate.forwarder_id == forwarder_id
+    ).first()
+    
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    
+    db.delete(template)
+    db.commit()
+    
+    return {"success": True, "message": "Template deleted"}
+
+
+# ==========================================
+# BOOKMARK ENDPOINTS
+# ==========================================
+
+@app.get("/api/forwarder/bookmarked", response_model=BookmarkedBiddingListResponse, tags=["Forwarder"])
+def get_bookmarked_biddings(
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """북마크된 비딩 목록 조회"""
+    bookmarks = db.query(BookmarkedBidding).filter(
+        BookmarkedBidding.forwarder_id == forwarder_id
+    ).order_by(BookmarkedBidding.created_at.desc()).all()
+    
+    items = []
+    for b in bookmarks:
+        bidding = db.query(Bidding).filter(Bidding.id == b.bidding_id).first()
+        if bidding:
+            quote_req = db.query(QuoteRequest).filter(QuoteRequest.id == bidding.quote_request_id).first()
+            items.append(BookmarkedBiddingResponse(
+                id=b.id,
+                forwarder_id=b.forwarder_id,
+                bidding_id=b.bidding_id,
+                bidding_no=bidding.bidding_no,
+                pol=quote_req.pol if quote_req else "",
+                pod=quote_req.pod if quote_req else "",
+                shipping_type=quote_req.shipping_type if quote_req else "",
+                deadline=bidding.deadline,
+                status=bidding.status,
+                created_at=b.created_at
+            ))
+    
+    return BookmarkedBiddingListResponse(data=items)
+
+
+@app.post("/api/forwarder/bookmark/{bidding_id}", tags=["Forwarder"])
+def bookmark_bidding(
+    bidding_id: int,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """비딩 북마크"""
+    # Check if already bookmarked
+    existing = db.query(BookmarkedBidding).filter(
+        BookmarkedBidding.forwarder_id == forwarder_id,
+        BookmarkedBidding.bidding_id == bidding_id
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Already bookmarked")
+    
+    bookmark = BookmarkedBidding(
+        forwarder_id=forwarder_id,
+        bidding_id=bidding_id
+    )
+    db.add(bookmark)
+    db.commit()
+    
+    return {"success": True, "message": "Bidding bookmarked"}
+
+
+@app.delete("/api/forwarder/bookmark/{bidding_id}", tags=["Forwarder"])
+def remove_bookmark(
+    bidding_id: int,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """북마크 삭제"""
+    bookmark = db.query(BookmarkedBidding).filter(
+        BookmarkedBidding.forwarder_id == forwarder_id,
+        BookmarkedBidding.bidding_id == bidding_id
+    ).first()
+    
+    if not bookmark:
+        raise HTTPException(status_code=404, detail="Bookmark not found")
+    
+    db.delete(bookmark)
+    db.commit()
+    
+    return {"success": True, "message": "Bookmark removed"}
+
+
+# ==========================================
+# QUOTE REQUEST UPDATE ENDPOINTS
+# ==========================================
+
+@app.put("/api/quote-request/{request_id}", tags=["Quote Request"])
+def update_quote_request(
+    request_id: int,
+    request: QuoteRequestUpdate,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """운송 요청 수정"""
+    quote_req = db.query(QuoteRequest).filter(
+        QuoteRequest.id == request_id,
+        QuoteRequest.customer_id == customer_id
+    ).first()
+    
+    if not quote_req:
+        raise HTTPException(status_code=404, detail="Quote request not found")
+    
+    # Check if bidding exists and has bids
+    bidding = db.query(Bidding).filter(Bidding.quote_request_id == request_id).first()
+    if bidding:
+        bids = db.query(Bid).filter(Bid.bidding_id == bidding.id, Bid.status == "submitted").count()
+        if bids > 0:
+            raise HTTPException(status_code=400, detail="Cannot modify request with submitted bids")
+    
+    # Update fields
+    update_data = request.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        if value is not None:
+            if key == "etd":
+                setattr(quote_req, key, parse_datetime(value))
+            else:
+                setattr(quote_req, key, value)
+    
+    db.commit()
+    
+    return {"success": True, "message": "Quote request updated", "request_number": quote_req.request_number}
+
+
+@app.delete("/api/quote-request/{request_id}", tags=["Quote Request"])
+def cancel_quote_request(
+    request_id: int,
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+    """운송 요청 취소"""
+    quote_req = db.query(QuoteRequest).filter(
+        QuoteRequest.id == request_id,
+        QuoteRequest.customer_id == customer_id
+    ).first()
+    
+    if not quote_req:
+        raise HTTPException(status_code=404, detail="Quote request not found")
+    
+    if quote_req.status in ["accepted", "cancelled"]:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel request with status: {quote_req.status}")
+    
+    quote_req.status = "cancelled"
+    
+    # Cancel bidding if exists
+    bidding = db.query(Bidding).filter(Bidding.quote_request_id == request_id).first()
+    if bidding:
+        bidding.status = "cancelled"
+    
+    db.commit()
+    
+    return {"success": True, "message": "Quote request cancelled", "request_number": quote_req.request_number}
+
+
+@app.post("/api/quote-request/{request_id}/copy", tags=["Quote Request"])
+def copy_quote_request(
+    request_id: int,
+    request: QuoteRequestCopyRequest,
+    db: Session = Depends(get_db)
+):
+    """운송 요청 복사 (재요청)"""
+    original = db.query(QuoteRequest).filter(QuoteRequest.id == request_id).first()
+    
+    if not original:
+        raise HTTPException(status_code=404, detail="Quote request not found")
+    
+    # Copy cargo details
+    cargo_details = db.query(CargoDetail).filter(CargoDetail.quote_request_id == request_id).all()
+    
+    # Create new request
+    new_etd = parse_datetime(request.new_etd) if request.new_etd else original.etd
+    
+    new_request = QuoteRequest(
+        request_number=generate_request_number(),
+        trade_mode=original.trade_mode,
+        shipping_type=original.shipping_type,
+        load_type=original.load_type,
+        incoterms=original.incoterms,
+        pol=original.pol,
+        pod=original.pod,
+        etd=new_etd,
+        is_dg=original.is_dg,
+        dg_class=original.dg_class,
+        dg_un=original.dg_un,
+        pickup_required=original.pickup_required,
+        pickup_address=original.pickup_address,
+        delivery_required=original.delivery_required,
+        delivery_address=original.delivery_address,
+        remark=original.remark,
+        customer_id=request.customer_id,
+        status="pending"
+    )
+    db.add(new_request)
+    db.flush()
+    
+    # Copy cargo details
+    for cargo in cargo_details:
+        new_cargo = CargoDetail(
+            quote_request_id=new_request.id,
+            row_index=cargo.row_index,
+            container_type=cargo.container_type,
+            truck_type=cargo.truck_type,
+            length=cargo.length,
+            width=cargo.width,
+            height=cargo.height,
+            qty=cargo.qty,
+            gross_weight=cargo.gross_weight,
+            cbm=cargo.cbm,
+            volume_weight=cargo.volume_weight,
+            chargeable_weight=cargo.chargeable_weight
+        )
+        db.add(new_cargo)
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Quote request copied",
+        "new_request_number": new_request.request_number,
+        "new_request_id": new_request.id
+    }
+
+
+# ==========================================
+# BID WITHDRAW/RESUBMIT ENDPOINTS
+# ==========================================
+
+@app.delete("/api/bid/{bid_id}", tags=["Bid"])
+def withdraw_bid(
+    bid_id: int,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """입찰 철회"""
+    bid = db.query(Bid).filter(
+        Bid.id == bid_id,
+        Bid.forwarder_id == forwarder_id
+    ).first()
+    
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    if bid.status == "awarded":
+        raise HTTPException(status_code=400, detail="Cannot withdraw awarded bid")
+    
+    bidding = db.query(Bidding).filter(Bidding.id == bid.bidding_id).first()
+    if bidding and bidding.status != "open":
+        raise HTTPException(status_code=400, detail="Bidding is not open")
+    
+    bid.status = "draft"
+    bid.submitted_at = None
+    
+    db.commit()
+    
+    return {"success": True, "message": "Bid withdrawn"}
+
+
+@app.post("/api/bid/{bid_id}/resubmit", tags=["Bid"])
+def resubmit_bid(
+    bid_id: int,
+    forwarder_id: int,
+    db: Session = Depends(get_db)
+):
+    """입찰 재제출"""
+    bid = db.query(Bid).filter(
+        Bid.id == bid_id,
+        Bid.forwarder_id == forwarder_id
+    ).first()
+    
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+    
+    if bid.status not in ["draft", "rejected"]:
+        raise HTTPException(status_code=400, detail=f"Cannot resubmit bid with status: {bid.status}")
+    
+    bidding = db.query(Bidding).filter(Bidding.id == bid.bidding_id).first()
+    if bidding and bidding.status != "open":
+        raise HTTPException(status_code=400, detail="Bidding is not open")
+    
+    bid.status = "submitted"
+    bid.submitted_at = datetime.now()
+    
+    db.commit()
+    
+    return {"success": True, "message": "Bid resubmitted"}
+
+
+# ==========================================
+# RECOMMENDATION ENDPOINTS
+# ==========================================
+
+@app.get("/api/recommend/forwarders", response_model=ForwarderRecommendationResponse, tags=["Recommendation"])
+def recommend_forwarders(
+    customer_id: int,
+    pol: str,
+    pod: str,
+    shipping_type: Optional[str] = None,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """포워더 추천 (화주용)"""
+    # Find forwarders who have been awarded for similar routes
+    query = db.query(
+        Forwarder, Bid, Bidding, QuoteRequest
+    ).join(
+        Bid, Bid.forwarder_id == Forwarder.id
+    ).join(
+        Bidding, Bid.bidding_id == Bidding.id
+    ).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.pol == pol,
+        QuoteRequest.pod == pod,
+        Bid.status == "awarded"
+    )
+    
+    if shipping_type:
+        query = query.filter(QuoteRequest.shipping_type == shipping_type)
+    
+    results = query.all()
+    
+    # Aggregate by forwarder
+    forwarder_stats = {}
+    for forwarder, bid, bidding, quote_req in results:
+        if forwarder.id not in forwarder_stats:
+            forwarder_stats[forwarder.id] = {
+                "forwarder": forwarder,
+                "awarded_count": 0,
+                "total_price": 0
+            }
+        forwarder_stats[forwarder.id]["awarded_count"] += 1
+        bid_amount = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+        forwarder_stats[forwarder.id]["total_price"] += bid_amount
+    
+    # Sort by awarded count
+    sorted_forwarders = sorted(
+        forwarder_stats.values(),
+        key=lambda x: (x["awarded_count"], float(x["forwarder"].rating or 3.0)),
+        reverse=True
+    )[:limit]
+    
+    recommendations = []
+    for stats in sorted_forwarders:
+        f = stats["forwarder"]
+        avg_price = stats["total_price"] / stats["awarded_count"] if stats["awarded_count"] > 0 else 0
+        recommendations.append(RecommendedForwarder(
+            forwarder_id=f.id,
+            company_masked=mask_company_name(f.company),
+            rating=float(f.rating) if f.rating else 3.0,
+            rating_count=f.rating_count or 0,
+            awarded_count=stats["awarded_count"],
+            avg_price_krw=round(avg_price, 0),
+            reason=f"해당 구간 {stats['awarded_count']}회 낙찰 경험"
+        ))
+    
+    return ForwarderRecommendationResponse(
+        pol=pol,
+        pod=pod,
+        shipping_type=shipping_type,
+        recommendations=recommendations
+    )
+
+
+@app.get("/api/recommend/biddings", response_model=BiddingRecommendationResponse, tags=["Recommendation"])
+def recommend_biddings(
+    forwarder_id: int,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """비딩 추천 (포워더용)"""
+    # Find routes where forwarder has been awarded before
+    awarded_routes = db.query(QuoteRequest.pol, QuoteRequest.pod, QuoteRequest.shipping_type).join(
+        Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).join(
+        Bid, Bid.bidding_id == Bidding.id
+    ).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.status == "awarded"
+    ).distinct().all()
+    
+    route_set = set((r.pol, r.pod, r.shipping_type) for r in awarded_routes)
+    
+    # Find open biddings matching these routes
+    open_biddings = db.query(Bidding, QuoteRequest).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        Bidding.status == "open"
+    ).all()
+    
+    recommendations = []
+    for bidding, quote_req in open_biddings:
+        # Check if forwarder already bid
+        existing_bid = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.forwarder_id == forwarder_id
+        ).first()
+        
+        if existing_bid:
+            continue
+        
+        # Calculate recommendation score
+        reason = ""
+        if (quote_req.pol, quote_req.pod, quote_req.shipping_type) in route_set:
+            reason = "과거 낙찰 경험이 있는 구간"
+        elif (quote_req.pol, quote_req.pod, None) in route_set or any(
+            r[0] == quote_req.pol and r[1] == quote_req.pod for r in route_set
+        ):
+            reason = "유사 구간 경험"
+        else:
+            continue  # Skip if no match
+        
+        # Get bid count
+        bid_count = db.query(Bid).filter(
+            Bid.bidding_id == bidding.id,
+            Bid.status == "submitted"
+        ).count()
+        
+        recommendations.append(RecommendedBidding(
+            bidding_id=bidding.id,
+            bidding_no=bidding.bidding_no,
+            pol=quote_req.pol,
+            pod=quote_req.pod,
+            shipping_type=quote_req.shipping_type,
+            deadline=bidding.deadline,
+            avg_bid_price_krw=None,
+            bid_count=bid_count,
+            reason=reason
+        ))
+        
+        if len(recommendations) >= limit:
+            break
+    
+    return BiddingRecommendationResponse(
+        forwarder_id=forwarder_id,
+        recommendations=recommendations
+    )
+
+
+@app.get("/api/price-guide/{pol}/{pod}", response_model=PriceGuideResponse, tags=["Recommendation"])
+def get_price_guide(
+    pol: str,
+    pod: str,
+    shipping_type: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """구간별 가격 가이드"""
+    query = db.query(Bid).join(
+        Bidding, Bid.bidding_id == Bidding.id
+    ).join(
+        QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.pol == pol,
+        QuoteRequest.pod == pod,
+        Bid.status.in_(["submitted", "awarded"])
+    )
+    
+    if shipping_type:
+        query = query.filter(QuoteRequest.shipping_type == shipping_type)
+    
+    bids = query.all()
+    
+    if not bids:
+        return PriceGuideResponse(
+            pol=pol,
+            pod=pod,
+            shipping_type=shipping_type,
+            sample_count=0,
+            avg_price_krw=0,
+            min_price_krw=0,
+            max_price_krw=0,
+            median_price_krw=0
+        )
+    
+    prices = []
+    for bid in bids:
+        price = float(bid.total_amount_krw) if bid.total_amount_krw else convert_to_krw(float(bid.total_amount))
+        prices.append(price)
+    
+    prices.sort()
+    median_idx = len(prices) // 2
+    median = prices[median_idx] if len(prices) % 2 == 1 else (prices[median_idx - 1] + prices[median_idx]) / 2
+    
+    return PriceGuideResponse(
+        pol=pol,
+        pod=pod,
+        shipping_type=shipping_type,
+        sample_count=len(prices),
+        avg_price_krw=round(sum(prices) / len(prices), 0),
+        min_price_krw=round(min(prices), 0),
+        max_price_krw=round(max(prices), 0),
+        median_price_krw=round(median, 0)
+    )
+
+
+# ==========================================
+# SETTLEMENT DISPUTE APIs
+# ==========================================
+
+@app.post("/api/settlement/{settlement_id}/dispute", tags=["Settlement Dispute"])
+def file_dispute(
+    settlement_id: int,
+    customer_id: int,
+    reason: str,
+    evidence: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """정산 분쟁 제기 (화주)"""
+    settlement = db.query(Settlement).filter(Settlement.id == settlement_id).first()
+    if not settlement:
+        raise HTTPException(status_code=404, detail="Settlement not found")
+    
+    if settlement.customer_id != customer_id:
+        raise HTTPException(status_code=403, detail="Not authorized to dispute this settlement")
+    
+    if settlement.status not in ["pending", "requested"]:
+        raise HTTPException(status_code=400, detail=f"Cannot dispute settlement in '{settlement.status}' status")
+    
+    # Update settlement to disputed
+    settlement.status = "disputed"
+    settlement.disputed_at = datetime.now()
+    settlement.dispute_reason = reason
+    settlement.dispute_evidence = evidence
+    
+    # Notify forwarder
+    notification = Notification(
+        recipient_type="forwarder",
+        recipient_id=settlement.forwarder_id,
+        notification_type="settlement_disputed",
+        title="정산 분쟁이 제기되었습니다",
+        message=f"정산번호 {settlement.settlement_no}에 분쟁이 제기되었습니다. 7일 내 응답해주세요.",
+        related_type="settlement",
+        related_id=settlement.id
+    )
+    db.add(notification)
+    
+    db.commit()
+    db.refresh(settlement)
+    
+    return {
+        "success": True,
+        "settlement_no": settlement.settlement_no,
+        "status": settlement.status,
+        "disputed_at": settlement.disputed_at.isoformat(),
+        "message": "분쟁이 정상적으로 제기되었습니다. 포워더에게 알림이 발송되었습니다."
+    }
+
+
+@app.post("/api/settlement/{settlement_id}/respond", tags=["Settlement Dispute"])
+def respond_to_dispute(
+    settlement_id: int,
+    forwarder_id: int,
+    response: str,
+    proposed_amount: Optional[float] = None,
+    db: Session = Depends(get_db)
+):
+    """분쟁 응답 (포워더)"""
+    settlement = db.query(Settlement).filter(Settlement.id == settlement_id).first()
+    if not settlement:
+        raise HTTPException(status_code=404, detail="Settlement not found")
+    
+    if settlement.forwarder_id != forwarder_id:
+        raise HTTPException(status_code=403, detail="Not authorized to respond to this dispute")
+    
+    if settlement.status != "disputed":
+        raise HTTPException(status_code=400, detail="Settlement is not in disputed status")
+    
+    # Record response
+    settlement.forwarder_response = response
+    settlement.forwarder_response_at = datetime.now()
+    
+    if proposed_amount is not None:
+        settlement.adjusted_amount = proposed_amount
+    
+    # Notify customer
+    notification = Notification(
+        recipient_type="customer",
+        recipient_id=settlement.customer_id,
+        notification_type="dispute_response",
+        title="분쟁 응답이 도착했습니다",
+        message=f"정산번호 {settlement.settlement_no}의 분쟁에 포워더가 응답했습니다.",
+        related_type="settlement",
+        related_id=settlement.id
+    )
+    db.add(notification)
+    
+    db.commit()
+    db.refresh(settlement)
+    
+    return {
+        "success": True,
+        "settlement_no": settlement.settlement_no,
+        "response": response,
+        "proposed_amount": proposed_amount,
+        "responded_at": settlement.forwarder_response_at.isoformat(),
+        "message": "응답이 정상적으로 등록되었습니다."
+    }
+
+
+@app.post("/api/settlement/{settlement_id}/resolve", tags=["Settlement Dispute"])
+def resolve_dispute(
+    settlement_id: int,
+    resolution_type: str,  # agreement, mediation, cancel
+    resolution_note: str,
+    final_amount: Optional[float] = None,
+    resolved_by: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """분쟁 해결"""
+    settlement = db.query(Settlement).filter(Settlement.id == settlement_id).first()
+    if not settlement:
+        raise HTTPException(status_code=404, detail="Settlement not found")
+    
+    if settlement.status != "disputed":
+        raise HTTPException(status_code=400, detail="Settlement is not in disputed status")
+    
+    valid_resolution_types = ["agreement", "mediation", "cancel"]
+    if resolution_type not in valid_resolution_types:
+        raise HTTPException(status_code=400, detail=f"Invalid resolution type. Must be one of: {valid_resolution_types}")
+    
+    now = datetime.now()
+    
+    # Update settlement
+    if resolution_type == "cancel":
+        settlement.status = "cancelled"
+    else:
+        settlement.status = "completed"
+    
+    settlement.resolved_at = now
+    settlement.resolution_type = resolution_type
+    settlement.resolution_note = resolution_note
+    settlement.resolved_by = resolved_by
+    
+    if final_amount is not None:
+        settlement.adjusted_amount = final_amount
+        settlement.net_amount = final_amount - float(settlement.service_fee or 0)
+    
+    # Notify both parties
+    resolution_labels = {
+        "agreement": "양측 합의",
+        "mediation": "관리자 중재",
+        "cancel": "취소"
+    }
+    
+    for recipient_type, recipient_id in [
+        ("customer", settlement.customer_id),
+        ("forwarder", settlement.forwarder_id)
+    ]:
+        notification = Notification(
+            recipient_type=recipient_type,
+            recipient_id=recipient_id,
+            notification_type="dispute_resolved",
+            title="분쟁이 해결되었습니다",
+            message=f"정산번호 {settlement.settlement_no}의 분쟁이 {resolution_labels[resolution_type]}로 해결되었습니다.",
+            related_type="settlement",
+            related_id=settlement.id
+        )
+        db.add(notification)
+    
+    db.commit()
+    db.refresh(settlement)
+    
+    return {
+        "success": True,
+        "settlement_no": settlement.settlement_no,
+        "status": settlement.status,
+        "resolution_type": resolution_type,
+        "resolution_note": resolution_note,
+        "final_amount": float(settlement.adjusted_amount) if settlement.adjusted_amount else float(settlement.net_amount),
+        "resolved_at": settlement.resolved_at.isoformat(),
+        "message": "분쟁이 정상적으로 해결되었습니다."
+    }
+
+
+@app.get("/api/settlement/{settlement_id}/dispute-detail", tags=["Settlement Dispute"])
+def get_dispute_detail(
+    settlement_id: int,
+    db: Session = Depends(get_db)
+):
+    """분쟁 상세 조회"""
+    settlement = db.query(Settlement).filter(Settlement.id == settlement_id).first()
+    if not settlement:
+        raise HTTPException(status_code=404, detail="Settlement not found")
+    
+    # Get related contract info
+    contract = db.query(Contract).filter(Contract.id == settlement.contract_id).first()
+    
+    # Get customer and forwarder names
+    customer = db.query(Customer).filter(Customer.id == settlement.customer_id).first()
+    forwarder = db.query(Forwarder).filter(Forwarder.id == settlement.forwarder_id).first()
+    
+    response = {
+        "settlement_id": settlement.id,
+        "settlement_no": settlement.settlement_no,
+        "status": settlement.status,
+        
+        # Parties
+        "customer_id": settlement.customer_id,
+        "customer_name": customer.company if customer else None,
+        "forwarder_id": settlement.forwarder_id,
+        "forwarder_name": forwarder.company if forwarder else None,
+        
+        # Amounts
+        "original_amount_krw": float(settlement.total_amount_krw),
+        "service_fee": float(settlement.service_fee) if settlement.service_fee else 0,
+        "adjusted_amount_krw": float(settlement.adjusted_amount) if settlement.adjusted_amount else None,
+        "final_net_amount": float(settlement.net_amount),
+        
+        # Dispute info
+        "disputed_at": settlement.disputed_at.isoformat() if settlement.disputed_at else None,
+        "dispute_reason": settlement.dispute_reason,
+        "dispute_evidence": settlement.dispute_evidence,
+        
+        # Response info
+        "forwarder_response": settlement.forwarder_response,
+        "forwarder_response_at": settlement.forwarder_response_at.isoformat() if settlement.forwarder_response_at else None,
+        
+        # Resolution info
+        "resolved_at": settlement.resolved_at.isoformat() if settlement.resolved_at else None,
+        "resolution_type": settlement.resolution_type,
+        "resolution_note": settlement.resolution_note,
+        "resolved_by": settlement.resolved_by,
+        
+        # Timestamps
+        "created_at": settlement.created_at.isoformat() if settlement.created_at else None,
+        "updated_at": settlement.updated_at.isoformat() if settlement.updated_at else None
+    }
+    
+    # Calculate days since dispute
+    if settlement.disputed_at and settlement.status == "disputed":
+        days_since_dispute = (datetime.now() - settlement.disputed_at).days
+        response["days_since_dispute"] = days_since_dispute
+        response["auto_resolve_in_days"] = max(0, 7 - days_since_dispute) if not settlement.forwarder_response else None
+    
+    return response
+
+
+@app.get("/api/settlements/disputes", tags=["Settlement Dispute"])
+def list_disputes(
+    status: Optional[str] = None,  # disputed, resolved, all
+    customer_id: Optional[int] = None,
+    forwarder_id: Optional[int] = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """분쟁 목록 조회"""
+    query = db.query(Settlement).filter(
+        or_(
+            Settlement.status == "disputed",
+            Settlement.resolution_type.isnot(None)  # Has been resolved from dispute
+        )
+    )
+    
+    if status == "disputed":
+        query = query.filter(Settlement.status == "disputed")
+    elif status == "resolved":
+        query = query.filter(Settlement.resolution_type.isnot(None))
+    
+    if customer_id:
+        query = query.filter(Settlement.customer_id == customer_id)
+    if forwarder_id:
+        query = query.filter(Settlement.forwarder_id == forwarder_id)
+    
+    total = query.count()
+    disputes = query.order_by(Settlement.disputed_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    
+    items = []
+    for s in disputes:
+        customer = db.query(Customer).filter(Customer.id == s.customer_id).first()
+        forwarder = db.query(Forwarder).filter(Forwarder.id == s.forwarder_id).first()
+        
+        items.append({
+            "settlement_id": s.id,
+            "settlement_no": s.settlement_no,
+            "status": s.status,
+            "customer_name": customer.company if customer else None,
+            "forwarder_name": forwarder.company if forwarder else None,
+            "original_amount_krw": float(s.total_amount_krw),
+            "dispute_reason": s.dispute_reason[:100] + "..." if s.dispute_reason and len(s.dispute_reason) > 100 else s.dispute_reason,
+            "disputed_at": s.disputed_at.isoformat() if s.disputed_at else None,
+            "has_response": s.forwarder_response is not None,
+            "resolved_at": s.resolved_at.isoformat() if s.resolved_at else None,
+            "resolution_type": s.resolution_type
+        })
+    
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit,
+        "disputes": items
+    }
+
+
+# ==========================================
+# SCHEDULER APIs
+# ==========================================
+
+@app.post("/api/admin/run-scheduled-tasks", tags=["Admin"])
+def run_scheduled_tasks_manually(admin_key: str):
+    """스케줄 작업 수동 실행 (관리자용)"""
+    # Simple admin key check (in production, use proper auth)
+    if admin_key != "admin_secret_key_12345":
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+    
+    from scheduler import run_all_scheduled_tasks
+    results = run_all_scheduled_tasks()
+    
+    return {
+        "success": True,
+        "message": "Scheduled tasks executed",
+        "results": results
+    }
+
+
+@app.get("/api/admin/scheduler-status", tags=["Admin"])
+def get_scheduler_status(admin_key: str):
+    """스케줄러 상태 조회 (관리자용)"""
+    if admin_key != "admin_secret_key_12345":
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+    
+    return {
+        "scheduler": "active",
+        "tasks": [
+            {"name": "auto_expire_biddings", "schedule": "매 1시간"},
+            {"name": "check_delivery_reminders", "schedule": "매일 09:00"},
+            {"name": "check_dispute_deadlines", "schedule": "매일 09:00"}
+        ],
+        "last_run": datetime.now().isoformat(),
+        "next_run": (datetime.now() + timedelta(hours=1)).isoformat()
+    }
 
 
 # ==========================================

@@ -1,0 +1,625 @@
+/**
+ * Onboarding Components CSS
+ * 사용자 온보딩 UI 스타일
+ */
+
+/* ==========================================
+   WELCOME MODAL
+   ========================================== */
+
+.onboarding-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(11, 11, 13, 0.9);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.onboarding-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.onboarding-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s ease-out;
+}
+
+.onboarding-modal.active .onboarding-container {
+    transform: scale(1) translateY(0);
+}
+
+/* ==========================================
+   SLIDE CONTENT
+   ========================================== */
+
+.onboarding-slides {
+    position: relative;
+    overflow: hidden;
+}
+
+.onboarding-slide {
+    display: none;
+    padding: 3rem 2.5rem;
+    text-align: center;
+    animation: slideIn 0.4s ease-out;
+}
+
+.onboarding-slide.active {
+    display: block;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.onboarding-icon {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 2rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+}
+
+.onboarding-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+.onboarding-description {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+/* Feature List */
+.onboarding-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+    text-align: left;
+}
+
+.onboarding-feature {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.onboarding-feature-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.onboarding-feature-text {
+    flex: 1;
+}
+
+.onboarding-feature-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.onboarding-feature-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* ==========================================
+   NAVIGATION
+   ========================================== */
+
+.onboarding-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.onboarding-dots {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.onboarding-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-color);
+    transition: all 0.3s;
+}
+
+.onboarding-dot.active {
+    width: 24px;
+    border-radius: 4px;
+    background: var(--accent-primary);
+}
+
+.onboarding-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.onboarding-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.9375rem;
+}
+
+.onboarding-btn-skip {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.onboarding-btn-skip:hover {
+    color: var(--text-primary);
+}
+
+.onboarding-btn-next {
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    color: white;
+}
+
+.onboarding-btn-next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.onboarding-btn-prev {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.onboarding-btn-prev:hover {
+    border-color: var(--accent-primary);
+}
+
+/* ==========================================
+   TOOLTIP GUIDE
+   ========================================== */
+
+.guide-tooltip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 320px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+}
+
+.guide-tooltip.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.guide-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    transform: rotate(45deg);
+}
+
+/* Arrow positions */
+.guide-tooltip.arrow-top::before {
+    top: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.guide-tooltip.arrow-bottom::before {
+    bottom: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-left: none;
+    border-top: none;
+}
+
+.guide-tooltip.arrow-left::before {
+    left: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-right: none;
+    border-top: none;
+}
+
+.guide-tooltip.arrow-right::before {
+    right: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-left: none;
+    border-bottom: none;
+}
+
+.guide-tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.guide-tooltip-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.875rem;
+}
+
+.guide-tooltip-title {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.guide-tooltip-step {
+    font-size: 0.75rem;
+    color: var(--accent-primary);
+}
+
+.guide-tooltip-content {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.guide-tooltip-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.guide-tooltip-progress {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.guide-tooltip-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.guide-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.guide-btn-skip {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.guide-btn-skip:hover {
+    color: var(--text-primary);
+}
+
+.guide-btn-next {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.guide-btn-next:hover {
+    background: var(--accent-secondary);
+}
+
+/* ==========================================
+   HIGHLIGHT OVERLAY
+   ========================================== */
+
+.guide-highlight {
+    position: fixed;
+    z-index: 9998;
+    pointer-events: none;
+}
+
+.guide-highlight::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.guide-highlight-target {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    box-shadow: 0 0 0 4px var(--accent-primary), 0 0 0 8px rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    animation: pulse-highlight 2s ease-in-out infinite;
+}
+
+@keyframes pulse-highlight {
+    0%, 100% {
+        box-shadow: 0 0 0 4px var(--accent-primary), 0 0 0 8px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 4px var(--accent-primary), 0 0 0 16px rgba(59, 130, 246, 0.1);
+    }
+}
+
+/* ==========================================
+   CHECKLIST
+   ========================================== */
+
+.onboarding-checklist {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9000;
+    max-width: 320px;
+    width: 100%;
+}
+
+.checklist-toggle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.4);
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checklist-toggle:hover {
+    transform: scale(1.1);
+}
+
+.checklist-toggle .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    background: #ef4444;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.checklist-panel {
+    position: absolute;
+    bottom: 70px;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+}
+
+.checklist-panel.active {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    visibility: visible;
+}
+
+.checklist-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checklist-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.checklist-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--bg-secondary);
+    border-radius: 2px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+}
+
+.checklist-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    border-radius: 2px;
+    transition: width 0.3s;
+}
+
+.checklist-items {
+    padding: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checklist-item:hover {
+    background: var(--bg-secondary);
+}
+
+.checklist-item.completed {
+    opacity: 0.6;
+}
+
+.checklist-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.checklist-item.completed .checklist-checkbox {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.checklist-checkbox i {
+    font-size: 0.75rem;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s;
+}
+
+.checklist-item.completed .checklist-checkbox i {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.checklist-text {
+    flex: 1;
+}
+
+.checklist-text span {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.checklist-text small {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 640px) {
+    .onboarding-container {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .onboarding-slide {
+        padding: 2rem 1.5rem;
+    }
+    
+    .onboarding-icon {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+    
+    .onboarding-title {
+        font-size: 1.5rem;
+    }
+    
+    .onboarding-footer {
+        padding: 1.25rem 1.5rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .guide-tooltip {
+        max-width: 280px;
+    }
+    
+    .onboarding-checklist {
+        bottom: 15px;
+        right: 15px;
+        max-width: calc(100% - 30px);
+    }
+}

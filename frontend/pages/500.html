@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - 서버 오류 | AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    
+    <style>
+        .error-page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-primary);
+        }
+        
+        .error-icon {
+            font-size: 8rem;
+            color: #ef4444;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .error-code {
+            font-size: 6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #ef4444, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .error-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 450px;
+            line-height: 1.6;
+        }
+        
+        .error-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .error-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+        }
+        
+        .error-btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+        
+        .error-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .error-btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .error-btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+        
+        .error-details {
+            margin-top: 3rem;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 500px;
+            text-align: left;
+        }
+        
+        .error-details h3 {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .error-details ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .error-details li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .error-details li i {
+            color: var(--accent-primary);
+            margin-top: 0.125rem;
+        }
+        
+        .error-contact {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-tertiary);
+        }
+        
+        .error-contact a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+        
+        .error-contact a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-animation {
+            position: relative;
+        }
+        
+        .error-animation::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(239, 68, 68, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse-bg 3s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes pulse-bg {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-page">
+        <div class="error-animation">
+            <i class="fas fa-exclamation-triangle error-icon"></i>
+        </div>
+        <div class="error-code">500</div>
+        <h1 class="error-title">서버에 문제가 발생했습니다</h1>
+        <p class="error-message">
+            일시적인 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.
+            문제가 계속되면 고객센터로 문의해 주세요.
+        </p>
+        
+        <div class="error-actions">
+            <button class="error-btn error-btn-primary" onclick="location.reload()">
+                <i class="fas fa-redo"></i> 다시 시도
+            </button>
+            <a href="../ai_studio_code_F2.html" class="error-btn error-btn-secondary">
+                <i class="fas fa-home"></i> 홈으로 이동
+            </a>
+        </div>
+        
+        <div class="error-details">
+            <h3><i class="fas fa-lightbulb"></i> 이렇게 해보세요</h3>
+            <ul>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span>페이지를 새로고침 해보세요</span>
+                </li>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span>브라우저 캐시를 삭제한 후 다시 접속해 보세요</span>
+                </li>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span>잠시 후(1-2분) 다시 시도해 보세요</span>
+                </li>
+                <li>
+                    <i class="fas fa-check"></i>
+                    <span>다른 브라우저로 접속해 보세요</span>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="error-contact">
+            문제가 계속되시나요? <a href="mailto:support@aallogistics.com">support@aallogistics.com</a>으로 문의해 주세요.
+        </div>
+    </div>
+</body>
+</html>

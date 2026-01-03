@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Quotations - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles - Design System -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <!-- Components -->
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
+    <link rel="stylesheet" href="../css/components/unified-cards.css">
+    <link rel="stylesheet" href="../css/components/unified-buttons.css">
+    <!-- Sections -->
+    <link rel="stylesheet" href="../css/sections/bidding-list.css">
+    <link rel="stylesheet" href="../css/sections/shipper-bidding.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="quotation.html">Quotation</a></li>
+                <li><a href="shipper-bidding.html" class="active">My Quotations</a></li>
+                <li><a href="bidding-list.html">Bidding</a></li>
+                <li><a href="market-data.html">Market Data</a></li>
+                <li><a href="news-intelligence.html">News Intel</a></li>
+                <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
+                <li><a href="report-insight.html">Report & Insight</a></li>
+            </ul>
+        </nav>
+        <!-- Auth Container -->
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding">
+        <!-- Page Header -->
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">My Quotations</h1>
+                <p class="section-subtitle">운송 요청 및 입찰 관리</p>
+            </div>
+            <div id="shipperActions">
+                <!-- Login required message will be shown here -->
+            </div>
+        </div>
+
+        <!-- Shipper Info Bar (shown when logged in) -->
+        <div id="shipperBar" class="forwarder-bar shipper-bar" style="display: none;">
+            <div class="forwarder-info">
+                <div class="forwarder-avatar shipper-avatar" id="shipperAvatar">S</div>
+                <div class="forwarder-details">
+                    <h4 id="shipperCompany">Company Name</h4>
+                    <span id="shipperEmail">email@company.com</span>
+                </div>
+            </div>
+            <div class="shipper-bar-actions">
+                <a href="quotation.html" class="btn-new-quote">
+                    <i class="fas fa-plus"></i> 새 운송 요청
+                </a>
+                <button class="btn-logout" onclick="ShipperBidding.logout()">
+                    <i class="fas fa-sign-out-alt"></i> 로그아웃
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Stats -->
+        <div class="bidding-dashboard">
+            <div class="stat-card total">
+                <div class="stat-label">
+                    <i class="fas fa-th-list"></i>
+                    전체 요청
+                </div>
+                <div class="stat-value" id="statTotal">-</div>
+            </div>
+            <div class="stat-card open">
+                <div class="stat-label">
+                    <i class="fas fa-gavel"></i>
+                    입찰중
+                </div>
+                <div class="stat-value" id="statOpen">-</div>
+            </div>
+            <div class="stat-card closing">
+                <div class="stat-label">
+                    <i class="fas fa-clock"></i>
+                    마감예정 (24h)
+                </div>
+                <div class="stat-value" id="statClosing">-</div>
+            </div>
+            <div class="stat-card awarded">
+                <div class="stat-label">
+                    <i class="fas fa-trophy"></i>
+                    선정완료
+                </div>
+                <div class="stat-value" id="statAwarded">-</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-label">
+                    <i class="fas fa-times-circle"></i>
+                    유찰
+                </div>
+                <div class="stat-value" id="statFailed">-</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="filter-group">
+                <select class="filter-select" id="filterStatus">
+                    <option value="">전체</option>
+                    <option value="open">입찰중</option>
+                    <option value="closing_soon">마감예정</option>
+                    <option value="awarded">선정완료</option>
+                    <option value="expired">마감/유찰</option>
+                </select>
+                <select class="filter-select" id="filterShipping">
+                    <option value="">전체 운송</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="air">Air</option>
+                    <option value="truck">Truck</option>
+                </select>
+                <input type="text" class="filter-input" id="filterSearch" placeholder="Bidding No 검색...">
+            </div>
+            <button class="btn-refresh" onclick="ShipperBidding.refresh()">
+                <i class="fas fa-sync-alt"></i>
+                새로고침
+            </button>
+        </div>
+
+        <!-- Bidding Table -->
+        <div class="bidding-table-container">
+            <table class="bidding-table shipper-table">
+                <thead>
+                    <tr>
+                        <th>Bidding No</th>
+                        <th>구간</th>
+                        <th>운송타입</th>
+                        <th>ETD</th>
+                        <th>상태</th>
+                        <th>입찰수</th>
+                        <th>최저가 (KRW)</th>
+                        <th>운송사 선정</th>
+                    </tr>
+                </thead>
+                <tbody id="biddingTableBody">
+                    <!-- Table rows will be inserted here -->
+                </tbody>
+            </table>
+            
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <i class="fas fa-inbox"></i>
+                <h3>등록된 운송 요청이 없습니다</h3>
+                <p>새로운 운송 요청을 등록해보세요.</p>
+                <a href="quotation.html" class="btn-new-quote-large">
+                    <i class="fas fa-plus"></i> 새 운송 요청 등록
+                </a>
+            </div>
+            
+            <!-- Loading State -->
+            <div class="loading-spinner" id="loadingState" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+            
+            <!-- Login Required State -->
+            <div class="login-required-state" id="loginRequiredState" style="display: none;">
+                <i class="fas fa-lock"></i>
+                <h3>로그인이 필요합니다</h3>
+                <p>화주 계정으로 로그인하여 운송 요청을 관리하세요.</p>
+                <button class="btn-login-large" onclick="Auth.openModal()">
+                    <i class="fas fa-sign-in-alt"></i> 로그인
+                </button>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be inserted here -->
+        </div>
+    </main>
+
+    <!-- Bid Selection Modal (운송사 선정) -->
+    <div class="modal-overlay bid-selection-modal" id="bidSelectionModal">
+        <div class="modal-content bid-selection-content">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <h3 class="modal-title">운송사 선정</h3>
+                    <span class="modal-bidding-no" id="modalBiddingNo">EXSEA00000</span>
+                </div>
+                <div class="modal-route-info">
+                    <span class="route-badge" id="modalRoute">KRPUS → USLAX</span>
+                    <span class="etd-badge" id="modalEtd">ETD: 2025-02-01</span>
+                </div>
+                <button class="modal-close" onclick="ShipperBidding.closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Bid List Table -->
+                <div class="bid-list-container">
+                    <table class="bid-list-table">
+                        <thead>
+                            <tr>
+                                <th class="col-rank">순위</th>
+                                <th class="col-company">업체명</th>
+                                <th class="col-rating">평점</th>
+                                <th class="col-price">입찰가 (KRW)</th>
+                                <th class="col-schedule">일정</th>
+                                <th class="col-transit">T/T</th>
+                                <th class="col-carrier">선사/항공사</th>
+                                <th class="col-action">선정</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bidListBody">
+                            <!-- Bid rows will be inserted here -->
+                        </tbody>
+                    </table>
+                    
+                    <!-- No Bids State -->
+                    <div class="no-bids-state" id="noBidsState" style="display: none;">
+                        <i class="fas fa-hand-paper"></i>
+                        <h4>아직 입찰이 없습니다</h4>
+                        <p>운송사들이 입찰을 제출하면 여기에 표시됩니다.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="action-btn secondary" onclick="ShipperBidding.closeModal()">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Award Confirmation Modal -->
+    <div class="modal-overlay confirm-modal" id="confirmModal">
+        <div class="modal-content confirm-content">
+            <div class="confirm-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="confirm-title">운송사를 선정하시겠습니까?</h3>
+            <p class="confirm-message" id="confirmMessage">
+                선택한 운송사가 해당 운송 건의 운송사로 지정되며,<br>
+                선정 후에는 변경이 어렵습니다.
+            </p>
+            <div class="confirm-details" id="confirmDetails">
+                <!-- Details will be inserted here -->
+            </div>
+            <div class="confirm-actions">
+                <button class="action-btn secondary" onclick="ShipperBidding.closeConfirmModal()">
+                    취소
+                </button>
+                <button class="action-btn primary" id="confirmAwardBtn" onclick="ShipperBidding.confirmAward()">
+                    <i class="fas fa-check"></i> 선정하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal-overlay" id="authModalOverlay">
+        <div class="auth-modal">
+            <div class="auth-modal-header">
+                <h3 class="auth-modal-title" id="authModalTitle">로그인</h3>
+                <button class="auth-modal-close" onclick="Auth.closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="auth-modal-body">
+                <!-- Step Indicator -->
+                <div class="auth-steps">
+                    <div class="auth-step active"></div>
+                    <div class="auth-step"></div>
+                </div>
+                
+                <!-- Login Type Selection View -->
+                <div id="loginTypeView">
+                    <p style="text-align: center; color: var(--text-sub); margin-bottom: 1.5rem;">
+                        로그인 유형을 선택해주세요
+                    </p>
+                    <div class="user-type-selector">
+                        <button class="user-type-option" onclick="Auth.selectLoginType('shipper')">
+                            <i class="fas fa-building"></i>
+                            <span class="type-label">화주 (Shipper)</span>
+                            <span class="type-desc">화물 운송을 의뢰하는 기업</span>
+                        </button>
+                        <button class="user-type-option" onclick="Auth.selectLoginType('forwarder')">
+                            <i class="fas fa-truck"></i>
+                            <span class="type-label">포워더 (Forwarder)</span>
+                            <span class="type-desc">운송 서비스를 제공하는 기업</span>
+                        </button>
+                    </div>
+                    <div class="auth-divider">
+                        <span>또는</span>
+                    </div>
+                    <p class="auth-form-hint" style="text-align: center;">
+                        아직 계정이 없으신가요? 
+                        <a onclick="Auth.showRegisterTypeView()">회원가입</a>
+                    </p>
+                </div>
+                
+                <!-- Login Form View -->
+                <div id="loginView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBackToLoginType()">
+                        <i class="fas fa-arrow-left"></i> 로그인 유형 선택
+                    </button>
+                    <div class="auth-error" id="loginError"></div>
+                    <div class="auth-form">
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">이메일</label>
+                            <input type="email" class="auth-form-input" id="loginEmail" 
+                                   placeholder="example@company.com" autocomplete="email">
+                        </div>
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">비밀번호</label>
+                            <div class="password-field">
+                                <input type="password" class="auth-form-input" id="loginPassword" 
+                                       placeholder="비밀번호를 입력하세요" autocomplete="current-password">
+                                <button type="button" class="password-toggle">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="auth-submit-btn" id="loginSubmitBtn" onclick="Auth.submitLogin()">
+                            로그인
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Register Type Selection View -->
+                <div id="registerTypeView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBack()">
+                        <i class="fas fa-arrow-left"></i> 뒤로
+                    </button>
+                    <p style="text-align: center; color: var(--text-sub); margin-bottom: 1.5rem;">
+                        회원 유형을 선택해주세요
+                    </p>
+                    <div class="user-type-selector">
+                        <button class="user-type-option" onclick="Auth.selectUserType('shipper')">
+                            <i class="fas fa-building"></i>
+                            <span class="type-label">화주 (Shipper)</span>
+                            <span class="type-desc">화물 운송을 의뢰하는 기업</span>
+                        </button>
+                        <button class="user-type-option" onclick="Auth.selectUserType('forwarder')">
+                            <i class="fas fa-truck"></i>
+                            <span class="type-label">포워더 (Forwarder)</span>
+                            <span class="type-desc">운송 서비스를 제공하는 기업</span>
+                        </button>
+                    </div>
+                    <p class="auth-form-hint" style="text-align: center; margin-top: 1.5rem;">
+                        이미 계정이 있으신가요? 
+                        <a onclick="Auth.showLoginTypeView()">로그인</a>
+                    </p>
+                </div>
+                
+                <!-- Register Form View -->
+                <div id="registerFormView" style="display: none;">
+                    <button class="auth-back-btn" onclick="Auth.goBack()">
+                        <i class="fas fa-arrow-left"></i> 회원 유형 선택
+                    </button>
+                    <div class="auth-error"></div>
+                    <div class="auth-success"></div>
+                    <div class="auth-form">
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">회사명</label>
+                                <input type="text" class="auth-form-input" id="regCompany" 
+                                       placeholder="회사명을 입력하세요">
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label">사업자등록번호</label>
+                                <input type="text" class="auth-form-input" id="regBusinessNo" 
+                                       placeholder="000-00-00000">
+                            </div>
+                        </div>
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">담당자명</label>
+                                <input type="text" class="auth-form-input" id="regName" 
+                                       placeholder="담당자명">
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">연락처</label>
+                                <input type="tel" class="auth-form-input" id="regPhone" 
+                                       placeholder="010-0000-0000">
+                            </div>
+                        </div>
+                        <div class="auth-form-group">
+                            <label class="auth-form-label required">이메일</label>
+                            <input type="email" class="auth-form-input" id="regEmail" 
+                                   placeholder="example@company.com" autocomplete="email">
+                        </div>
+                        <div class="auth-form-row">
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">비밀번호</label>
+                                <div class="password-field">
+                                    <input type="password" class="auth-form-input" id="regPassword" 
+                                           placeholder="8자 이상, 영문+숫자" autocomplete="new-password">
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="auth-form-group">
+                                <label class="auth-form-label required">비밀번호 확인</label>
+                                <div class="password-field">
+                                    <input type="password" class="auth-form-input" id="regPasswordConfirm" 
+                                           placeholder="비밀번호 재입력" autocomplete="new-password">
+                                    <button type="button" class="password-toggle">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="auth-submit-btn" id="registerSubmitBtn" onclick="Auth.submitRegister()">
+                            <i class="fas fa-user-plus"></i> 회원가입
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/config/api.js"></script>
+    <script src="../js/features/auth.js"></script>
+    <script src="../js/features/shipperBidding.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            ShipperBidding.init();
+        });
+    </script>
+</body>
+</html>

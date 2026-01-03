@@ -1,0 +1,500 @@
+/**
+ * Shipment Tracking Styles
+ */
+
+/* Tracking Search Box */
+.tracking-search-box {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.search-input-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-input-group i {
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+}
+
+.search-input-group input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.search-input-group input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.search-input-group button {
+    background: var(--accent-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.search-input-group button:hover {
+    opacity: 0.9;
+}
+
+/* Shipment Stats */
+.shipment-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.shipment-stats .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.shipment-stats .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.shipment-stats .stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.shipment-stats .stat-card.in-transit .stat-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.shipment-stats .stat-card.delivered .stat-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.shipment-stats .stat-card.pending-confirm .stat-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.shipment-stats .stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.shipment-stats .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1;
+}
+
+.shipment-stats .stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+/* Filter Bar */
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-group select {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text-color);
+    font-size: 0.875rem;
+    min-width: 180px;
+}
+
+/* Shipment List */
+.shipment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.shipment-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.shipment-card:hover {
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.shipment-status-indicator {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.shipment-status-indicator.booked {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.shipment-status-indicator.picked_up,
+.shipment-status-indicator.in_transit {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.shipment-status-indicator.arrived_port,
+.shipment-status-indicator.customs {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.shipment-status-indicator.out_for_delivery {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.shipment-status-indicator.delivered,
+.shipment-status-indicator.completed {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.shipment-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shipment-numbers {
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+}
+
+.shipment-no {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.contract-ref {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.shipment-route {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9375rem;
+}
+
+.shipment-route i {
+    color: var(--text-secondary);
+}
+
+.shipment-eta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.shipment-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.status-badge {
+    padding: 0.375rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.status-badge.booked {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.status-badge.picked_up,
+.status-badge.in-transit,
+.status-badge.in_transit {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.status-badge.arrived_port,
+.status-badge.customs {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.status-badge.out_for_delivery {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.status-badge.delivered {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.status-badge.completed {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.confirm-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-btn:hover {
+    background: #059669;
+}
+
+/* Shipment Detail Modal */
+.shipment-modal {
+    max-width: 800px;
+}
+
+.shipment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shipment-info h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    color: var(--accent-primary);
+    margin-bottom: 0.25rem;
+}
+
+.shipment-route {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Tracking Timeline */
+.tracking-timeline {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 2rem;
+}
+
+.tracking-timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -2rem;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--bg-darker);
+    border: 2px solid var(--border-color);
+    z-index: 1;
+}
+
+.timeline-item.active .timeline-dot {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+
+.timeline-item.completed .timeline-dot {
+    background: #10b981;
+    border-color: #10b981;
+}
+
+.timeline-content {
+    background: var(--bg-darker);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.timeline-status {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 0.25rem;
+}
+
+.timeline-location {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.timeline-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.timeline-remark {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Shipment Details Grid */
+.shipment-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.detail-card {
+    background: var(--bg-darker);
+    border-radius: 12px;
+    padding: 1.25rem;
+}
+
+.detail-card h4 {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.detail-row .value {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+/* Status Modal */
+.status-modal {
+    max-width: 500px;
+}
+
+/* Loading & Empty States */
+.loading-state,
+.empty-state {
+    text-align: center;
+    padding: 4rem;
+    color: var(--text-secondary);
+}
+
+.loading-state i,
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: var(--accent-primary);
+}
+
+.empty-state i {
+    opacity: 0.5;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .shipment-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .shipment-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .shipment-details-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-input-group {
+        flex-direction: column;
+    }
+    
+    .search-input-group input,
+    .search-input-group button {
+        width: 100%;
+    }
+}

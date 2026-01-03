@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/utilities.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/components/auth.css">
+    <link rel="stylesheet" href="../css/components/unified-cards.css">
+    <link rel="stylesheet" href="../css/components/unified-buttons.css">
+    <link rel="stylesheet" href="../css/sections/mypage.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav id="mainNav">
+            <!-- Navigation will be loaded based on user type -->
+        </nav>
+        <div class="header-auth" id="headerAuthContainer">
+            <button class="header-auth-btn" onclick="Auth.openModal()">
+                <i class="fas fa-sign-in-alt"></i> 로그인
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container section-padding">
+        <div class="mypage-layout">
+            <!-- Sidebar -->
+            <aside class="mypage-sidebar">
+                <div class="profile-card">
+                    <div class="profile-avatar" id="profileAvatar">?</div>
+                    <div class="profile-info">
+                        <h3 id="profileCompany">Company Name</h3>
+                        <span id="profileEmail">email@company.com</span>
+                        <span class="user-type-badge" id="userTypeBadge">화주</span>
+                    </div>
+                </div>
+                
+                <nav class="mypage-nav">
+                    <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                        <i class="fas fa-tachometer-alt"></i> 대시보드
+                    </a>
+                    <a href="#history" class="nav-item" data-section="history">
+                        <i class="fas fa-history"></i> 이력 조회
+                    </a>
+                    <a href="#settlements" class="nav-item" data-section="settlements">
+                        <i class="fas fa-credit-card"></i> 정산 관리
+                    </a>
+                    <a href="#disputes" class="nav-item" data-section="disputes">
+                        <i class="fas fa-balance-scale"></i> 분쟁 내역
+                    </a>
+                    <a href="#ratings" class="nav-item" data-section="ratings">
+                        <i class="fas fa-star"></i> 평점/리뷰
+                    </a>
+                    <a href="#messages" class="nav-item" data-section="messages">
+                        <i class="fas fa-envelope"></i> 메시지
+                        <span class="badge" id="unreadBadge" style="display: none;">0</span>
+                    </a>
+                    <a href="#favorites" class="nav-item shipper-only" data-section="favorites">
+                        <i class="fas fa-heart"></i> 즐겨찾기 구간
+                    </a>
+                    <a href="#templates" class="nav-item forwarder-only" data-section="templates">
+                        <i class="fas fa-file-alt"></i> 입찰 템플릿
+                    </a>
+                    <a href="#settings" class="nav-item" data-section="settings">
+                        <i class="fas fa-cog"></i> 설정
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="mypage-content">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="content-section active">
+                    <h2>대시보드</h2>
+                    
+                    <!-- Stats Grid -->
+                    <div class="stats-grid" id="dashboardStats">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="activity-section">
+                        <h3>최근 활동</h3>
+                        <div class="activity-list" id="recentActivity">
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- History Section -->
+                <section id="section-history" class="content-section">
+                    <h2>이력 조회</h2>
+                    
+                    <div class="filter-bar">
+                        <select id="historyType" onchange="MyPage.loadHistory()">
+                            <option value="all">전체</option>
+                            <option value="completed">완료</option>
+                            <option value="cancelled">취소</option>
+                        </select>
+                        <input type="text" id="historySearch" placeholder="검색..." onkeyup="MyPage.loadHistory()">
+                    </div>
+                    
+                    <div class="history-list" id="historyList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settlements Section -->
+                <section id="section-settlements" class="content-section">
+                    <h2>정산 관리</h2>
+                    
+                    <div class="settlement-summary" id="settlementSummary">
+                        <div class="summary-card completed">
+                            <span class="label">완료된 정산</span>
+                            <span class="value" id="settlementCompleted">₩0</span>
+                        </div>
+                        <div class="summary-card pending">
+                            <span class="label">대기 중</span>
+                            <span class="value" id="settlementPending">₩0</span>
+                        </div>
+                        <div class="summary-card disputed">
+                            <span class="label">분쟁 중</span>
+                            <span class="value" id="settlementDisputed">0건</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Settlement Tabs -->
+                    <div class="settlement-tabs">
+                        <button class="tab-btn active" data-tab="all">전체</button>
+                        <button class="tab-btn" data-tab="pending">대기</button>
+                        <button class="tab-btn" data-tab="processing">처리중</button>
+                        <button class="tab-btn" data-tab="disputed">분쟁</button>
+                        <button class="tab-btn" data-tab="completed">완료</button>
+                    </div>
+                    
+                    <div class="settlement-list" id="settlementList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Disputes Section -->
+                <section id="section-disputes" class="content-section">
+                    <h2>분쟁 내역</h2>
+                    
+                    <div class="dispute-filters">
+                        <select id="disputeStatusFilter" onchange="MyPage.loadDisputes()">
+                            <option value="all">전체</option>
+                            <option value="disputed">진행 중</option>
+                            <option value="resolved">해결됨</option>
+                        </select>
+                    </div>
+                    
+                    <div class="dispute-list" id="disputeList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Ratings Section -->
+                <section id="section-ratings" class="content-section">
+                    <h2>평점/리뷰</h2>
+                    
+                    <div class="rating-overview" id="ratingOverview">
+                        <!-- Rating stats will be loaded here -->
+                    </div>
+                    
+                    <div class="rating-list" id="ratingList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Messages Section -->
+                <section id="section-messages" class="content-section">
+                    <h2>메시지</h2>
+                    
+                    <div class="message-threads" id="messageThreads">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Favorites Section (Shipper) -->
+                <section id="section-favorites" class="content-section shipper-only">
+                    <h2>즐겨찾기 구간</h2>
+                    
+                    <div class="favorites-actions">
+                        <button class="btn-primary" onclick="MyPage.openAddFavoriteModal()">
+                            <i class="fas fa-plus"></i> 구간 추가
+                        </button>
+                    </div>
+                    
+                    <div class="favorites-list" id="favoritesList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Templates Section (Forwarder) -->
+                <section id="section-templates" class="content-section forwarder-only">
+                    <h2>입찰 템플릿</h2>
+                    
+                    <div class="templates-actions">
+                        <button class="btn-primary" onclick="MyPage.openAddTemplateModal()">
+                            <i class="fas fa-plus"></i> 템플릿 추가
+                        </button>
+                    </div>
+                    
+                    <div class="templates-list" id="templatesList">
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Settings Section -->
+                <section id="section-settings" class="content-section">
+                    <h2>설정</h2>
+                    
+                    <div class="settings-form">
+                        <div class="settings-group">
+                            <h3>프로필 정보</h3>
+                            <div class="form-row">
+                                <label>회사명</label>
+                                <input type="text" id="settingsCompany" readonly>
+                            </div>
+                            <div class="form-row">
+                                <label>이메일</label>
+                                <input type="email" id="settingsEmail" readonly>
+                            </div>
+                            <div class="form-row">
+                                <label>담당자명</label>
+                                <input type="text" id="settingsName" placeholder="담당자명">
+                            </div>
+                            <div class="form-row">
+                                <label>연락처</label>
+                                <input type="tel" id="settingsPhone" placeholder="연락처">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>비밀번호 변경</h3>
+                            <div class="form-row">
+                                <label>현재 비밀번호</label>
+                                <input type="password" id="currentPassword">
+                            </div>
+                            <div class="form-row">
+                                <label>새 비밀번호</label>
+                                <input type="password" id="newPassword">
+                            </div>
+                            <div class="form-row">
+                                <label>새 비밀번호 확인</label>
+                                <input type="password" id="confirmPassword">
+                            </div>
+                            <button class="btn-secondary" onclick="MyPage.changePassword()">
+                                비밀번호 변경
+                            </button>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>알림 설정</h3>
+                            <div class="toggle-row">
+                                <span>이메일 알림</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="emailNotification" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row">
+                                <span>새 비딩 알림</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="biddingNotification" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-actions">
+                            <button class="btn-primary" onclick="MyPage.saveSettings()">
+                                설정 저장
+                            </button>
+                            <button class="btn-danger" onclick="MyPage.logout()">
+                                로그아웃
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Favorite Route Modal -->
+    <div class="modal-overlay" id="addFavoriteModal">
+        <div class="modal-container small-modal">
+            <div class="modal-header">
+                <h2>즐겨찾기 구간 추가</h2>
+                <button class="modal-close" onclick="MyPage.closeAddFavoriteModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>출발지 (POL)</label>
+                    <input type="text" id="favoritePol" placeholder="예: KRPUS">
+                </div>
+                <div class="form-group">
+                    <label>도착지 (POD)</label>
+                    <input type="text" id="favoritePod" placeholder="예: USLAX">
+                </div>
+                <div class="form-group">
+                    <label>운송 유형</label>
+                    <select id="favoriteType">
+                        <option value="">선택 안함</option>
+                        <option value="ocean">해상</option>
+                        <option value="air">항공</option>
+                        <option value="truck">육상</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>별칭 (선택)</label>
+                    <input type="text" id="favoriteAlias" placeholder="예: 중국 상하이 정기편">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="MyPage.closeAddFavoriteModal()">취소</button>
+                <button class="btn-primary" onclick="MyPage.addFavoriteRoute()">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Template Modal -->
+    <div class="modal-overlay" id="addTemplateModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>입찰 템플릿 추가</h2>
+                <button class="modal-close" onclick="MyPage.closeAddTemplateModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>템플릿 이름 *</label>
+                        <input type="text" id="templateName" placeholder="예: 한중 해상 기본">
+                    </div>
+                    <div class="form-group">
+                        <label>운송 유형</label>
+                        <select id="templateType">
+                            <option value="">선택 안함</option>
+                            <option value="ocean">해상</option>
+                            <option value="air">항공</option>
+                            <option value="truck">육상</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>출발지 (POL)</label>
+                        <input type="text" id="templatePol" placeholder="예: KRPUS">
+                    </div>
+                    <div class="form-group">
+                        <label>도착지 (POD)</label>
+                        <input type="text" id="templatePod" placeholder="예: CNSHA">
+                    </div>
+                </div>
+                <div class="form-row-3">
+                    <div class="form-group">
+                        <label>기본 운임 (KRW)</label>
+                        <input type="number" id="templateFreight" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>기본 로컬비 (KRW)</label>
+                        <input type="number" id="templateLocal" placeholder="0">
+                    </div>
+                    <div class="form-group">
+                        <label>기본 기타 (KRW)</label>
+                        <input type="number" id="templateOther" placeholder="0">
+                    </div>
+                </div>
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label>운송 기간</label>
+                        <input type="text" id="templateTransit" placeholder="예: 5-7일">
+                    </div>
+                    <div class="form-group">
+                        <label>선사/항공사</label>
+                        <input type="text" id="templateCarrier" placeholder="예: COSCO">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>기본 비고</label>
+                    <textarea id="templateRemark" rows="3" placeholder="입찰 시 기본으로 포함될 비고"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="MyPage.closeAddTemplateModal()">취소</button>
+                <button class="btn-primary" onclick="MyPage.addTemplate()">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispute File Modal (화주용) -->
+    <div class="modal-overlay" id="disputeFileModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-exclamation-triangle"></i> 분쟁 제기</h2>
+                <button class="modal-close" onclick="MyPage.closeDisputeFileModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="disputeSettlementId">
+                
+                <div class="dispute-info-box">
+                    <p><i class="fas fa-info-circle"></i> 분쟁 제기 시 포워더에게 알림이 발송됩니다. 포워더가 7일 내 응답하지 않으면 귀하의 주장이 자동 인정됩니다.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label>정산 번호</label>
+                    <input type="text" id="disputeSettlementNo" readonly class="readonly-input">
+                </div>
+                
+                <div class="form-group">
+                    <label>정산 금액</label>
+                    <input type="text" id="disputeAmount" readonly class="readonly-input">
+                </div>
+                
+                <div class="form-group">
+                    <label>분쟁 사유 *</label>
+                    <select id="disputeReasonType" onchange="MyPage.handleDisputeReasonChange()">
+                        <option value="">사유 선택</option>
+                        <option value="damage">화물 파손</option>
+                        <option value="loss">화물 분실</option>
+                        <option value="delay">배송 지연</option>
+                        <option value="overcharge">과다 청구</option>
+                        <option value="quality">서비스 품질</option>
+                        <option value="other">기타</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>상세 내용 *</label>
+                    <textarea id="disputeReason" rows="4" placeholder="분쟁 사유를 상세히 작성해주세요."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>증빙자료 (선택)</label>
+                    <textarea id="disputeEvidence" rows="2" placeholder="증빙자료 링크 또는 설명"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="MyPage.closeDisputeFileModal()">취소</button>
+                <button class="btn-danger" onclick="MyPage.submitDispute()">
+                    <i class="fas fa-gavel"></i> 분쟁 제기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispute Response Modal (포워더용) -->
+    <div class="modal-overlay" id="disputeResponseModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2><i class="fas fa-reply"></i> 분쟁 응답</h2>
+                <button class="modal-close" onclick="MyPage.closeDisputeResponseModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="responseSettlementId">
+                
+                <div class="dispute-detail-view">
+                    <div class="detail-row">
+                        <span class="label">정산 번호:</span>
+                        <span class="value" id="responseSettlementNo"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">원래 금액:</span>
+                        <span class="value" id="responseOriginalAmount"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">분쟁 제기일:</span>
+                        <span class="value" id="responseDisputedAt"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">분쟁 사유:</span>
+                        <span class="value" id="responseDisputeReason"></span>
+                    </div>
+                </div>
+                
+                <div class="dispute-warning-box">
+                    <p><i class="fas fa-clock"></i> 남은 응답 기한: <strong id="responseDeadline">7일</strong></p>
+                    <p>기한 내 응답하지 않으면 화주의 주장이 자동 인정됩니다.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label>응답 내용 *</label>
+                    <textarea id="disputeResponseText" rows="4" placeholder="분쟁에 대한 귀사의 입장을 작성해주세요."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>조정 금액 제안 (선택)</label>
+                    <input type="number" id="proposedAmount" placeholder="합의 금액을 제안하려면 입력하세요">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="MyPage.closeDisputeResponseModal()">취소</button>
+                <button class="btn-primary" onclick="MyPage.submitDisputeResponse()">
+                    <i class="fas fa-paper-plane"></i> 응답 제출
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dispute Detail Modal -->
+    <div class="modal-overlay" id="disputeDetailModal">
+        <div class="modal-container large-modal">
+            <div class="modal-header">
+                <h2><i class="fas fa-balance-scale"></i> 분쟁 상세</h2>
+                <button class="modal-close" onclick="MyPage.closeDisputeDetailModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="dispute-timeline" id="disputeTimeline">
+                    <!-- Timeline will be loaded here -->
+                </div>
+                
+                <div class="dispute-detail-sections" id="disputeDetailContent">
+                    <!-- Detail content will be loaded here -->
+                </div>
+                
+                <div class="dispute-actions" id="disputeActions" style="display:none;">
+                    <!-- Actions based on status -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="MyPage.closeDisputeDetailModal()">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/core/auth.js"></script>
+    <script src="../js/features/mypage.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            MyPage.init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>분쟁해결절차 안내 - AAL Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/base.css">
+    <link rel="stylesheet" href="../css/components/header.css">
+    <link rel="stylesheet" href="../css/sections/policy.css">
+    
+    <style>
+        .dispute-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .dispute-step {
+            display: flex;
+            gap: 1.5rem;
+            position: relative;
+        }
+        
+        .dispute-step::before {
+            content: '';
+            position: absolute;
+            left: 25px;
+            top: 60px;
+            bottom: -1.5rem;
+            width: 2px;
+            background: var(--border-color);
+        }
+        
+        .dispute-step:last-child::before {
+            display: none;
+        }
+        
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .step-content {
+            flex: 1;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        
+        .step-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .step-title .badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--accent-primary);
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .step-desc {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+        }
+        
+        .dispute-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .dispute-type-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        
+        .dispute-type-card:hover {
+            border-color: var(--accent-primary);
+        }
+        
+        .dispute-type-card i {
+            font-size: 2rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.75rem;
+        }
+        
+        .dispute-type-card h4 {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .dispute-type-card p {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        
+        .timeline-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+        
+        .timeline-item {
+            text-align: center;
+        }
+        
+        .timeline-item .days {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        
+        .timeline-item .label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .timeline-arrow {
+            color: var(--text-tertiary);
+            font-size: 1.5rem;
+        }
+        
+        @media (max-width: 640px) {
+            .dispute-step {
+                flex-direction: column;
+            }
+            
+            .dispute-step::before {
+                display: none;
+            }
+            
+            .timeline-box {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .timeline-arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <a href="../ai_studio_code_F2.html" class="logo">
+            AAL<span>.</span>
+            <div class="full-name">All About Logistics</div>
+        </a>
+        <nav>
+            <ul>
+                <li><a href="../ai_studio_code_F2.html">홈</a></li>
+                <li><a href="quotation.html">서비스</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="policy-page">
+        <div class="policy-container">
+            <div class="policy-header">
+                <h1 class="policy-title">분쟁해결절차 안내</h1>
+                <div class="policy-meta">
+                    <span><i class="fas fa-calendar-alt"></i> 시행일: 2026년 1월 1일</span>
+                    <span><i class="fas fa-file-alt"></i> 버전: 1.0</span>
+                </div>
+            </div>
+
+            <div class="policy-content">
+                <div class="policy-highlight">
+                    <p>
+                        <i class="fas fa-handshake"></i>
+                        AAL Platform은 화주와 포워더 간의 원활한 거래를 위해 공정하고 신속한 
+                        분쟁 해결 절차를 제공합니다. 아래 안내를 참고하여 분쟁 발생 시 적절히 대응해 주세요.
+                    </p>
+                </div>
+
+                <section class="policy-section" id="section1">
+                    <h2><i class="fas fa-exclamation-triangle"></i> 분쟁 유형</h2>
+                    <p>플랫폼에서 처리하는 주요 분쟁 유형은 다음과 같습니다.</p>
+                    
+                    <div class="dispute-type-grid">
+                        <div class="dispute-type-card">
+                            <i class="fas fa-box-open"></i>
+                            <h4>화물 파손</h4>
+                            <p>운송 중 화물 파손 발생</p>
+                        </div>
+                        <div class="dispute-type-card">
+                            <i class="fas fa-search"></i>
+                            <h4>화물 분실</h4>
+                            <p>화물 전체 또는 일부 분실</p>
+                        </div>
+                        <div class="dispute-type-card">
+                            <i class="fas fa-clock"></i>
+                            <h4>배송 지연</h4>
+                            <p>약정 기한 초과 배송</p>
+                        </div>
+                        <div class="dispute-type-card">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <h4>요금 분쟁</h4>
+                            <p>추가 비용 또는 과다 청구</p>
+                        </div>
+                        <div class="dispute-type-card">
+                            <i class="fas fa-star-half-alt"></i>
+                            <h4>서비스 품질</h4>
+                            <p>계약 내용과 다른 서비스</p>
+                        </div>
+                        <div class="dispute-type-card">
+                            <i class="fas fa-file-contract"></i>
+                            <h4>계약 불이행</h4>
+                            <p>계약 조건 미준수</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="policy-section" id="section2">
+                    <h2><i class="fas fa-route"></i> 분쟁 해결 절차</h2>
+                    
+                    <div class="timeline-box">
+                        <div class="timeline-item">
+                            <div class="days">0일</div>
+                            <div class="label">분쟁 제기</div>
+                        </div>
+                        <div class="timeline-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="timeline-item">
+                            <div class="days">7일</div>
+                            <div class="label">응답 기한</div>
+                        </div>
+                        <div class="timeline-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="timeline-item">
+                            <div class="days">14일</div>
+                            <div class="label">자동 처리</div>
+                        </div>
+                        <div class="timeline-arrow"><i class="fas fa-arrow-right"></i></div>
+                        <div class="timeline-item">
+                            <div class="days">30일</div>
+                            <div class="label">관리자 중재</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dispute-flow">
+                        <div class="dispute-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <div class="step-title">
+                                    분쟁 제기
+                                    <span class="badge">화주</span>
+                                </div>
+                                <div class="step-desc">
+                                    마이페이지 > 정산 관리에서 해당 정산 건에 대해 '분쟁 제기' 버튼을 클릭합니다.
+                                    분쟁 사유를 상세히 작성하고, 가능한 경우 증빙 자료(사진, 문서 등)를 첨부합니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dispute-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <div class="step-title">
+                                    포워더 응답
+                                    <span class="badge">포워더</span>
+                                </div>
+                                <div class="step-desc">
+                                    분쟁이 제기되면 포워더에게 즉시 알림이 발송됩니다.
+                                    포워더는 7일 이내에 분쟁에 대해 응답해야 합니다.
+                                    응답 시 반박 의견 또는 금액 조정 제안을 할 수 있습니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dispute-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <div class="step-title">
+                                    협의 진행
+                                    <span class="badge">양측</span>
+                                </div>
+                                <div class="step-desc">
+                                    화주와 포워더는 플랫폼 내 메시지 시스템을 통해 협의를 진행합니다.
+                                    합의에 도달한 경우, 양측이 동의하면 분쟁이 해결됩니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dispute-step">
+                            <div class="step-number">4</div>
+                            <div class="step-content">
+                                <div class="step-title">
+                                    자동 처리
+                                    <span class="badge">시스템</span>
+                                </div>
+                                <div class="step-desc">
+                                    <strong>포워더 무응답 시:</strong> 분쟁 제기 후 7일간 포워더가 응답하지 않으면, 
+                                    화주의 주장이 자동으로 인정되어 처리됩니다.<br><br>
+                                    <strong>협의 미달 시:</strong> 30일 이내에 합의가 이루어지지 않으면 
+                                    관리자 중재 단계로 전환됩니다.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="dispute-step">
+                            <div class="step-number">5</div>
+                            <div class="step-content">
+                                <div class="step-title">
+                                    관리자 중재
+                                    <span class="badge">관리자</span>
+                                </div>
+                                <div class="step-desc">
+                                    양측의 주장과 증빙 자료를 검토하여 관리자가 최종 판정을 내립니다.
+                                    관리자 판정은 양측에 통보되며, 해당 결정에 따라 정산이 처리됩니다.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="policy-section" id="section3">
+                    <h2><i class="fas fa-clipboard-list"></i> 분쟁 제기 시 필요 정보</h2>
+                    <p>신속하고 정확한 분쟁 처리를 위해 다음 정보를 준비해 주세요.</p>
+                    
+                    <table class="policy-table">
+                        <thead>
+                            <tr>
+                                <th>분쟁 유형</th>
+                                <th>필요 정보 및 증빙</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>화물 파손</td>
+                                <td>파손 사진, 검수 보고서, 피해 금액 산정 근거</td>
+                            </tr>
+                            <tr>
+                                <td>화물 분실</td>
+                                <td>출고/입고 기록, 인수증, 분실 물품 목록</td>
+                            </tr>
+                            <tr>
+                                <td>배송 지연</td>
+                                <td>계약서(약정 배송일), 실제 배송 완료일 증빙</td>
+                            </tr>
+                            <tr>
+                                <td>요금 분쟁</td>
+                                <td>계약서, 견적서, 청구 인보이스</td>
+                            </tr>
+                            <tr>
+                                <td>서비스 품질</td>
+                                <td>계약 내용, 실제 서비스 내역, 관련 사진/기록</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section class="policy-section" id="section4">
+                    <h2><i class="fas fa-calculator"></i> 보상 기준</h2>
+                    <p>분쟁 해결 시 다음과 같은 기준으로 보상이 결정됩니다.</p>
+                    
+                    <h3>1. 화물 파손/분실</h3>
+                    <ul>
+                        <li>실제 피해 금액 기준으로 보상 (증빙 필요)</li>
+                        <li>보험 가입 시 보험 한도 내에서 처리</li>
+                        <li>보험 미가입 시 계약 금액의 일정 비율 한도</li>
+                    </ul>
+                    
+                    <h3>2. 배송 지연</h3>
+                    <ul>
+                        <li>계약서에 명시된 지연 페널티 적용</li>
+                        <li>명시되지 않은 경우 협의에 따라 결정</li>
+                    </ul>
+                    
+                    <h3>3. 요금 분쟁</h3>
+                    <ul>
+                        <li>계약서 및 견적서 기준으로 정당한 금액 산정</li>
+                        <li>과다 청구 확인 시 차액 환불</li>
+                    </ul>
+                    
+                    <div class="policy-warning">
+                        <p>
+                            <strong>주의사항:</strong><br>
+                            • 증빙 자료가 불충분한 경우 보상이 제한될 수 있습니다.<br>
+                            • 분쟁 제기 전 직접 협의를 먼저 시도해 주세요.<br>
+                            • 허위 분쟁 제기 시 서비스 이용이 제한될 수 있습니다.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="policy-section" id="section5">
+                    <h2><i class="fas fa-phone-alt"></i> 분쟁 관련 문의</h2>
+                    <p>분쟁 처리에 대한 문의사항이 있으시면 아래로 연락해 주세요.</p>
+                    
+                    <div class="policy-definition">
+                        <dt>이메일</dt>
+                        <dd>dispute@aallogistics.com</dd>
+                    </div>
+                    <div class="policy-definition">
+                        <dt>전화</dt>
+                        <dd>02-0000-0001 (평일 09:00~18:00)</dd>
+                    </div>
+                    <div class="policy-definition">
+                        <dt>운영시간</dt>
+                        <dd>평일 09:00~18:00 (주말/공휴일 휴무)</dd>
+                    </div>
+                    
+                    <div class="policy-highlight">
+                        <p>
+                            <strong>외부 분쟁 해결 기관:</strong><br>
+                            플랫폼 내 분쟁 해결이 어려운 경우 아래 기관을 통해 조정을 신청할 수 있습니다.<br><br>
+                            • 한국소비자원: www.kca.go.kr / 1372<br>
+                            • 전자거래분쟁조정위원회: www.ecmc.or.kr / 1661-5714
+                        </p>
+                    </div>
+                </section>
+
+                <div class="policy-footer">
+                    <p>공정하고 신속한 분쟁 해결을 위해 최선을 다하겠습니다.</p>
+                    
+                    <div class="policy-links">
+                        <a href="terms.html"><i class="fas fa-file-contract"></i> 이용약관</a>
+                        <a href="privacy.html"><i class="fas fa-user-shield"></i> 개인정보처리방침</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <script>
+        // Back to top button visibility
+        window.addEventListener('scroll', () => {
+            const btn = document.querySelector('.back-to-top');
+            if (window.scrollY > 300) {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        });
+    </script>
+</body>
+</html>
