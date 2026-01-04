@@ -86,6 +86,7 @@ class ContainerType(Base):
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(20), unique=True, nullable=False)  # e.g., 20DC, 40DC, 40HC
     name = Column(String(50), nullable=False)  # e.g., 20 Dry Container
+    abbreviation = Column(String(20), nullable=True)  # 약어 표시용 (e.g., 20'GP, 40'HC)
     description = Column(String(200), nullable=True)
     
     # Size and Category
@@ -129,6 +130,7 @@ class TruckType(Base):
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String(20), unique=True, nullable=False)  # e.g., 5T_WING, 11T_WING
     name = Column(String(50), nullable=False)  # e.g., 5T Wing Body
+    abbreviation = Column(String(20), nullable=True)  # 약어 표시용 (e.g., 5T 윙, 11T 냉동)
     description = Column(String(200), nullable=True)
     max_weight_kg = Column(Integer, nullable=True)
     max_cbm = Column(DECIMAL(5, 2), nullable=True)

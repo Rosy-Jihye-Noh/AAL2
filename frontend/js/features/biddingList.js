@@ -427,6 +427,24 @@ const BiddingList = {
             actionsDiv.innerHTML = '';
             forwarderBar.style.display = 'none';
         }
+        
+        // 테이블 헤더의 "입찰참여" 컬럼명 변경 (화주인 경우)
+        this.updateTableHeaderForUserType();
+    },
+    
+    /**
+     * Update table header based on user type
+     * 화주(shipper)인 경우 "입찰참여" → "상세" 로 변경
+     */
+    updateTableHeaderForUserType() {
+        const isShipper = window.Auth && Auth.user && Auth.user.user_type === 'shipper';
+        const tableHeaders = document.querySelectorAll('.bidding-table thead th');
+        
+        // 마지막 컬럼이 "입찰참여" 또는 "상세"
+        if (tableHeaders.length > 0) {
+            const lastHeader = tableHeaders[tableHeaders.length - 1];
+            lastHeader.textContent = isShipper ? '상세' : '입찰참여';
+        }
     },
 
     /**
@@ -569,7 +587,16 @@ const BiddingList = {
         
         // Determine action button
         let actionBtn = '';
-        if (effectiveStatus === 'open') {
+        
+        // 화주(shipper)인 경우 입찰 버튼 대신 상세보기만 표시
+        const isShipper = window.Auth && Auth.user && Auth.user.user_type === 'shipper';
+        
+        if (isShipper) {
+            // 화주는 입찰 참여 불가 - 상세보기만 가능
+            actionBtn = `<button class="action-btn secondary" onclick="BiddingList.openDetailModal('${item.bidding_no}')">
+                상세보기
+            </button>`;
+        } else if (effectiveStatus === 'open') {
             if (!this.forwarder) {
                 actionBtn = `<button class="action-btn secondary" onclick="BiddingList.openAuthModal()">
                     로그인 필요
@@ -624,6 +651,9 @@ const BiddingList = {
                         <i class="fas fa-${this.getShippingIcon(item.shipping_type)}"></i>
                         ${item.shipping_type.toUpperCase()} / ${item.load_type}
                     </span>
+                </td>
+                <td>
+                    <span class="cargo-summary">${item.cargo_summary || '-'}</span>
                 </td>
                 <td>${this.formatDate(item.etd)}</td>
                 <td>

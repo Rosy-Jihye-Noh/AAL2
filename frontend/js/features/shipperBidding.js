@@ -164,7 +164,7 @@ const ShipperBidding = {
         
         try {
             const response = await fetch(
-                `${QUOTE_API_BASE}/api/shipper/biddings/stats?customer_id=${this.shipper.id}`
+                `${QUOTE_API_BASE}/api/shipper/biddings/stats?customer_email=${encodeURIComponent(this.shipper.email)}`
             );
             const data = await response.json();
 
@@ -209,7 +209,7 @@ const ShipperBidding = {
 
         try {
             const params = new URLSearchParams({
-                customer_id: this.shipper.id,
+                customer_email: this.shipper.email,
                 page: this.currentPage,
                 limit: this.limit
             });
@@ -404,7 +404,7 @@ const ShipperBidding = {
 
         try {
             const response = await fetch(
-                `${QUOTE_API_BASE}/api/shipper/bidding/${biddingNo}/bids?customer_id=${this.shipper.id}`
+                `${QUOTE_API_BASE}/api/shipper/bidding/${biddingNo}/bids?customer_email=${encodeURIComponent(this.shipper.email)}`
             );
             
             if (!response.ok) {
@@ -579,7 +579,7 @@ const ShipperBidding = {
 
         try {
             const response = await fetch(
-                `${QUOTE_API_BASE}/api/shipper/bidding/${this.currentBidding.bidding_no}/award/${this.selectedBid.id}?customer_id=${this.shipper.id}`,
+                `${QUOTE_API_BASE}/api/shipper/bidding/${this.currentBidding.bidding_no}/award/${this.selectedBid.id}?customer_email=${encodeURIComponent(this.shipper.email)}`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }

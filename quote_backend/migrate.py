@@ -9,7 +9,7 @@ from datetime import datetime
 
 def run_migration():
     """Execute database migrations"""
-    conn = sqlite3.connect('quote_database.db')
+    conn = sqlite3.connect('quote.db')
     cursor = conn.cursor()
     
     # Contract table
@@ -180,6 +180,26 @@ def run_migration():
         )
     """)
     print("Created bookmarked_biddings table")
+    
+    # Add abbreviation column to container_types table if not exists
+    try:
+        cursor.execute("ALTER TABLE container_types ADD COLUMN abbreviation VARCHAR(20)")
+        print("Added abbreviation column to container_types table")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e).lower():
+            print("abbreviation column already exists in container_types table")
+        else:
+            print(f"Note: {e}")
+    
+    # Add abbreviation column to truck_types table if not exists
+    try:
+        cursor.execute("ALTER TABLE truck_types ADD COLUMN abbreviation VARCHAR(20)")
+        print("Added abbreviation column to truck_types table")
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e).lower():
+            print("abbreviation column already exists in truck_types table")
+        else:
+            print(f"Note: {e}")
     
     conn.commit()
     conn.close()

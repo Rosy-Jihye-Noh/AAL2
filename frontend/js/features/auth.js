@@ -16,6 +16,7 @@ const Auth = {
     currentView: 'login-type', // login-type, login, register, register-form
     selectedUserType: null, // shipper, forwarder
     selectedLoginType: null, // shipper, forwarder (로그인 시 선택한 타입)
+    onLoginSuccessCallback: null, // 로그인 성공 후 실행할 콜백
     
     /**
      * Initialize the module
@@ -126,9 +127,14 @@ const Auth = {
             `;
         }
         
-        // Sync with BiddingList module if present
+        // Sync with BiddingList module if present (포워더용)
         if (window.BiddingList && typeof BiddingList.syncWithAuth === 'function') {
             BiddingList.syncWithAuth();
+        }
+        
+        // Sync with ShipperBidding module if present (화주용)
+        if (window.ShipperBidding && typeof ShipperBidding.syncWithAuth === 'function') {
+            ShipperBidding.syncWithAuth();
         }
     },
     
@@ -140,6 +146,31 @@ const Auth = {
         if (overlay) {
             overlay.classList.add('active');
             this.showLoginTypeView();
+        }
+    },
+    
+    /**
+     * Open auth modal with callback
+     * 로그인/회원가입 성공 후 콜백 실행
+     * @param {Function} callback - 로그인 성공 후 실행할 함수 (user 객체를 인자로 받음)
+     * @param {string} userType - 'shipper' 또는 'forwarder' (선택적, 지정 시 해당 타입으로 바로 이동)
+     */
+    openModalWithCallback(callback, userType = null) {
+        this.onLoginSuccessCallback = callback;
+        
+        const overlay = document.getElementById('authModalOverlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            
+            if (userType === 'shipper') {
+                this.selectedLoginType = 'shipper';
+                this.showLoginView();
+            } else if (userType === 'forwarder') {
+                this.selectedLoginType = 'forwarder';
+                this.showLoginView();
+            } else {
+                this.showLoginTypeView();
+            }
         }
     },
     
@@ -409,6 +440,12 @@ const Auth = {
             // Show welcome message
             this.showToast(`환영합니다, ${this.user.name}님!`);
             
+            // 로그인 성공 콜백 실행
+            if (this.onLoginSuccessCallback && typeof this.onLoginSuccessCallback === 'function') {
+                this.onLoginSuccessCallback(this.user);
+                this.onLoginSuccessCallback = null; // 콜백 초기화
+            }
+            
         } catch (error) {
             console.error('Login error:', error);
             this.showError(error.message, 'loginView');
@@ -512,6 +549,12 @@ const Auth = {
             
             // Show success message
             this.showToast(`회원가입이 완료되었습니다. 환영합니다, ${this.user.name}님!`);
+            
+            // 회원가입 성공 콜백 실행 (로그인과 동일하게 처리)
+            if (this.onLoginSuccessCallback && typeof this.onLoginSuccessCallback === 'function') {
+                this.onLoginSuccessCallback(this.user);
+                this.onLoginSuccessCallback = null; // 콜백 초기화
+            }
             
         } catch (error) {
             console.error('Registration error:', error);

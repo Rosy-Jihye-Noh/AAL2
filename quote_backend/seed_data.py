@@ -91,7 +91,8 @@ def seed_container_types(db):
     container_types = [
         # 20ft Containers
         {
-            "code": "20FR", "name": "20 Flat Rack Container", "description": "20ft Flat Rack Container",
+            "code": "20FR", "name": "20 Flat Rack Container", "abbreviation": "20'FR",
+            "description": "20ft Flat Rack Container",
             "size": "20", "category": "FR", "size_teu": 1.0,
             "iso_standard": "22P1", "customs_port_standard": "22PC",
             "china_send_standard": "22PF", "china_receive": "22PF",
@@ -100,7 +101,8 @@ def seed_container_types(db):
             "cbm_limit": False, "sort_order": 1
         },
         {
-            "code": "20DC", "name": "20 Dry Container", "description": "20ft Standard Dry Container",
+            "code": "20DC", "name": "20 Dry Container", "abbreviation": "20'GP",
+            "description": "20ft Standard Dry Container",
             "size": "20", "category": "DC", "size_teu": 1.0,
             "iso_standard": "22G0", "customs_port_standard": "22GP",
             "china_send_standard": "GP20", "china_receive": "22GP",
@@ -109,7 +111,8 @@ def seed_container_types(db):
             "cbm_limit": True, "sort_order": 2
         },
         {
-            "code": "20OT", "name": "20 Open Top Container", "description": "20ft Open Top Container",
+            "code": "20OT", "name": "20 Open Top Container", "abbreviation": "20'OT",
+            "description": "20ft Open Top Container",
             "size": "20", "category": "OT", "size_teu": 1.0,
             "iso_standard": "22U0", "customs_port_standard": "22UT",
             "china_send_standard": "OT20", "china_receive": "22UT",
@@ -118,7 +121,8 @@ def seed_container_types(db):
             "cbm_limit": False, "sort_order": 3
         },
         {
-            "code": "20RF", "name": "20 Reefer Container", "description": "20ft Refrigerated Container",
+            "code": "20RF", "name": "20 Reefer Container", "abbreviation": "20'RF",
+            "description": "20ft Refrigerated Container",
             "size": "20", "category": "RF", "size_teu": 1.0,
             "iso_standard": "22R0", "customs_port_standard": "22RE",
             "china_send_standard": "RF20", "china_receive": "22RT",
@@ -127,7 +131,8 @@ def seed_container_types(db):
             "cbm_limit": True, "sort_order": 4
         },
         {
-            "code": "20TK", "name": "20 Tank Container", "description": "20ft Tank Container",
+            "code": "20TK", "name": "20 Tank Container", "abbreviation": "20'TK",
+            "description": "20ft Tank Container",
             "size": "20", "category": "TK", "size_teu": 1.0,
             "iso_standard": "22K0", "customs_port_standard": "22TN",
             "china_send_standard": "22TN", "china_receive": "22TN",
@@ -137,7 +142,8 @@ def seed_container_types(db):
         },
         # 40ft Containers
         {
-            "code": "40FR", "name": "40 Flat Rack Container", "description": "40ft Flat Rack Container",
+            "code": "40FR", "name": "40 Flat Rack Container", "abbreviation": "40'FR",
+            "description": "40ft Flat Rack Container",
             "size": "40", "category": "FR", "size_teu": 2.0,
             "iso_standard": "42P1", "customs_port_standard": "42PC",
             "china_send_standard": "42PF", "china_receive": "42PF",
@@ -146,7 +152,8 @@ def seed_container_types(db):
             "cbm_limit": False, "sort_order": 6
         },
         {
-            "code": "40DC", "name": "40 Dry Container", "description": "40ft Standard Dry Container",
+            "code": "40DC", "name": "40 Dry Container", "abbreviation": "40'GP",
+            "description": "40ft Standard Dry Container",
             "size": "40", "category": "DC", "size_teu": 2.0,
             "iso_standard": "42G0", "customs_port_standard": "42GP",
             "china_send_standard": "GP40", "china_receive": "42GP",
@@ -155,7 +162,8 @@ def seed_container_types(db):
             "cbm_limit": True, "sort_order": 7
         },
         {
-            "code": "4HDC", "name": "40 HC Dry Container", "description": "40ft High Cube Dry Container",
+            "code": "4HDC", "name": "40 HC Dry Container", "abbreviation": "40'HC",
+            "description": "40ft High Cube Dry Container",
             "size": "4H", "category": "DC", "size_teu": 2.0,
             "iso_standard": "45G0", "customs_port_standard": "45GP",
             "china_send_standard": "HC45", "china_receive": "45GP",
@@ -164,7 +172,8 @@ def seed_container_types(db):
             "cbm_limit": True, "sort_order": 8
         },
         {
-            "code": "40OT", "name": "40 Open Top Container", "description": "40ft Open Top Container",
+            "code": "40OT", "name": "40 Open Top Container", "abbreviation": "40'OT",
+            "description": "40ft Open Top Container",
             "size": "40", "category": "OT", "size_teu": 2.0,
             "iso_standard": "42U0", "customs_port_standard": "42UT",
             "china_send_standard": "42UT", "china_receive": "42UT",
@@ -173,7 +182,8 @@ def seed_container_types(db):
             "cbm_limit": False, "sort_order": 9
         },
         {
-            "code": "40TK", "name": "40 Tank Container", "description": "40ft Tank Container",
+            "code": "40TK", "name": "40 Tank Container", "abbreviation": "40'TK",
+            "description": "40ft Tank Container",
             "size": "40", "category": "TK", "size_teu": 2.0,
             "iso_standard": "42K0", "customs_port_standard": "42TN",
             "china_send_standard": "42TN", "china_receive": "42TN",
@@ -183,7 +193,8 @@ def seed_container_types(db):
         },
         # 40ft High Cube Containers
         {
-            "code": "4HFR", "name": "40 HC Flat Rack Container", "description": "40ft High Cube Flat Rack Container",
+            "code": "4HFR", "name": "40 HC Flat Rack Container", "abbreviation": "40'HF",
+            "description": "40ft High Cube Flat Rack Container",
             "size": "4H", "category": "FR", "size_teu": 2.0,
             "iso_standard": "45P1", "customs_port_standard": "45PC",
             "china_send_standard": "45PF", "china_receive": "45PF",
@@ -192,7 +203,8 @@ def seed_container_types(db):
             "cbm_limit": False, "sort_order": 11
         },
         {
-            "code": "4HRF", "name": "40 HC Reefer Container", "description": "40ft High Cube Refrigerated Container",
+            "code": "4HRF", "name": "40 HC Reefer Container", "abbreviation": "40'HR",
+            "description": "40ft High Cube Refrigerated Container",
             "size": "4H", "category": "RF", "size_teu": 2.0,
             "iso_standard": "45R0", "customs_port_standard": "45RE",
             "china_send_standard": "RF45", "china_receive": "45RT",
@@ -218,26 +230,30 @@ def seed_container_types(db):
 def seed_truck_types(db):
     """Seed Truck Types data"""
     truck_types = [
-        {"code": "1T_CARGO", "name": "1T Cargo", "description": "1톤 카고", "max_weight_kg": 1000, "max_cbm": 5.0, "sort_order": 1},
-        {"code": "1T_WING", "name": "1T Wing Body", "description": "1톤 윙바디", "max_weight_kg": 1000, "max_cbm": 5.0, "sort_order": 2},
-        {"code": "2.5T_CARGO", "name": "2.5T Cargo", "description": "2.5톤 카고", "max_weight_kg": 2500, "max_cbm": 10.0, "sort_order": 3},
-        {"code": "2.5T_WING", "name": "2.5T Wing Body", "description": "2.5톤 윙바디", "max_weight_kg": 2500, "max_cbm": 10.0, "sort_order": 4},
-        {"code": "5T_CARGO", "name": "5T Cargo", "description": "5톤 카고", "max_weight_kg": 5000, "max_cbm": 20.0, "sort_order": 5},
-        {"code": "5T_WING", "name": "5T Wing Body", "description": "5톤 윙바디", "max_weight_kg": 5000, "max_cbm": 20.0, "sort_order": 6},
-        {"code": "8T_CARGO", "name": "8T Cargo", "description": "8톤 카고", "max_weight_kg": 8000, "max_cbm": 30.0, "sort_order": 7},
-        {"code": "8T_WING", "name": "8T Wing Body", "description": "8톤 윙바디", "max_weight_kg": 8000, "max_cbm": 30.0, "sort_order": 8},
-        {"code": "11T_CARGO", "name": "11T Cargo", "description": "11톤 카고", "max_weight_kg": 11000, "max_cbm": 40.0, "sort_order": 9},
-        {"code": "11T_WING", "name": "11T Wing Body", "description": "11톤 윙바디", "max_weight_kg": 11000, "max_cbm": 40.0, "sort_order": 10},
-        {"code": "18T_WING", "name": "18T Wing Body", "description": "18톤 윙바디", "max_weight_kg": 18000, "max_cbm": 55.0, "sort_order": 11},
-        {"code": "25T_WING", "name": "25T Wing Body", "description": "25톤 윙바디", "max_weight_kg": 25000, "max_cbm": 70.0, "sort_order": 12},
-        {"code": "5T_COLD", "name": "5T Cold Chain", "description": "5톤 냉동", "max_weight_kg": 4500, "max_cbm": 18.0, "sort_order": 13},
-        {"code": "11T_COLD", "name": "11T Cold Chain", "description": "11톤 냉동", "max_weight_kg": 10000, "max_cbm": 35.0, "sort_order": 14},
-        {"code": "TRAILER", "name": "Trailer", "description": "트레일러", "max_weight_kg": 24000, "max_cbm": 70.0, "sort_order": 15},
+        {"code": "1T_CARGO", "name": "1T Cargo", "abbreviation": "1T카고", "description": "1톤 카고", "max_weight_kg": 1000, "max_cbm": 5.0, "sort_order": 1},
+        {"code": "1T_WING", "name": "1T Wing Body", "abbreviation": "1T윙", "description": "1톤 윙바디", "max_weight_kg": 1000, "max_cbm": 5.0, "sort_order": 2},
+        {"code": "2.5T_CARGO", "name": "2.5T Cargo", "abbreviation": "2.5T카고", "description": "2.5톤 카고", "max_weight_kg": 2500, "max_cbm": 10.0, "sort_order": 3},
+        {"code": "2.5T_WING", "name": "2.5T Wing Body", "abbreviation": "2.5T윙", "description": "2.5톤 윙바디", "max_weight_kg": 2500, "max_cbm": 10.0, "sort_order": 4},
+        {"code": "5T_CARGO", "name": "5T Cargo", "abbreviation": "5T카고", "description": "5톤 카고", "max_weight_kg": 5000, "max_cbm": 20.0, "sort_order": 5},
+        {"code": "5T_WING", "name": "5T Wing Body", "abbreviation": "5T윙", "description": "5톤 윙바디", "max_weight_kg": 5000, "max_cbm": 20.0, "sort_order": 6},
+        {"code": "8T_CARGO", "name": "8T Cargo", "abbreviation": "8T카고", "description": "8톤 카고", "max_weight_kg": 8000, "max_cbm": 30.0, "sort_order": 7},
+        {"code": "8T_WING", "name": "8T Wing Body", "abbreviation": "8T윙", "description": "8톤 윙바디", "max_weight_kg": 8000, "max_cbm": 30.0, "sort_order": 8},
+        {"code": "11T_CARGO", "name": "11T Cargo", "abbreviation": "11T카고", "description": "11톤 카고", "max_weight_kg": 11000, "max_cbm": 40.0, "sort_order": 9},
+        {"code": "11T_WING", "name": "11T Wing Body", "abbreviation": "11T윙", "description": "11톤 윙바디", "max_weight_kg": 11000, "max_cbm": 40.0, "sort_order": 10},
+        {"code": "18T_WING", "name": "18T Wing Body", "abbreviation": "18T윙", "description": "18톤 윙바디", "max_weight_kg": 18000, "max_cbm": 55.0, "sort_order": 11},
+        {"code": "25T_WING", "name": "25T Wing Body", "abbreviation": "25T윙", "description": "25톤 윙바디", "max_weight_kg": 25000, "max_cbm": 70.0, "sort_order": 12},
+        {"code": "5T_COLD", "name": "5T Cold Chain", "abbreviation": "5T냉동", "description": "5톤 냉동", "max_weight_kg": 4500, "max_cbm": 18.0, "sort_order": 13},
+        {"code": "11T_COLD", "name": "11T Cold Chain", "abbreviation": "11T냉동", "description": "11톤 냉동", "max_weight_kg": 10000, "max_cbm": 35.0, "sort_order": 14},
+        {"code": "TRAILER", "name": "Trailer", "abbreviation": "TR", "description": "트레일러", "max_weight_kg": 24000, "max_cbm": 70.0, "sort_order": 15},
     ]
     
     for tt_data in truck_types:
         existing = db.query(TruckType).filter(TruckType.code == tt_data["code"]).first()
-        if not existing:
+        if existing:
+            # Update existing record with new fields (including abbreviation)
+            for key, value in tt_data.items():
+                setattr(existing, key, value)
+        else:
             db.add(TruckType(**tt_data))
     
     db.commit()
