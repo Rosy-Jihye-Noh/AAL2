@@ -32,6 +32,7 @@ class PortResponse(PortBase):
 class ContainerTypeBase(BaseModel):
     code: str
     name: str
+    abbreviation: Optional[str] = None  # 약어 표시용 (e.g., 20'GP, 40'HC)
     description: Optional[str] = None
     
     # Size and Category
@@ -72,6 +73,7 @@ class ContainerTypeResponse(ContainerTypeBase):
 class TruckTypeBase(BaseModel):
     code: str
     name: str
+    abbreviation: Optional[str] = None  # 약어 표시용 (e.g., 5T윙, 11T냉동)
     description: Optional[str] = None
     max_weight_kg: Optional[int] = None
     max_cbm: Optional[float] = None
@@ -444,6 +446,7 @@ class BiddingListItem(BaseModel):
     pod: str
     shipping_type: str
     load_type: str
+    cargo_summary: Optional[str] = None  # 물량 요약 (e.g., "20'GP × 3", "32.5 CBM", "1,500 KGS")
     etd: datetime
     deadline: Optional[datetime] = None
     status: str

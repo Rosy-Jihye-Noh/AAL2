@@ -126,6 +126,114 @@ app.add_middleware(
 # UTILITY FUNCTIONS
 # ==========================================
 
+def generate_cargo_summary(
+    shipping_type: str, 
+    load_type: str, 
+    cargo_details: list, 
+    db: Session
+) -> Optional[str]:
+    """
+    Generate cargo summary string based on shipping type and load type.
+    
+    Examples:
+    - FCL (Ocean): "20'GP × 3" or "20'GP × 2, 40'HC × 1"
+    - LCL (Ocean): "32.5 CBM"
+    - AIR: "1,500 KGS"
+    - TRUCK (FTL): "5T윙 × 2"
+    """
+    if not cargo_details:
+        return None
+    
+    try:
+        # FCL - Container based
+        if shipping_type == "ocean" and load_type == "FCL":
+            # Group by container type
+            container_counts = {}
+            for cargo in cargo_details:
+                ct_code = cargo.container_type
+                if ct_code:
+                    qty = cargo.qty or 1
+                    if ct_code not in container_counts:
+                        container_counts[ct_code] = {"qty": 0, "abbreviation": None}
+                    container_counts[ct_code]["qty"] += qty
+            
+            # Get abbreviations from database
+            summaries = []
+            for ct_code, data in container_counts.items():
+                container = db.query(ContainerType).filter(
+                    ContainerType.code == ct_code
+                ).first()
+                if container and container.abbreviation:
+                    abbr = container.abbreviation
+                else:
+                    abbr = ct_code  # fallback to code
+                summaries.append(f"{abbr} × {data['qty']}")
+            
+            return ", ".join(summaries) if summaries else None
+        
+        # LCL - CBM based
+        elif shipping_type == "ocean" and load_type == "LCL":
+            total_cbm = sum(
+                float(cargo.cbm or 0) * (cargo.qty or 1) 
+                for cargo in cargo_details
+            )
+            if total_cbm > 0:
+                return f"{total_cbm:,.1f} CBM"
+            return None
+        
+        # AIR - Chargeable Weight based
+        elif shipping_type == "air":
+            total_cw = sum(
+                int(cargo.chargeable_weight or 0) * (cargo.qty or 1) 
+                for cargo in cargo_details
+            )
+            if total_cw > 0:
+                return f"{total_cw:,} KGS"
+            return None
+        
+        # TRUCK - FTL (Truck based)
+        elif shipping_type == "truck" and load_type == "FTL":
+            # Group by truck type
+            truck_counts = {}
+            for cargo in cargo_details:
+                tt_code = cargo.truck_type
+                if tt_code:
+                    qty = cargo.qty or 1
+                    if tt_code not in truck_counts:
+                        truck_counts[tt_code] = {"qty": 0, "abbreviation": None}
+                    truck_counts[tt_code]["qty"] += qty
+            
+            # Get abbreviations from database
+            summaries = []
+            for tt_code, data in truck_counts.items():
+                truck = db.query(TruckType).filter(
+                    TruckType.code == tt_code
+                ).first()
+                if truck and truck.abbreviation:
+                    abbr = truck.abbreviation
+                else:
+                    abbr = tt_code  # fallback to code
+                summaries.append(f"{abbr} × {data['qty']}")
+            
+            return ", ".join(summaries) if summaries else None
+        
+        # TRUCK - LTL (CBM or weight based)
+        elif shipping_type == "truck" and load_type == "LTL":
+            total_cbm = sum(
+                float(cargo.cbm or 0) * (cargo.qty or 1) 
+                for cargo in cargo_details
+            )
+            if total_cbm > 0:
+                return f"{total_cbm:,.1f} CBM"
+            return None
+        
+        return None
+        
+    except Exception as e:
+        print(f"Error generating cargo summary: {e}")
+        return None
+
+
 def generate_request_number() -> str:
     """Generate unique request number: QR-YYYYMMDD-XXX"""
     date_str = datetime.now().strftime("%Y%m%d")
@@ -1042,6 +1150,14 @@ def get_bidding_list(
         if b.status == "open" and b.deadline and b.deadline <= now:
             effective_status = "expired"
         
+        # Generate cargo summary
+        cargo_summary = generate_cargo_summary(
+            qr.shipping_type,
+            qr.load_type,
+            qr.cargo_details,
+            db
+        )
+        
         items.append(BiddingListItem(
             id=b.id,
             bidding_no=b.bidding_no,
@@ -1050,6 +1166,7 @@ def get_bidding_list(
             pod=qr.pod,
             shipping_type=qr.shipping_type,
             load_type=qr.load_type,
+            cargo_summary=cargo_summary,
             etd=qr.etd,
             deadline=b.deadline,
             status=effective_status,
@@ -1773,12 +1890,32 @@ def mask_company_name(company_name: str) -> str:
 
 @app.get("/api/shipper/biddings/stats", response_model=ShipperBiddingStatsResponse, tags=["Shipper Bidding"])
 def get_shipper_bidding_stats(
-    customer_id: int,
+    customer_id: Optional[int] = None,
+    customer_email: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     화주의 비딩 통계 조회
+    - customer_id 또는 customer_email 중 하나 필수
     """
+    # customer_email이 있으면 해당 Customer의 ID 조회
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            # 해당 이메일의 고객이 없으면 빈 통계 반환
+            return ShipperBiddingStatsResponse(
+                total_count=0,
+                open_count=0,
+                closing_soon_count=0,
+                awarded_count=0,
+                failed_count=0
+            )
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id 또는 customer_email이 필요합니다.")
+    
     # 해당 고객의 Quote Request ID 목록 조회
     quote_ids = db.query(QuoteRequest.id).filter(
         QuoteRequest.customer_id == customer_id
@@ -1816,7 +1953,8 @@ def get_shipper_bidding_stats(
 
 @app.get("/api/shipper/biddings", response_model=ShipperBiddingListResponse, tags=["Shipper Bidding"])
 def get_shipper_bidding_list(
-    customer_id: int,
+    customer_id: Optional[int] = None,
+    customer_email: Optional[str] = None,
     page: int = 1,
     limit: int = 20,
     status: Optional[str] = None,
@@ -1827,11 +1965,23 @@ def get_shipper_bidding_list(
     """
     화주의 비딩 목록 조회
     
-    - customer_id: 고객 ID (필수)
+    - customer_id 또는 customer_email 중 하나 필수
     - status: open, closing_soon, awarded, expired, closed
     - shipping_type: ocean, air, truck
     - search: Bidding No 검색
     """
+    # customer_email이 있으면 해당 Customer의 ID 조회
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            # 해당 이메일의 고객이 없으면 빈 목록 반환
+            return ShipperBiddingListResponse(data=[], total=0, page=page, limit=limit)
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id 또는 customer_email이 필요합니다.")
+    
     # 해당 고객의 Quote Request와 Bidding 조인
     query = db.query(Bidding, QuoteRequest).join(
         QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
@@ -1934,16 +2084,29 @@ def get_shipper_bidding_list(
 @app.get("/api/shipper/bidding/{bidding_no}/bids", response_model=ShipperBiddingBidsResponse, tags=["Shipper Bidding"])
 def get_shipper_bidding_bids(
     bidding_no: str,
-    customer_id: int,
+    customer_id: Optional[int] = None,
+    customer_email: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     특정 비딩의 입찰 목록 조회 (화주용, 익명화)
     
+    - customer_id 또는 customer_email 중 하나 필수
     - 업체명은 첫 글자만 표시 (예: 삼****)
     - 입찰가 순서로 rank 부여
     - 평점 포함
     """
+    # customer_email이 있으면 해당 Customer의 ID 조회
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=403, detail="Access denied - customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id 또는 customer_email이 필요합니다.")
+    
     # 비딩 조회 및 권한 확인
     bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
     if not bidding:
@@ -2015,17 +2178,30 @@ def get_shipper_bidding_bids(
 def award_bid(
     bidding_no: str,
     bid_id: int,
-    customer_id: int,
+    customer_id: Optional[int] = None,
+    customer_email: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     운송사 선정 (낙찰)
     
+    - customer_id 또는 customer_email 중 하나 필수
     - 해당 비딩의 상태를 'awarded'로 변경
     - 선정된 입찰의 상태를 'awarded'로 변경
     - 나머지 입찰은 'rejected'로 변경
     - 선정된 운송사에 알림 발송
     """
+    # customer_email이 있으면 해당 Customer의 ID 조회
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=403, detail="Access denied - customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_id 또는 customer_email이 필요합니다.")
+    
     # 비딩 조회 및 권한 확인
     bidding = db.query(Bidding).filter(Bidding.bidding_no == bidding_no).first()
     if not bidding:
@@ -5038,6 +5214,348 @@ def get_scheduler_status(admin_key: str):
         "last_run": datetime.now().isoformat(),
         "next_run": (datetime.now() + timedelta(hours=1)).isoformat()
     }
+
+
+# ==========================================
+# DASHBOARD API (Shipper & Forwarder)
+# ==========================================
+
+@app.get("/api/dashboard/shipper/volume-trend", tags=["Dashboard"])
+def get_shipper_volume_trend(
+    customer_email: Optional[str] = None,
+    customer_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """화주 물량 추이 (월별 TEU/CBM/KGS)"""
+    # Resolve customer_id from email if needed
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_email or customer_id required")
+    
+    # Parse dates
+    try:
+        start_date = datetime.strptime(from_date, "%Y-%m-%d") if from_date else datetime.now() - timedelta(days=180)
+        end_date = datetime.strptime(to_date, "%Y-%m-%d") if to_date else datetime.now()
+    except:
+        start_date = datetime.now() - timedelta(days=180)
+        end_date = datetime.now()
+    
+    # Query awarded contracts with cargo details
+    from sqlalchemy import func, extract
+    
+    contracts = db.query(
+        extract('year', Contract.confirmed_at).label('year'),
+        extract('month', Contract.confirmed_at).label('month'),
+        func.sum(CargoDetail.qty).label('total_qty'),
+        func.sum(CargoDetail.cbm).label('total_cbm'),
+        func.sum(CargoDetail.gross_weight).label('total_kgs')
+    ).join(Bid, Contract.bid_id == Bid.id
+    ).join(Bidding, Bid.bidding_id == Bidding.id
+    ).join(QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+    ).join(CargoDetail, CargoDetail.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        Contract.confirmed_at >= start_date,
+        Contract.confirmed_at <= end_date
+    ).group_by(
+        extract('year', Contract.confirmed_at),
+        extract('month', Contract.confirmed_at)
+    ).order_by('year', 'month').all()
+    
+    # Format response
+    data = []
+    for row in contracts:
+        month_str = f"{int(row.year)}-{int(row.month):02d}"
+        data.append({
+            "month": month_str,
+            "teu": int(row.total_qty or 0),
+            "cbm": float(row.total_cbm or 0),
+            "kgs": float(row.total_kgs or 0)
+        })
+    
+    # If no data, generate mock for demo
+    if not data:
+        for i in range(6):
+            month = datetime.now() - timedelta(days=30 * (5 - i))
+            data.append({
+                "month": month.strftime("%Y-%m"),
+                "teu": random.randint(20, 80),
+                "cbm": random.randint(200, 500),
+                "kgs": random.randint(20000, 50000)
+            })
+    
+    return {"success": True, "data": data}
+
+
+@app.get("/api/dashboard/shipper/top-export", tags=["Dashboard"])
+def get_shipper_top_export(
+    customer_email: Optional[str] = None,
+    customer_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """화주 주요 수출국 TOP N"""
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_email or customer_id required")
+    
+    from sqlalchemy import func
+    
+    # Group by POL country (assuming POL contains country info)
+    results = db.query(
+        QuoteRequest.pol,
+        func.count(QuoteRequest.id).label('count')
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.incoterms.in_(['EXW', 'FCA', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'])
+    ).group_by(QuoteRequest.pol
+    ).order_by(func.count(QuoteRequest.id).desc()
+    ).limit(limit).all()
+    
+    data = [{"country": r.pol or "Unknown", "count": r.count, "volume": r.count * 10} for r in results]
+    
+    # Mock data if empty
+    if not data:
+        data = [
+            {"country": "중국", "count": 15, "volume": 120},
+            {"country": "미국", "count": 12, "volume": 95},
+            {"country": "일본", "count": 8, "volume": 65},
+            {"country": "베트남", "count": 6, "volume": 48},
+            {"country": "태국", "count": 4, "volume": 32}
+        ]
+    
+    return {"success": True, "data": data}
+
+
+@app.get("/api/dashboard/shipper/top-import", tags=["Dashboard"])
+def get_shipper_top_import(
+    customer_email: Optional[str] = None,
+    customer_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 5,
+    db: Session = Depends(get_db)
+):
+    """화주 주요 수입국 TOP N"""
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_email or customer_id required")
+    
+    from sqlalchemy import func
+    
+    # Group by POD country
+    results = db.query(
+        QuoteRequest.pod,
+        func.count(QuoteRequest.id).label('count')
+    ).filter(
+        QuoteRequest.customer_id == customer_id
+    ).group_by(QuoteRequest.pod
+    ).order_by(func.count(QuoteRequest.id).desc()
+    ).limit(limit).all()
+    
+    data = [{"country": r.pod or "Unknown", "count": r.count, "volume": r.count * 10} for r in results]
+    
+    # Mock data if empty
+    if not data:
+        data = [
+            {"country": "독일", "count": 10, "volume": 85},
+            {"country": "미국", "count": 8, "volume": 72},
+            {"country": "중국", "count": 7, "volume": 58},
+            {"country": "일본", "count": 5, "volume": 42},
+            {"country": "프랑스", "count": 3, "volume": 25}
+        ]
+    
+    return {"success": True, "data": data}
+
+
+@app.get("/api/dashboard/shipper/container-efficiency", tags=["Dashboard"])
+def get_shipper_container_efficiency(
+    customer_email: Optional[str] = None,
+    customer_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """화주 FCL 컨테이너 적재 효율"""
+    if customer_email and not customer_id:
+        customer = db.query(Customer).filter(Customer.email == customer_email).first()
+        if customer:
+            customer_id = customer.id
+        else:
+            raise HTTPException(status_code=404, detail="Customer not found")
+    
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="customer_email or customer_id required")
+    
+    # Container max weights (typical values in kg)
+    container_max_weight = {
+        "20GP": 21800, "20'GP": 21800, "20FT": 21800,
+        "40GP": 26500, "40'GP": 26500, "40FT": 26500,
+        "40HC": 26500, "40'HC": 26500,
+        "20RF": 20000, "20'RF": 20000,
+        "40RF": 26000, "40'RF": 26000,
+        "45HC": 25500, "45'HC": 25500
+    }
+    
+    from sqlalchemy import func
+    
+    # Query FCL cargo details
+    results = db.query(
+        CargoDetail.container_type,
+        func.count(CargoDetail.id).label('count'),
+        func.avg(CargoDetail.gross_weight).label('avg_weight')
+    ).join(QuoteRequest, CargoDetail.quote_request_id == QuoteRequest.id
+    ).filter(
+        QuoteRequest.customer_id == customer_id,
+        QuoteRequest.load_type == 'FCL',
+        CargoDetail.container_type.isnot(None)
+    ).group_by(CargoDetail.container_type).all()
+    
+    data = []
+    for r in results:
+        container_type = r.container_type
+        max_weight = container_max_weight.get(container_type, 25000)
+        avg_weight = r.avg_weight or 0
+        efficiency = min(100, int((avg_weight / max_weight) * 100)) if max_weight > 0 else 0
+        
+        # Get abbreviation from ContainerType table
+        ct = db.query(ContainerType).filter(ContainerType.code == container_type).first()
+        display_name = ct.abbreviation if ct and ct.abbreviation else container_type
+        
+        data.append({
+            "container_type": display_name,
+            "efficiency": efficiency,
+            "count": r.count
+        })
+    
+    # Mock data if empty
+    if not data:
+        data = [
+            {"container_type": "20'GP", "efficiency": 82, "count": 15},
+            {"container_type": "40'GP", "efficiency": 75, "count": 12},
+            {"container_type": "40'HC", "efficiency": 88, "count": 8},
+            {"container_type": "20'RF", "efficiency": 65, "count": 3}
+        ]
+    
+    return {"success": True, "data": data}
+
+
+@app.get("/api/dashboard/forwarder/route-stats", tags=["Dashboard"])
+def get_forwarder_route_stats(
+    forwarder_email: Optional[str] = None,
+    forwarder_id: Optional[int] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """포워더 구간별 낙찰 현황 + Sparkline"""
+    if forwarder_email and not forwarder_id:
+        forwarder = db.query(Forwarder).filter(Forwarder.email == forwarder_email).first()
+        if forwarder:
+            forwarder_id = forwarder.id
+        else:
+            raise HTTPException(status_code=404, detail="Forwarder not found")
+    
+    if not forwarder_id:
+        raise HTTPException(status_code=400, detail="forwarder_email or forwarder_id required")
+    
+    from sqlalchemy import func, case
+    
+    # Parse dates
+    try:
+        start_date = datetime.strptime(from_date, "%Y-%m-%d") if from_date else datetime.now() - timedelta(days=180)
+        end_date = datetime.strptime(to_date, "%Y-%m-%d") if to_date else datetime.now()
+    except:
+        start_date = datetime.now() - timedelta(days=180)
+        end_date = datetime.now()
+    
+    # Query route stats
+    results = db.query(
+        QuoteRequest.pol,
+        QuoteRequest.pod,
+        func.count(Bid.id).label('total_bids'),
+        func.sum(case((Contract.id.isnot(None), 1), else_=0)).label('awards'),
+        func.sum(case((Contract.id.isnot(None), Contract.final_price_krw), else_=0)).label('total_revenue')
+    ).join(Bidding, Bidding.quote_request_id == QuoteRequest.id
+    ).join(Bid, Bid.bidding_id == Bidding.id
+    ).outerjoin(Contract, Contract.bid_id == Bid.id
+    ).filter(
+        Bid.forwarder_id == forwarder_id,
+        Bid.created_at >= start_date,
+        Bid.created_at <= end_date
+    ).group_by(QuoteRequest.pol, QuoteRequest.pod
+    ).order_by(func.count(Bid.id).desc()
+    ).limit(limit).all()
+    
+    data = []
+    for r in results:
+        route = f"{r.pol} → {r.pod}"
+        total_bids = r.total_bids or 0
+        awards = r.awards or 0
+        award_rate = round((awards / total_bids) * 100, 1) if total_bids > 0 else 0
+        
+        # Generate sparkline data (last 6 months)
+        sparkline = []
+        for i in range(6):
+            month_start = datetime.now() - timedelta(days=30 * (6 - i))
+            month_end = datetime.now() - timedelta(days=30 * (5 - i))
+            
+            month_awards = db.query(func.count(Contract.id)).join(
+                Bid, Contract.bid_id == Bid.id
+            ).join(Bidding, Bid.bidding_id == Bidding.id
+            ).join(QuoteRequest, Bidding.quote_request_id == QuoteRequest.id
+            ).filter(
+                Bid.forwarder_id == forwarder_id,
+                QuoteRequest.pol == r.pol,
+                QuoteRequest.pod == r.pod,
+                Contract.confirmed_at >= month_start,
+                Contract.confirmed_at < month_end
+            ).scalar() or 0
+            sparkline.append(month_awards)
+        
+        data.append({
+            "route": route,
+            "bids": total_bids,
+            "awards": awards,
+            "award_rate": award_rate,
+            "total_revenue_krw": int(r.total_revenue or 0),
+            "sparkline": sparkline
+        })
+    
+    # Mock data if empty
+    if not data:
+        data = [
+            {"route": "부산 → LA", "bids": 15, "awards": 8, "award_rate": 53.3, "total_revenue_krw": 120000000, "sparkline": [3, 5, 2, 4, 6, 3]},
+            {"route": "부산 → 상하이", "bids": 12, "awards": 5, "award_rate": 41.7, "total_revenue_krw": 45000000, "sparkline": [2, 3, 4, 3, 5, 4]},
+            {"route": "인천 → 나리타", "bids": 8, "awards": 4, "award_rate": 50.0, "total_revenue_krw": 32000000, "sparkline": [1, 2, 1, 2, 1, 2]},
+            {"route": "부산 → 싱가포르", "bids": 10, "awards": 2, "award_rate": 20.0, "total_revenue_krw": 28000000, "sparkline": [0, 1, 0, 1, 0, 1]},
+            {"route": "광양 → 로테르담", "bids": 6, "awards": 3, "award_rate": 50.0, "total_revenue_krw": 54000000, "sparkline": [1, 1, 0, 2, 1, 1]}
+        ]
+    
+    return {"success": True, "data": data}
 
 
 # ==========================================

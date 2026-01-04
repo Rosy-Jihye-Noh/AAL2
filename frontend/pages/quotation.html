@@ -471,6 +471,9 @@
         .toast.error {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         }
+        .toast.info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -871,7 +874,7 @@
 <body>
     <!-- Header -->
     <header>
-        <a href="../ai_studio_code_F2.html" class="logo">
+        <a href="/" class="logo">
             AAL<span>.</span>
             <div class="full-name">All About Logistics</div>
         </a>
@@ -884,6 +887,7 @@
                 <li><a href="news-intelligence.html">News Intel</a></li>
                 <li><a href="../ai_studio_code_F2.html#tools">Tools</a></li>
                 <li><a href="report-insight.html">Report & Insight</a></li>
+                <li><a href="dashboard-shipper.html">Dashboard</a></li>
             </ul>
         </nav>
         <!-- Auth Container -->
@@ -2059,7 +2063,56 @@
             } catch (e) {
                 console.error('Port autocomplete init error:', e);
             }
+            
+            // 로그인 정보로 Customer Information 자동 완성
+            populateCustomerInfoFromAuth();
         });
+        
+        // ==========================================
+        // CUSTOMER INFORMATION AUTO-FILL
+        // ==========================================
+        
+        /**
+         * 로그인 사용자 정보로 Customer Information 자동 완성
+         */
+        function populateCustomerInfoFromAuth() {
+            // Auth 모듈과 로그인 상태 확인
+            if (window.Auth && Auth.user) {
+                const user = Auth.user;
+                
+                // 화주(shipper)인 경우에만 자동 완성
+                if (user.user_type === 'shipper') {
+                    // Company Name
+                    const companyInput = document.getElementById('c-company');
+                    if (companyInput && user.company) {
+                        companyInput.value = user.company;
+                    }
+                    
+                    // Name
+                    const nameInput = document.getElementById('c-name');
+                    if (nameInput && user.name) {
+                        nameInput.value = user.name;
+                    }
+                    
+                    // Email
+                    const emailInput = document.getElementById('c-email');
+                    if (emailInput && user.email) {
+                        emailInput.value = user.email;
+                    }
+                    
+                    // Phone
+                    const phoneInput = document.getElementById('c-phone');
+                    if (phoneInput && user.phone) {
+                        phoneInput.value = user.phone;
+                    }
+                    
+                    // Summary 업데이트
+                    updateSummary();
+                    
+                    console.log('✅ Customer Information auto-filled from login data');
+                }
+            }
+        }
 
         // Number formatting function (add thousand separators)
         function formatNumberInput(input) {
@@ -3487,6 +3540,29 @@
         // ==========================================
         
         async function submitQuote() {
+            // 로그인 상태 확인
+            if (!window.Auth || !Auth.user) {
+                // 로그인되지 않은 경우 로그인 모달 표시
+                showToast('견적 요청을 위해 로그인이 필요합니다.', 'info');
+                
+                // 로그인 성공 후 콜백: Customer Information 자동 완성 및 재시도 안내
+                Auth.openModalWithCallback(function(user) {
+                    // Customer Information 자동 완성
+                    populateCustomerInfoFromAuth();
+                    
+                    // 사용자에게 Submit 재시도 안내
+                    showToast('로그인 완료! Submit 버튼을 다시 클릭해주세요.', 'success');
+                }, 'shipper');
+                
+                return;
+            }
+            
+            // 화주(shipper)만 견적 요청 가능
+            if (Auth.user.user_type !== 'shipper') {
+                showToast('화주(Shipper) 계정으로 로그인해야 견적을 요청할 수 있습니다.', 'error');
+                return;
+            }
+            
             // Validate form
             if (!validateForm()) {
                 return;
