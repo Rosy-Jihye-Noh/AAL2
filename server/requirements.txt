@@ -9,3 +9,8 @@ feedparser
 openai
 psycopg2-binary
 bcrypt
+beautifulsoup4
+lxml
+pandas
+xlrd
+openpyxl

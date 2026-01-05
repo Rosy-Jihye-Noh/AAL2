@@ -988,15 +988,370 @@
                     <aside class="product-sidebar">
                         <h3>Logistics Indices</h3>
                         <ul class="product-menu">
-                            <li class="selected">SCFI (Shanghai)</li>
-                            <li>BDI (Baltic Dry)</li>
-                            <li>NCFI (Ningbo)</li>
+                            <li class="selected" onclick="switchLogisticsProduct('kcci')">KCCI (Korea)</li>
+                            <li onclick="switchLogisticsProduct('scfi')">SCFI (Shanghai)</li>
+                            <li onclick="switchLogisticsProduct('ccfi')">CCFI (China)</li>
+                            <li onclick="switchLogisticsProduct('bdi')">BDI (Baltic Dry)</li>
                         </ul>
                     </aside>
-                    <main class="tool-workspace" style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:400px;">
-                        <i class="fas fa-ship" style="font-size:3rem; color:#333; margin-bottom:1.5rem;"></i>
-                        <h2 style="margin-bottom:0.5rem;">Logistics Indices</h2>
-                        <p style="color:var(--text-sub);">운임 지수 데이터를 확인하려면 메뉴를 선택하세요.</p>
+                    <main class="tool-workspace" id="logistics-workspace">
+                        <!-- KCCI Panel (Default) -->
+                        <div id="kcci-content" class="logistics-content active">
+                            <!-- Index Summary Cards -->
+                            <div class="kcci-summary-section">
+                                <!-- Main Index Card -->
+                                <div class="kcci-main-card">
+                                    <div class="kcci-main-card-header">
+                                        <div class="kcci-logo">
+                                            <i class="fas fa-ship"></i>
+                                        </div>
+                                        <div class="kcci-title-group">
+                                            <h2>KCCI</h2>
+                                            <span class="kcci-subtitle">Korea Container Freight Index</span>
+                                        </div>
+                                        <button id="kcci-collect-btn" class="kcci-refresh-btn" onclick="triggerKCCICollection()" title="Collect Data">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                    <div class="kcci-main-value-section">
+                                        <div class="kcci-main-value" id="kcci-chart-main-value">-</div>
+                                        <div class="kcci-change-badge" id="kcci-change-badge">
+                                            <i class="fas fa-minus"></i>
+                                            <span id="kcci-change-value">0</span>
+                                            <span id="kcci-change-percent">(0%)</span>
+                                        </div>
+                                    </div>
+                                    <div class="kcci-meta-info">
+                                        <span id="kcci-last-update">As of: -</span>
+                                        <span class="kcci-source">Source: KOBC</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Stats Cards -->
+                                <div class="kcci-stats-grid">
+                                    <div class="kcci-stat-card">
+                                        <i class="fas fa-arrow-up" style="color: #10B981;"></i>
+                                        <span class="kcci-stat-label">High</span>
+                                        <span class="kcci-stat-value" id="kcci-stat-high">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <i class="fas fa-arrow-down" style="color: #EF4444;"></i>
+                                        <span class="kcci-stat-label">Low</span>
+                                        <span class="kcci-stat-value" id="kcci-stat-low">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <i class="fas fa-chart-line" style="color: #3B82F6;"></i>
+                                        <span class="kcci-stat-label">Avg</span>
+                                        <span class="kcci-stat-value" id="kcci-stat-average">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Chart Section -->
+                            <div class="kcci-chart-section">
+                                <div class="kcci-chart-header">
+                                    <h3>Index Trend</h3>
+                                    <div class="kcci-period-selector">
+                                        <button class="kcci-period-btn" data-period="1W">1W</button>
+                                        <button class="kcci-period-btn" data-period="1M">1M</button>
+                                        <button class="kcci-period-btn active" data-period="6M">6M</button>
+                                        <button class="kcci-period-btn" data-period="1Y">1Y</button>
+                                        <button class="kcci-period-btn" data-period="MAX">MAX</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Chart Toggle -->
+                                <div class="kcci-chart-toggles" id="kcci-indicator-toggles">
+                                    <!-- JS에서 생성 -->
+                                </div>
+
+                                <!-- Chart Area -->
+                                <div class="kcci-chart-area" id="kcci-chart-container">
+                                    <svg class="chart-svg" id="kcci-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                        <line x1="60" y1="350" x2="1180" y2="350" class="chart-grid-line" />
+                                        <line x1="60" y1="280" x2="1180" y2="280" class="chart-grid-line" />
+                                        <line x1="60" y1="210" x2="1180" y2="210" class="chart-grid-line" />
+                                        <line x1="60" y1="140" x2="1180" y2="140" class="chart-grid-line" />
+                                        <line x1="60" y1="70" x2="1180" y2="70" class="chart-grid-line" />
+                                        <g id="kcci-y-axis-labels"></g>
+                                        <g id="kcci-paths-group"></g>
+                                        <g id="kcci-crosshair-group"></g>
+                                        <g id="kcci-data-points"></g>
+                                        <g id="kcci-x-axis-labels"></g>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- Route Data Table -->
+                            <div class="kcci-routes-section">
+                                <div class="kcci-routes-header">
+                                    <h3>Route Index</h3>
+                                    <span class="kcci-unit-label">(Unit: pt, $/FEU)</span>
+                                    <div class="kcci-route-filter" id="kcci-route-chips">
+                                        <!-- Generated by JS -->
+                                    </div>
+                                </div>
+                                <div class="kcci-routes-table-wrapper">
+                                    <table class="kcci-routes-table" id="kcci-routes-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Group</th>
+                                                <th>Code</th>
+                                                <th>Route</th>
+                                                <th>Weight</th>
+                                                <th>Current Index</th>
+                                                <th>Previous Index</th>
+                                                <th>Weekly Change</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="kcci-routes-tbody">
+                                            <!-- JS에서 생성 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Info Footer -->
+                            <div class="kcci-info-footer">
+                                <div class="kcci-info-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>KCCI is the container freight index for 13 major routes from Busan Port.</span>
+                                </div>
+                                <div class="kcci-info-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Published every Monday at 14:00 KST (Korea Ocean Business Corporation)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SCFI Panel -->
+                        <div id="scfi-content" class="logistics-content" style="display:none;">
+                            <div class="kcci-summary-section">
+                                <div class="kcci-main-card">
+                                    <div class="kcci-main-card-header">
+                                        <div class="kcci-logo">
+                                            <i class="fas fa-ship"></i>
+                                        </div>
+                                        <div class="kcci-title-group">
+                                            <h2>SCFI</h2>
+                                            <span class="kcci-subtitle">Shanghai Containerized Freight Index</span>
+                                        </div>
+                                    </div>
+                                    <div class="kcci-main-value-section">
+                                        <div class="kcci-main-value" id="scfi-chart-main-value">-</div>
+                                    </div>
+                                    <div class="kcci-meta-info">
+                                        <span id="scfi-last-update">기준일: -</span>
+                                        <span class="kcci-source">출처: Shanghai Shipping Exchange</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="kcci-stats-grid">
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최고</span>
+                                        <span class="kcci-stat-value" id="scfi-stat-high">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최저</span>
+                                        <span class="kcci-stat-value" id="scfi-stat-low">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">평균</span>
+                                        <span class="kcci-stat-value" id="scfi-stat-avg">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="kcci-chart-section">
+                                <div class="kcci-chart-controls">
+                                    <div class="kcci-period-buttons">
+                                        <button class="kcci-period-btn scfi-period-btn" data-period="1W">1W</button>
+                                        <button class="kcci-period-btn scfi-period-btn" data-period="1M">1M</button>
+                                        <button class="kcci-period-btn scfi-period-btn active" data-period="6M">6M</button>
+                                        <button class="kcci-period-btn scfi-period-btn" data-period="1Y">1Y</button>
+                                        <button class="kcci-period-btn scfi-period-btn" data-period="MAX">MAX</button>
+                                    </div>
+                                </div>
+                                <div class="kcci-chart-container" id="scfi-chart-container">
+                                    <svg class="kcci-chart-svg" id="scfi-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                        <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                        <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                        <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                        <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                        <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                        <g id="scfi-y-axis-labels"></g>
+                                        <g id="scfi-paths-group"></g>
+                                        <g id="scfi-data-points"></g>
+                                        <g id="scfi-x-axis-labels"></g>
+                                    </svg>
+                                </div>
+                                <div class="chart-tooltip" id="scfi-chart-tooltip">
+                                    <div class="chart-tooltip-date" id="scfi-tooltip-date"></div>
+                                    <div id="scfi-tooltip-content"></div>
+                                </div>
+                            </div>
+
+                            <!-- Info Footer -->
+                            <div class="kcci-info-footer">
+                                <div class="kcci-info-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>The Shanghai Containerized Freight Index (SCFI) has been published by the Shanghai Shipping Exchange (SSE) since December 7, 2005. It reflects spot freight rates for container shipping from Shanghai to 15 major destinations. Originally based on time charter rates, since October 16, 2009, it is calculated based on container freight rates in USD per TEU (20-foot equivalent unit). The index covers CY-CY shipping conditions for General Dry Cargo Containers.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CCFI Panel -->
+                        <div id="ccfi-content" class="logistics-content" style="display:none;">
+                            <div class="kcci-summary-section">
+                                <div class="kcci-main-card">
+                                    <div class="kcci-main-card-header">
+                                        <div class="kcci-logo">
+                                            <i class="fas fa-ship"></i>
+                                        </div>
+                                        <div class="kcci-title-group">
+                                            <h2>CCFI</h2>
+                                            <span class="kcci-subtitle">China Containerized Freight Index</span>
+                                        </div>
+                                    </div>
+                                    <div class="kcci-main-value-section">
+                                        <div class="kcci-main-value" id="ccfi-chart-main-value">-</div>
+                                    </div>
+                                    <div class="kcci-meta-info">
+                                        <span id="ccfi-last-update">기준일: -</span>
+                                        <span class="kcci-source">출처: Shanghai Shipping Exchange</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="kcci-stats-grid">
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최고</span>
+                                        <span class="kcci-stat-value" id="ccfi-stat-high">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최저</span>
+                                        <span class="kcci-stat-value" id="ccfi-stat-low">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">평균</span>
+                                        <span class="kcci-stat-value" id="ccfi-stat-avg">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="kcci-chart-section">
+                                <div class="kcci-chart-controls">
+                                    <div class="kcci-period-buttons">
+                                        <button class="kcci-period-btn ccfi-period-btn" data-period="1W">1W</button>
+                                        <button class="kcci-period-btn ccfi-period-btn" data-period="1M">1M</button>
+                                        <button class="kcci-period-btn ccfi-period-btn active" data-period="6M">6M</button>
+                                        <button class="kcci-period-btn ccfi-period-btn" data-period="1Y">1Y</button>
+                                        <button class="kcci-period-btn ccfi-period-btn" data-period="MAX">MAX</button>
+                                    </div>
+                                </div>
+                                <div class="kcci-chart-container" id="ccfi-chart-container">
+                                    <svg class="kcci-chart-svg" id="ccfi-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                        <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                        <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                        <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                        <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                        <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                        <g id="ccfi-y-axis-labels"></g>
+                                        <g id="ccfi-paths-group"></g>
+                                        <g id="ccfi-data-points"></g>
+                                        <g id="ccfi-x-axis-labels"></g>
+                                    </svg>
+                                </div>
+                                <div class="chart-tooltip" id="ccfi-chart-tooltip">
+                                    <div class="chart-tooltip-date" id="ccfi-tooltip-date"></div>
+                                    <div id="ccfi-tooltip-content"></div>
+                                </div>
+                            </div>
+
+                            <!-- Info Footer -->
+                            <div class="kcci-info-footer">
+                                <div class="kcci-info-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>The China Containerized Freight Index (CCFI) is compiled by the Shanghai Shipping Exchange under the supervision of China's Ministry of Transport. First published on April 13, 1998, it objectively reflects global container market conditions and serves as a key indicator of Chinese shipping market trends. The index uses January 1, 1998 as the base (1000). It covers 11 major routes from Chinese ports, with freight information from 16 shipping companies, published every Friday.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BDI Panel -->
+                        <div id="bdi-content" class="logistics-content" style="display:none;">
+                            <div class="kcci-summary-section">
+                                <div class="kcci-main-card">
+                                    <div class="kcci-main-card-header">
+                                        <div class="kcci-logo">
+                                            <i class="fas fa-anchor"></i>
+                                        </div>
+                                        <div class="kcci-title-group">
+                                            <h2>BDI</h2>
+                                            <span class="kcci-subtitle">Baltic Dry Index</span>
+                                        </div>
+                                    </div>
+                                    <div class="kcci-main-value-section">
+                                        <div class="kcci-main-value" id="bdi-chart-main-value">-</div>
+                                    </div>
+                                    <div class="kcci-meta-info">
+                                        <span id="bdi-last-update">기준일: -</span>
+                                        <span class="kcci-source">출처: Baltic Exchange</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="kcci-stats-grid">
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최고</span>
+                                        <span class="kcci-stat-value" id="bdi-stat-high">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">기간 최저</span>
+                                        <span class="kcci-stat-value" id="bdi-stat-low">-</span>
+                                    </div>
+                                    <div class="kcci-stat-card">
+                                        <span class="kcci-stat-label">평균</span>
+                                        <span class="kcci-stat-value" id="bdi-stat-avg">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="kcci-chart-section">
+                                <div class="kcci-chart-controls">
+                                    <div class="kcci-period-buttons">
+                                        <button class="kcci-period-btn bdi-period-btn" data-period="1W">1W</button>
+                                        <button class="kcci-period-btn bdi-period-btn" data-period="1M">1M</button>
+                                        <button class="kcci-period-btn bdi-period-btn active" data-period="6M">6M</button>
+                                        <button class="kcci-period-btn bdi-period-btn" data-period="1Y">1Y</button>
+                                        <button class="kcci-period-btn bdi-period-btn" data-period="MAX">MAX</button>
+                                    </div>
+                                </div>
+                                <div class="kcci-chart-container" id="bdi-chart-container">
+                                    <svg class="kcci-chart-svg" id="bdi-chart-svg" viewBox="0 0 1200 400" preserveAspectRatio="none">
+                                        <line x1="0" y1="350" x2="1200" y2="350" class="chart-grid-line" />
+                                        <line x1="0" y1="280" x2="1200" y2="280" class="chart-grid-line" />
+                                        <line x1="0" y1="210" x2="1200" y2="210" class="chart-grid-line" />
+                                        <line x1="0" y1="140" x2="1200" y2="140" class="chart-grid-line" />
+                                        <line x1="0" y1="70" x2="1200" y2="70" class="chart-grid-line" />
+                                        <g id="bdi-y-axis-labels"></g>
+                                        <g id="bdi-paths-group"></g>
+                                        <g id="bdi-data-points"></g>
+                                        <g id="bdi-x-axis-labels"></g>
+                                    </svg>
+                                </div>
+                                <div class="chart-tooltip" id="bdi-chart-tooltip">
+                                    <div class="chart-tooltip-date" id="bdi-tooltip-date"></div>
+                                    <div id="bdi-tooltip-content"></div>
+                                </div>
+                            </div>
+
+                            <!-- Info Footer -->
+                            <div class="kcci-info-footer">
+                                <div class="kcci-info-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>The Baltic Dry Index (BDI) has been used by the Baltic Exchange since November 1, 1999, replacing the BFI (Baltic Freight Index) which tracked dry cargo freight rates since 1985. Using January 4, 1985 as the base (1000), it is a composite index of time charter rates by vessel type: Baltic Capesize Index (BCI), Baltic Panamax Index (BPI), Baltic Supramax Index (BSI), and Baltic Handysize Index (BHSI). The BDI is calculated by averaging these four indices with equal weights and multiplying by the BDI factor.</span>
+                                </div>
+                            </div>
+                        </div>
+
                     </main>
                 </div>
             </div>
@@ -1188,6 +1543,69 @@
     <script src="../js/features/market/economy/employment.js"></script>
     <script src="../js/features/market/economy/global-stocks.js"></script>
     <script src="../js/features/market/logistics/logistics.js"></script>
+    <script src="../js/features/market/logistics/kcci.js"></script>
+    <script src="../js/features/market/logistics/shipping-indices.js"></script>
     <script src="../js/main.js"></script>
+ <!-- Logistics Product Switcher -->
+ <script>
+    // Logistics 제품 전환 함수
+    function switchLogisticsProduct(productId) {
+        // 모든 콘텐츠 숨기기
+        document.querySelectorAll('.logistics-content').forEach(content => {
+            content.style.display = 'none';
+            content.classList.remove('active');
+        });
+        
+        // 선택된 콘텐츠 표시
+        const targetContent = document.getElementById(`${productId}-content`);
+        if (targetContent) {
+            targetContent.style.display = 'block';
+            targetContent.classList.add('active');
+        }
+        
+        // 메뉴 활성화 상태 업데이트
+        document.querySelectorAll('#logistics-panel .product-menu li').forEach(li => {
+            li.classList.remove('selected');
+        });
+        event.target.classList.add('selected');
+        
+        // 각 제품별 초기화
+        if (productId === 'kcci' && typeof initKCCI === 'function' && !window.kcciDataLoaded) {
+            initKCCI();
+        } else if (productId === 'scfi' && typeof initSCFI === 'function') {
+            if (!window.shippingIndicesState || !window.shippingIndicesState.scfi.loaded) {
+                initSCFI();
+            }
+        } else if (productId === 'ccfi' && typeof initCCFI === 'function') {
+            if (!window.shippingIndicesState || !window.shippingIndicesState.ccfi.loaded) {
+                initCCFI();
+            }
+        } else if (productId === 'bdi' && typeof initBDI === 'function') {
+            if (!window.shippingIndicesState || !window.shippingIndicesState.bdi.loaded) {
+                initBDI();
+            }
+        }
+    }
+    
+    // Logistics 탭 활성화 시 KCCI 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        // switchTab 함수가 호출될 때 KCCI 초기화
+        const originalSwitchTab = window.switchTab;
+        if (originalSwitchTab) {
+            window.switchTab = function(tabName) {
+                originalSwitchTab(tabName);
+                if (tabName === 'logistics' && typeof initKCCI === 'function' && !window.kcciDataLoaded) {
+                    setTimeout(initKCCI, 100);
+                }
+            };
+        }
+    });
+</script>
+
+<!-- KCCI Chart Tooltip (fixed position, at body level) - Exchange Rate 스타일 -->
+<div class="chart-tooltip" id="kcci-chart-tooltip">
+    <div class="chart-tooltip-date" id="kcci-tooltip-date"></div>
+    <div id="kcci-tooltip-content"></div>
+</div>
 </body>
 </html>

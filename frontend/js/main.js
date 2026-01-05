@@ -25,10 +25,55 @@ function initScrollReveal() {
 // ============================================================
 
 function switchTab(tabName) {
+    // 모든 탭 버튼 비활성화
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.querySelectorAll('.market-content').forEach(panel => panel.classList.remove('active'));
-    event.target.classList.add('active');
-    document.getElementById(tabName + '-panel').classList.add('active');
+    
+    // 클릭된 버튼 활성화
+    if (event && event.target) {
+        event.target.classList.add('active');
+    } else {
+        // 버튼을 직접 찾아서 활성화
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            if (btn.textContent.toLowerCase().includes(tabName.toLowerCase())) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    // 모든 패널 숨기기
+    document.querySelectorAll('.market-content').forEach(panel => {
+        panel.classList.remove('active');
+        panel.style.display = 'none';
+    });
+    
+    // 해당 탭의 패널 표시
+    if (tabName === 'economy') {
+        // Economy 탭: 기본 패널 표시
+        const defaultPanel = document.getElementById('exchange-rate-krw-panel');
+        if (defaultPanel) {
+            defaultPanel.classList.add('active');
+            defaultPanel.style.display = '';
+        }
+    } else if (tabName === 'logistics') {
+        // Logistics 탭: logistics-panel 표시
+        const logisticsPanel = document.getElementById('logistics-panel');
+        if (logisticsPanel) {
+            logisticsPanel.classList.add('active');
+            logisticsPanel.style.display = '';
+            
+            // KCCI 초기화
+            if (typeof initKCCI === 'function' && !window.kcciDataLoaded) {
+                initKCCI();
+            }
+        }
+    } else {
+        // 다른 탭
+        const panel = document.getElementById(tabName + '-panel');
+        if (panel) {
+            panel.classList.add('active');
+            panel.style.display = '';
+        }
+    }
 }
 
 function switchProduct(productName) {

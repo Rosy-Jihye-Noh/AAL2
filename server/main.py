@@ -9,20 +9,51 @@ from dotenv import load_dotenv
 from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
+
+# Load environment variables FIRST before importing modules that need DATABASE_URL
+load_dotenv()
+
 import atexit
 import logging
 import bok_backend  # Import the BOK backend module
 import gdelt_backend  # Import the GDELT backend module
-from report_backend import report_bp  # Import the Report backend module
+from report.api import report_bp  # Import the Report backend module
 from news_intelligence.api import news_bp  # Import the News Intelligence module
 from auth.auth_backend import auth_bp  # Import the Auth module
 from auth.models import init_db as init_auth_db  # Initialize auth database
+from kcci.api import kcci_bp  # Import the KCCI module
+# Import Shipping Indices module with detailed error handling
+print("=" * 60)
+print("Importing Shipping Indices module...")
+try:
+    from shipping_indices.api import shipping_bp  # Import the Shipping Indices module
+    print("[OK] Shipping Indices module imported successfully")
+    print(f"   Blueprint name: {shipping_bp.name}")
+    print(f"   URL prefix: {shipping_bp.url_prefix}")
+except ImportError as e:
+    print(f"[ERROR] ImportError: Failed to import shipping_indices module")
+    print(f"   Error: {e}")
+    print("   This is usually due to missing dependencies.")
+    print("   Please install: pip install pandas xlrd")
+    import traceback
+    traceback.print_exc()
+    # Create empty Blueprint so server can continue running
+    from flask import Blueprint
+    shipping_bp = Blueprint('shipping_indices', __name__, url_prefix='/api/shipping-indices')
+    print("   [WARN] Created empty Blueprint (no routes will work)")
+except Exception as e:
+    print(f"[ERROR] Unexpected error importing shipping_indices module: {e}")
+    import traceback
+    traceback.print_exc()
+    from flask import Blueprint
+    shipping_bp = Blueprint('shipping_indices', __name__, url_prefix='/api/shipping-indices')
+    print("   [WARN] Created empty Blueprint (no routes will work)")
+print("=" * 60)
+print()
 
 # Global variable to store quote_backend process
 quote_backend_process = None
-
-# Load environment variables
-load_dotenv()
 
 # Determine base directory (parent of server directory)
 BASE_DIR = Path(__file__).parent.parent
@@ -33,9 +64,17 @@ app = Flask(__name__)
 CORS(app) # Enable CORS for all routes (for development)
 
 # Register Blueprints
-app.register_blueprint(report_bp)
-app.register_blueprint(news_bp)  # News Intelligence API
-app.register_blueprint(auth_bp)  # User Authentication API
+try:
+    app.register_blueprint(report_bp)
+    app.register_blueprint(news_bp)  # News Intelligence API
+    app.register_blueprint(kcci_bp)  # KCCI (Korea Container Freight Index) API
+    app.register_blueprint(shipping_bp)  # Shipping Indices (BDI, SCFI, CCFI) API
+    app.register_blueprint(auth_bp)  # User Authentication API
+    print("[OK] All blueprints registered successfully")
+except Exception as e:
+    print(f"[ERROR] Error registering blueprints: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Initialize Auth Database
 init_auth_db()
@@ -555,6 +594,23 @@ def update_news_intelligence_job():
         logger.error(f"Error in News Intelligence job: {e}", exc_info=True)
 
 
+def update_kcci_job():
+    """매주 월요일 14:30에 실행되는 KCCI 수집 작업"""
+    try:
+        logger.info("Starting KCCI data collection...")
+        from kcci.collector import collect_kcci_and_save
+        
+        result = collect_kcci_and_save()
+        
+        if result.get('success'):
+            logger.info(f"KCCI collection completed: week_date={result.get('week_date')}, "
+                       f"comprehensive={result.get('comprehensive', {}).get('current_index')}")
+        else:
+            logger.error(f"KCCI collection failed: {result.get('error')}")
+            
+    except Exception as e:
+        logger.error(f"Error in KCCI collection job: {e}", exc_info=True)
+
 def _background_analysis_job():
     """
     백그라운드에서 실행되는 뉴스 분석 작업
@@ -646,6 +702,15 @@ scheduler.add_job(
     trigger=IntervalTrigger(hours=1),
     id='news_intelligence_job',
     name='Collect news every 1 hour',
+    replace_existing=True
+)
+
+# KCCI: 매주 월요일 14:30 KST (05:30 UTC)에 실행
+scheduler.add_job(
+    func=update_kcci_job,
+    trigger=CronTrigger(day_of_week='mon', hour=5, minute=30),  # UTC 기준
+    id='kcci_collection_job',
+    name='Collect KCCI data every Monday at 14:30 KST',
     replace_existing=True
 )
 
@@ -819,8 +884,19 @@ if __name__ == '__main__':
     print(f"  BASE_DIR: {BASE_DIR.resolve()}")
     print(f"  GDELT auto-update: Every 15 minutes")
     print(f"  News Intelligence: Every 1 hour")
+    print(f"  KCCI: Every Monday at 14:30 KST (05:30 UTC)")
     print()
     print("="*60)
+
+    # 등록된 라우트 출력 (디버깅용)
+    print("\nRegistered Shipping Indices Routes:")
+    shipping_routes = [rule for rule in app.url_map.iter_rules() if rule.endpoint.startswith('shipping_indices')]
+    if shipping_routes:
+        for rule in shipping_routes:
+            print(f"  [OK] {rule.rule} -> {rule.endpoint}")
+    else:
+        print("  [X] No shipping_indices routes found!")
+    print()
     
     # 서버 시작 시 즉시 GDELT 데이터 업데이트 시도
     try:
@@ -828,11 +904,49 @@ if __name__ == '__main__':
     except Exception as e:
         logger.warning(f"Initial GDELT update failed: {e}")
     
-    # 서버 시작 시 즉시 뉴스 인텔리전스 수집 시도
-    try:
-        update_news_intelligence_job()
-    except Exception as e:
-        logger.warning(f"Initial News Intelligence collection failed: {e}")
+    # 서버가 시작된 후 뉴스 수집을 시작하기 위한 함수
+    def start_news_collection_after_server_start():
+        """서버가 시작된 후 뉴스 수집 시작"""
+        import threading
+        import time
+        import socket
+        
+        # 서버가 포트 5000에서 리스닝할 때까지 대기
+        logger.info("Waiting for server to be ready on localhost:5000...")
+        max_wait = 30  # 최대 30초 대기
+        wait_time = 0
+        server_ready = False
+        
+        while wait_time < max_wait:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex(('localhost', 5000))
+                sock.close()
+                if result == 0:
+                    server_ready = True
+                    logger.info("[OK] Server is ready on localhost:5000")
+                    break
+            except Exception:
+                pass
+            time.sleep(0.5)
+            wait_time += 0.5
+        
+        if server_ready:
+            # 서버가 완전히 초기화될 때까지 약간의 추가 대기
+            time.sleep(1)
+            try:
+                logger.info("Starting News Intelligence collection after server startup...")
+                update_news_intelligence_job()
+            except Exception as e:
+                logger.warning(f"Initial News Intelligence collection failed: {e}")
+        else:
+            logger.warning("[WARN] Server may not be ready, skipping initial news collection")
+    
+    # 서버 시작 후 뉴스 수집을 시작하는 스레드 시작
+    import threading
+    news_thread = threading.Thread(target=start_news_collection_after_server_start, daemon=True)
+    news_thread.start()
     
     # Start Flask server (use_reloader=False to prevent double subprocess)
     app.run(port=5000, debug=True, use_reloader=False)
