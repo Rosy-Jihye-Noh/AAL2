@@ -1419,9 +1419,7 @@
 [data-theme="dark"] .kcci-routes-table .route-change.up {
     background: rgba(76, 175, 80, 0.2);
     color: #81c784;
-}
-
-[data-theme="dark"] .kcci-routes-table .route-change.down {
+}[data-theme="dark"] .kcci-routes-table .route-change.down {
     background: rgba(244, 67, 54, 0.2);
     color: #e57373;
 }[data-theme="dark"] .kcci-routes-table td.positive {

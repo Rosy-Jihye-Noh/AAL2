@@ -274,21 +274,31 @@ const AIAssistant = (function() {
             
             /* Quote card in sidebar */
             .ai-quote-card {
-                background: rgba(16, 185, 129, 0.1);
-                border: 1px solid rgba(16, 185, 129, 0.3);
+                background: rgba(59, 130, 246, 0.1);
+                border: 1px solid rgba(59, 130, 246, 0.3);
                 border-radius: 8px;
                 padding: 0.75rem;
                 margin-top: 0.5rem;
                 font-size: 0.8rem;
             }
             
+            .ai-quote-card.ai-quote-success {
+                background: rgba(16, 185, 129, 0.15);
+                border: 1px solid rgba(16, 185, 129, 0.4);
+            }
+            
             .ai-quote-card-header {
                 display: flex;
                 align-items: center;
                 gap: 6px;
-                color: #10b981;
+                color: #3b82f6;
                 font-weight: 600;
                 margin-bottom: 0.5rem;
+            }
+            
+            .ai-quote-card-header.success {
+                color: #10b981;
+                font-size: 0.9rem;
             }
             
             .ai-quote-card-grid {
@@ -297,8 +307,53 @@ const AIAssistant = (function() {
                 gap: 0.25rem;
             }
             
+            .ai-quote-card-info {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .ai-quote-card-info .ai-quote-card-item {
+                display: flex;
+                justify-content: space-between;
+            }
+            
+            .ai-quote-card-route {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 0.5rem;
+                background: rgba(255,255,255,0.05);
+                border-radius: 4px;
+                margin-bottom: 0.5rem;
+                color: #e5e7eb;
+                font-weight: 500;
+            }
+            
+            .ai-quote-card-route i {
+                color: #10b981;
+            }
+            
+            .ai-quote-card-pickup {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 0.4rem 0.6rem;
+                background: rgba(251, 191, 36, 0.15);
+                border-radius: 4px;
+                color: #fbbf24;
+                font-size: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+            
             .ai-quote-card-item {
                 color: #9ca3af;
+            }
+            
+            .ai-quote-card-item span {
+                color: #6b7280;
             }
             
             .ai-quote-card-item strong {
@@ -309,17 +364,90 @@ const AIAssistant = (function() {
                 width: 100%;
                 margin-top: 0.5rem;
                 padding: 0.5rem;
-                background: #10b981;
+                background: #3b82f6;
                 border: none;
                 border-radius: 6px;
                 color: white;
                 font-size: 0.8rem;
                 font-weight: 500;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
             }
             
             .ai-quote-action:hover {
+                background: #2563eb;
+            }
+            
+            .ai-quote-action.success {
+                background: #10b981;
+            }
+            
+            .ai-quote-action.success:hover {
                 background: #059669;
+            }
+            
+            /* 견적 준비 완료 카드 스타일 */
+            .ai-quote-card.ai-quote-ready {
+                background: rgba(251, 191, 36, 0.1);
+                border: 1px solid rgba(251, 191, 36, 0.3);
+            }
+            
+            .ai-quote-card-header.ready {
+                color: #fbbf24;
+            }
+            
+            .ai-quote-card-customer {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                padding: 0.4rem 0.6rem;
+                background: rgba(59, 130, 246, 0.15);
+                border-radius: 4px;
+                color: #60a5fa;
+                font-size: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .ai-quote-card-buttons {
+                display: flex;
+                gap: 8px;
+                margin-top: 0.75rem;
+            }
+            
+            .ai-quote-card-buttons .ai-quote-action {
+                flex: 1;
+                margin-top: 0;
+            }
+            
+            .ai-quote-action.primary {
+                background: linear-gradient(135deg, #10b981, #059669);
+                font-weight: 600;
+            }
+            
+            .ai-quote-action.primary:hover {
+                background: linear-gradient(135deg, #059669, #047857);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+            
+            .ai-quote-action.secondary {
+                background: #374151;
+                color: #9ca3af;
+            }
+            
+            .ai-quote-action.secondary:hover {
+                background: #4b5563;
+                color: #e5e7eb;
+            }
+            
+            .ai-quote-action.full-width {
+                width: 100%;
+                margin-top: 0.75rem;
+                padding: 0.75rem;
+                font-size: 0.9rem;
             }
             
             @media (max-width: 480px) {
@@ -444,25 +572,65 @@ const AIAssistant = (function() {
         scrollToBottom();
     }
     
-    // Create quote card
+    // Create quote card - 견적 생성 완료 또는 준비 상태에 따라 다른 카드 표시
     function createQuoteCard(data) {
         const card = document.createElement('div');
-        card.className = 'ai-quote-card';
-        card.innerHTML = `
-            <div class="ai-quote-card-header">
-                <i class="fas fa-check-circle"></i> 견적 준비 완료
-            </div>
-            <div class="ai-quote-card-grid">
-                <div class="ai-quote-card-item">POL: <strong>${data.pol || '-'}</strong></div>
-                <div class="ai-quote-card-item">POD: <strong>${data.pod || '-'}</strong></div>
-                <div class="ai-quote-card-item">Type: <strong>${data.container_type || '-'}</strong></div>
-                <div class="ai-quote-card-item">ETD: <strong>${data.etd || '-'}</strong></div>
-            </div>
-            <button class="ai-quote-action" onclick="AIAssistant.goToQuotation('${encodeURIComponent(JSON.stringify(data))}')">
-                견적 조회 페이지로 이동
-            </button>
-        `;
+        
+        // 견적 생성이 완료된 경우 (request_number, bidding_no 존재)
+        if (data.request_number && data.bidding_no) {
+            card.className = 'ai-quote-card ai-quote-success';
+            card.innerHTML = `
+                <div class="ai-quote-card-header success">
+                    <i class="fas fa-check-circle"></i> 견적 요청 완료!
+                </div>
+                <div class="ai-quote-card-info">
+                    <div class="ai-quote-card-item"><span>요청번호:</span> <strong>${data.request_number}</strong></div>
+                    <div class="ai-quote-card-item"><span>비딩번호:</span> <strong>${data.bidding_no}</strong></div>
+                    <div class="ai-quote-card-item"><span>입찰마감:</span> <strong>${data.deadline || '-'}</strong></div>
+                </div>
+                <div class="ai-quote-card-route">
+                    <span>${data.pol || '-'}</span>
+                    <i class="fas fa-arrow-right"></i>
+                    <span>${data.pod || '-'}</span>
+                </div>
+                <button class="ai-quote-action success" onclick="AIAssistant.goToBidding('${data.bidding_no}')">
+                    <i class="fas fa-gavel"></i> 비딩 현황 보기
+                </button>
+            `;
+        } else {
+            // 견적 준비 완료 (아직 생성 안됨) - 버튼 2개: 즉시 요청 / 수정 후 요청
+            card.className = 'ai-quote-card ai-quote-ready';
+            const shippingTypeKo = {'ocean': '해상', 'air': '항공', 'truck': '육상'}[data.shipping_type] || data.shipping_type;
+            const loadType = data.load_type || '-';
+            const encodedData = encodeURIComponent(JSON.stringify(data));
+            
+            card.innerHTML = `
+                <div class="ai-quote-card-header ready">
+                    <i class="fas fa-clipboard-check"></i> 견적 요청 준비 완료
+                </div>
+                <div class="ai-quote-card-grid">
+                    <div class="ai-quote-card-item">운송: <strong>${shippingTypeKo}</strong></div>
+                    <div class="ai-quote-card-item">ETD: <strong>${data.etd || '-'}</strong></div>
+                    <div class="ai-quote-card-item">POL: <strong>${data.pol || '-'}</strong></div>
+                    <div class="ai-quote-card-item">ETA: <strong>${data.eta || '-'}</strong></div>
+                    <div class="ai-quote-card-item">POD: <strong>${data.pod || '-'}</strong></div>
+                    <div class="ai-quote-card-item">송장: <strong>${data.invoice_value_usd ? '$' + data.invoice_value_usd : '-'}</strong></div>
+                    ${data.incoterms ? `<div class="ai-quote-card-item">조건: <strong>${data.incoterms}</strong></div>` : ''}
+                    ${data.cargo_weight_kg ? `<div class="ai-quote-card-item">중량: <strong>${data.cargo_weight_kg}kg</strong></div>` : ''}
+                </div>
+                ${data.pickup_required ? `<div class="ai-quote-card-pickup"><i class="fas fa-truck-pickup"></i> 픽업: ${data.pickup_address || '예'}</div>` : ''}
+                ${data.customer_company ? `<div class="ai-quote-card-customer"><i class="fas fa-building"></i> ${data.customer_company} (${data.customer_name})</div>` : ''}
+                <button class="ai-quote-action primary full-width" onclick="AIAssistant.submitQuoteRequest('${encodedData}')">
+                    <i class="fas fa-paper-plane"></i> 견적 요청하기
+                </button>
+            `;
+        }
         return card;
+    }
+    
+    // Navigate to bidding page
+    function goToBidding(biddingNo) {
+        window.location.href = `/pages/shipper-bidding.html?bidding=${biddingNo}`;
     }
     
     // Navigate to quotation page
@@ -470,6 +638,27 @@ const AIAssistant = (function() {
         const data = JSON.parse(decodeURIComponent(encodedData));
         sessionStorage.setItem('ai_quote_data', JSON.stringify(data));
         window.location.href = '/pages/quotation.html?from=ai';
+    }
+    
+    // Submit quote request - quotation 페이지로 이동 후 자동 Submit
+    function submitQuoteRequest(encodedData) {
+        const data = JSON.parse(decodeURIComponent(encodedData));
+        
+        // auto_submit 플래그 추가하여 sessionStorage에 저장
+        sessionStorage.setItem('ai_quote_data', JSON.stringify({
+            ...data,
+            auto_submit: true
+        }));
+        
+        // 메시지 저장 (페이지 이동 후에도 대화 유지)
+        const navMsg = `📋 **견적 요청 페이지로 이동합니다.**\n\n수집된 정보를 자동 입력하고 견적 요청을 진행합니다...`;
+        addMessage(navMsg, 'ai');
+        saveMessage(navMsg, 'ai');
+        
+        // quotation 페이지로 이동
+        setTimeout(() => {
+            window.location.href = '/pages/quotation.html?from=ai&auto=true';
+        }, 500);
     }
     
     // Show typing indicator
@@ -562,6 +751,8 @@ const AIAssistant = (function() {
         close,
         toggle,
         goToQuotation,
+        goToBidding,
+        submitQuoteRequest,
         clearConversation,
         isOpen: () => isOpen
     };

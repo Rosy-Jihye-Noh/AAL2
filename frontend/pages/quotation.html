@@ -1455,15 +1455,15 @@
                         <div id="lcl-rows">
                             <div class="cargo-row" data-row-index="0" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 40px; align-items: end;">
                                 <div class="input-group">
-                                    <label>Length <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Length<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input lcl-calc-trigger number-format lcl-l" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
-                                    <label>Width <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Width<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input lcl-calc-trigger number-format lcl-w" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
-                                    <label>Height <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Height<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input lcl-calc-trigger number-format lcl-h" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
@@ -1488,15 +1488,15 @@
                         <div id="air-rows">
                             <div class="cargo-row" data-row-index="0" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr 40px; align-items: end;">
                                 <div class="input-group">
-                                    <label>Length <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Length<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input air-calc-trigger number-format air-l" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
-                                    <label>Width <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Width<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input air-calc-trigger number-format air-w" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
-                                    <label>Height <span class="text-red">*</span><br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
+                                    <label>Height<br><span style="font-size:0.75rem; color:#888;">(CM)</span></label>
                                     <input type="text" class="form-input air-calc-trigger number-format air-h" placeholder="0" inputmode="numeric" maxlength="3">
                                 </div>
                                 <div class="input-group">
@@ -2762,6 +2762,67 @@
         }
         
         /**
+         * Auto-select port for AI integration
+         * API 조회 후 첫 번째 결과를 자동 선택
+         */
+        async function autoSelectPort(inputId, code, portType) {
+            try {
+                const typeParam = portType ? `&port_type=${portType}` : '';
+                // 올바른 API 경로: /api/ports (not /api/quote/ports)
+                const response = await fetch(`${API_BASE_URL}/api/ports?search=${encodeURIComponent(code)}&limit=5${typeParam}`);
+                
+                if (!response.ok) throw new Error('Port search failed');
+                
+                const ports = await response.json();
+                
+                if (ports.length > 0) {
+                    // 정확히 매칭되는 코드 우선 선택
+                    let selectedPort = ports.find(p => p.code.toUpperCase() === code.toUpperCase()) || ports[0];
+                    
+                    const input = document.getElementById(inputId);
+                    const dropdown = document.getElementById(`dropdown-${inputId.replace('input-', '')}`);
+                    
+                    if (input && dropdown) {
+                        // ✅ 방법 1: 드롭다운 클릭 시뮬레이션 (가장 확실한 방법)
+                        // 드롭다운에 결과 렌더링
+                        renderPortResults([selectedPort], dropdown, input);
+                        dropdown.classList.add('show');
+                        
+                        // 첫 번째 아이템 클릭 시뮬레이션
+                        setTimeout(() => {
+                            const firstItem = dropdown.querySelector('.autocomplete-item');
+                            if (firstItem) {
+                                console.log(`[AI] Clicking dropdown item: ${selectedPort.code}`);
+                                firstItem.click();  // 클릭 시 renderPortResults의 핸들러가 state 업데이트
+                            } else {
+                                // 폴백: 직접 설정
+                                input.value = `${selectedPort.code} - ${selectedPort.name}`;
+                                if (inputId === 'input-pol') state.pol = selectedPort.code;
+                                if (inputId === 'input-pod') state.pod = selectedPort.code;
+                                dropdown.classList.remove('show');
+                                updateSummary();
+                            }
+                        }, 50);
+                        
+                        // Quick Quotation 트리거 (Shipping Schedule 조회)
+                        setTimeout(() => {
+                            if (typeof triggerQuickQuotation === 'function') {
+                                triggerQuickQuotation();
+                            }
+                        }, 200);
+                        
+                        console.log(`[AI] Port auto-selected: ${selectedPort.code} - ${selectedPort.name}`);
+                        return true;
+                    }
+                }
+                return false;
+            } catch (error) {
+                console.error(`[AI] autoSelectPort error for ${code}:`, error);
+                return false;
+            }
+        }
+        
+        /**
          * Render port search results
          */
         function renderPortResults(ports, dropdown, input) {
@@ -3868,18 +3929,30 @@
                 const l = parseFloat(row.querySelector('.air-l')?.value.replace(/,/g, '') || 0);
                 const w = parseFloat(row.querySelector('.air-w')?.value.replace(/,/g, '') || 0);
                 const h = parseFloat(row.querySelector('.air-h')?.value.replace(/,/g, '') || 0);
+                const qty = parseInt(row.querySelector('.air-qty')?.value.replace(/,/g, '') || 1);
                 const grossWeightPerPkg = Math.round(parseFloat(row.querySelector('.air-gross-weight')?.value.replace(/,/g, '') || 0));
                 
-                // Volume Weight (per pkg) = L x W x H / 6000, rounded to integer
-                const volumeWeightPerPkg = Math.round(l * w * h / 6000);
+                let volumeWeightPerPkg = 0;
+                let chargeableWeight = 0;
                 
-                // Chargeable Weight (per pkg) = max(Gross Weight per pkg, Volume Weight per pkg)
-                const chargeableWeightPerPkg = Math.max(grossWeightPerPkg, volumeWeightPerPkg);
+                // L/W/H가 모두 입력된 경우: Volume Weight 계산
+                if (l > 0 && w > 0 && h > 0) {
+                    // Volume Weight (per pkg) = L x W x H / 6000
+                    volumeWeightPerPkg = Math.round(l * w * h / 6000);
+                    // Chargeable Weight = max(Gross, Volume) * Qty
+                    chargeableWeight = Math.max(grossWeightPerPkg, volumeWeightPerPkg) * qty;
+                } else {
+                    // L/W/H가 없으면: Chargeable Weight = Gross Weight * Qty
+                    volumeWeightPerPkg = 0;
+                    chargeableWeight = grossWeightPerPkg * qty;
+                }
                 
                 const vwInput = row.querySelector('.air-volume-weight');
                 const cwInput = row.querySelector('.air-chargeable-weight');
                 if (vwInput) vwInput.value = volumeWeightPerPkg.toLocaleString('en-US');
-                if (cwInput) cwInput.value = chargeableWeightPerPkg.toLocaleString('en-US');
+                if (cwInput) cwInput.value = chargeableWeight.toLocaleString('en-US');
+                
+                console.log(`[Air Calc] L:${l} W:${w} H:${h} Qty:${qty} G.W:${grossWeightPerPkg} V.W:${volumeWeightPerPkg} C.W:${chargeableWeight}`);
             });
             updateSummary();
         }
@@ -4343,34 +4416,16 @@
                 });
             }
             
-            // LCL/Bulk cargo validation - all rows must have required fields
+            // LCL/Bulk cargo validation - Pkg Qty and Gross Weight only (L/W/H is optional)
             if (['LCL', 'LTL', 'Bulk', 'All'].includes(state.load)) {
                 const rows = document.querySelectorAll('#lcl-rows .cargo-row');
                 rows.forEach((row, idx) => {
-                    const lInput = row.querySelector('.lcl-l');
-                    const wInput = row.querySelector('.lcl-w');
-                    const hInput = row.querySelector('.lcl-h');
                     const qtyInput = row.querySelector('.lcl-qty');
                     const gwInput = row.querySelector('.lcl-gross-weight');
                     
-                    const l = lInput?.value;
-                    const w = wInput?.value;
-                    const h = hInput?.value;
                     const qty = qtyInput?.value;
                     const gw = gwInput?.value;
                     
-                    if (!l || parseFloat(l) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Length is required`);
-                        if (lInput) lInput.classList.add('error');
-                    }
-                    if (!w || parseFloat(w) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Width is required`);
-                        if (wInput) wInput.classList.add('error');
-                    }
-                    if (!h || parseFloat(h) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Height is required`);
-                        if (hInput) hInput.classList.add('error');
-                    }
                     if (!qty || parseInt(qty) <= 0) {
                         errors.push(`Cargo Row ${idx + 1}: Pkg Qty is required`);
                         if (qtyInput) qtyInput.classList.add('error');
@@ -4382,34 +4437,16 @@
                 });
             }
             
-            // Air cargo validation - all rows must have required fields
+            // Air cargo validation - Pkg Qty and Gross Weight only (L/W/H is optional)
             if (state.load === 'Air') {
                 const rows = document.querySelectorAll('#air-rows .cargo-row');
                 rows.forEach((row, idx) => {
-                    const lInput = row.querySelector('.air-l');
-                    const wInput = row.querySelector('.air-w');
-                    const hInput = row.querySelector('.air-h');
                     const qtyInput = row.querySelector('.air-qty');
                     const gwInput = row.querySelector('.air-gross-weight');
                     
-                    const l = lInput?.value;
-                    const w = wInput?.value;
-                    const h = hInput?.value;
                     const qty = qtyInput?.value;
                     const gw = gwInput?.value;
                     
-                    if (!l || parseFloat(l) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Length is required`);
-                        if (lInput) lInput.classList.add('error');
-                    }
-                    if (!w || parseFloat(w) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Width is required`);
-                        if (wInput) wInput.classList.add('error');
-                    }
-                    if (!h || parseFloat(h) <= 0) {
-                        errors.push(`Cargo Row ${idx + 1}: Height is required`);
-                        if (hInput) hInput.classList.add('error');
-                    }
                     if (!qty || parseInt(qty) <= 0) {
                         errors.push(`Cargo Row ${idx + 1}: Pkg Qty is required`);
                         if (qtyInput) qtyInput.classList.add('error');
@@ -4562,6 +4599,47 @@
                     
                     // 데이터 삭제 (재사용 방지)
                     sessionStorage.removeItem('ai_quote_data');
+                    
+                    // auto_submit 플래그 확인 후 자동 Submit
+                    if (data.auto_submit) {
+                        console.log('[AI Integration] Auto-submit enabled, waiting for data to be fully applied...');
+                        
+                        // POL/POD 설정 완료를 확인하는 함수
+                        const waitForPortsAndSubmit = async (maxWait = 5000) => {
+                            const startTime = Date.now();
+                            
+                            // 최대 대기 시간까지 POL/POD 확인
+                            while (Date.now() - startTime < maxWait) {
+                                // state에 POL/POD가 설정되었는지 확인
+                                if (state.pol && state.pod) {
+                                    console.log(`[AI Integration] Ports confirmed - POL: ${state.pol}, POD: ${state.pod}`);
+                                    
+                                    // 추가 안정화 대기
+                                    await new Promise(r => setTimeout(r, 500));
+                                    
+                                    console.log('[AI Integration] Triggering auto-submit...');
+                                    showToast('견적 요청을 자동으로 제출합니다...', 'info');
+                                    
+                                    // Submit 실행
+                                    submitQuote();
+                                    return;
+                                }
+                                
+                                // 200ms 대기 후 다시 확인
+                                await new Promise(r => setTimeout(r, 200));
+                            }
+                            
+                            // 시간 초과 시에도 Submit 시도 (입력값이 있으면 진행)
+                            console.warn('[AI Integration] Timeout waiting for ports, attempting submit anyway...');
+                            showToast('견적 요청을 제출합니다...', 'info');
+                            submitQuote();
+                        };
+                        
+                        // 기본 대기 후 포트 확인 및 Submit
+                        setTimeout(() => {
+                            waitForPortsAndSubmit(5000);
+                        }, 1500);
+                    }
                 }, 500);
                 
             } catch (error) {
@@ -4591,29 +4669,36 @@
                 }, 100);
             }
             
-            // POL (Port of Loading)
+            // POL (Port of Loading) - API 조회 후 자동 선택
             if (data.pol) {
-                const polInput = document.getElementById('input-pol');
-                if (polInput) {
-                    // 항구 코드를 직접 설정
-                    polInput.value = data.pol;
-                    state.pol = data.pol;
-                    updateSummary();
-                    
-                    // 자동완성 트리거
-                    polInput.dispatchEvent(new Event('input'));
-                }
+                const portType = state.ship === 'air' ? 'air' : (state.ship === 'ocean' ? 'ocean' : null);
+                autoSelectPort('input-pol', data.pol, portType).then(success => {
+                    if (!success) {
+                        // Fallback: 직접 입력
+                        const polInput = document.getElementById('input-pol');
+                        if (polInput) {
+                            polInput.value = data.pol;
+                            updateSummary();
+                        }
+                    }
+                });
             }
             
-            // POD (Port of Discharging)
+            // POD (Port of Discharging) - API 조회 후 자동 선택
             if (data.pod) {
-                const podInput = document.getElementById('input-pod');
-                if (podInput) {
-                    podInput.value = data.pod;
-                    state.pod = data.pod;
-                    updateSummary();
-                    podInput.dispatchEvent(new Event('input'));
-                }
+                const portType = state.ship === 'air' ? 'air' : (state.ship === 'ocean' ? 'ocean' : null);
+                setTimeout(() => {
+                    autoSelectPort('input-pod', data.pod, portType).then(success => {
+                        if (!success) {
+                            // Fallback: 직접 입력
+                            const podInput = document.getElementById('input-pod');
+                            if (podInput) {
+                                podInput.value = data.pod;
+                                updateSummary();
+                            }
+                        }
+                    });
+                }, 200); // POL 조회 후 약간의 딜레이
             }
             
             // Container Type
@@ -4654,6 +4739,163 @@
                         }
                     }, 500);
                 }
+            }
+            
+            // ETA (Estimated Time of Arrival)
+            if (data.eta) {
+                const etaParts = data.eta.split('-');
+                if (etaParts.length === 3) {
+                    const etaYear = document.getElementById('eta-year');
+                    const etaMonth = document.getElementById('eta-month');
+                    const etaDay = document.getElementById('eta-day');
+                    
+                    if (etaYear) etaYear.value = etaParts[0];
+                    if (etaMonth) etaMonth.value = etaParts[1];
+                    if (etaDay) etaDay.value = etaParts[2];
+                }
+            }
+            
+            // Incoterms
+            if (data.incoterms) {
+                const incotermCard = document.querySelector(`[onclick*="setInco('${data.incoterms}')"]`);
+                if (incotermCard) {
+                    setTimeout(() => incotermCard.click(), 150);
+                }
+            }
+            
+            // Pickup (Additional Details)
+            if (data.pickup_required) {
+                setTimeout(() => {
+                    const pickupYes = document.querySelector('input[name="pickup"][value="yes"]');
+                    if (pickupYes) {
+                        pickupYes.checked = true;
+                        pickupYes.dispatchEvent(new Event('change'));
+                        
+                        // Show pickup address field
+                        const pickupAddrGroup = document.getElementById('pickup-addr-group');
+                        if (pickupAddrGroup) pickupAddrGroup.style.display = 'block';
+                        
+                        // Set pickup address
+                        if (data.pickup_address) {
+                            const pickupAddr = document.getElementById('pickup-addr');
+                            if (pickupAddr) pickupAddr.value = data.pickup_address;
+                        }
+                    }
+                }, 200);
+            }
+            
+            // Delivery (Additional Details)
+            if (data.delivery_required) {
+                setTimeout(() => {
+                    const deliveryYes = document.querySelector('input[name="delivery"][value="yes"]');
+                    if (deliveryYes) {
+                        deliveryYes.checked = true;
+                        deliveryYes.dispatchEvent(new Event('change'));
+                        
+                        // Show delivery address field
+                        const deliveryAddrGroup = document.getElementById('delivery-addr-group');
+                        if (deliveryAddrGroup) deliveryAddrGroup.style.display = 'block';
+                        
+                        // Set delivery address
+                        if (data.delivery_address) {
+                            const deliveryAddr = document.getElementById('delivery-addr');
+                            if (deliveryAddr) deliveryAddr.value = data.delivery_address;
+                        }
+                    }
+                }, 200);
+            }
+            
+            // Cargo Details (Air: Pkg Qty + Gross Weight / LCL: Gross Weight)
+            // ⚠️ gross_weight_per_pkg가 있으면 개당 중량으로 사용
+            const grossWeight = data.gross_weight_per_pkg || data.cargo_weight_kg;
+            const pkgQty = data.pkg_qty || 1;
+            
+            console.log(`[AI] Cargo data - Pkg Qty: ${pkgQty}, G.W per pkg: ${data.gross_weight_per_pkg}, Total: ${data.cargo_weight_kg}`);
+            
+            // state.load가 설정될 때까지 대기 후 Cargo 데이터 적용
+            const applyCargoData = async () => {
+                // state.load 설정 대기 (최대 2초)
+                let waited = 0;
+                while (!state.load && waited < 2000) {
+                    await new Promise(r => setTimeout(r, 100));
+                    waited += 100;
+                }
+                
+                console.log(`[AI] state.load after wait: ${state.load} (waited ${waited}ms)`);
+                
+                if (state.load === 'Air') {
+                    // Air cargo - Pkg Qty
+                    if (pkgQty) {
+                        const airPkgQty = document.querySelector('#air-rows .air-qty');
+                        if (airPkgQty) {
+                            airPkgQty.value = pkgQty;
+                            airPkgQty.dispatchEvent(new Event('input'));
+                            console.log(`[AI] Set Air Pkg Qty: ${pkgQty}`);
+                        }
+                    }
+                    // Air cargo - Gross Weight (개당 중량 사용)
+                    if (grossWeight) {
+                        const airGrossWeight = document.querySelector('#air-rows .air-gross-weight');
+                        if (airGrossWeight) {
+                            airGrossWeight.value = grossWeight;
+                            airGrossWeight.dispatchEvent(new Event('input'));
+                            console.log(`[AI] Set Air G.W: ${grossWeight}`);
+                        }
+                    }
+                    // Air 계산 트리거
+                    if (typeof calculateAllAir === 'function') calculateAllAir();
+                } else if (state.load === 'LCL' || state.load === 'LTL') {
+                    // LCL/LTL - Pkg Qty
+                    if (pkgQty) {
+                        const lclPkgQty = document.querySelector('#lcl-rows .lcl-qty');
+                        if (lclPkgQty) {
+                            lclPkgQty.value = pkgQty;
+                            lclPkgQty.dispatchEvent(new Event('input'));
+                            console.log(`[AI] Set LCL Pkg Qty: ${pkgQty}`);
+                        }
+                    }
+                    // LCL/LTL - Gross Weight
+                    if (grossWeight) {
+                        const lclGrossWeight = document.querySelector('#lcl-rows .lcl-gross-weight');
+                        if (lclGrossWeight) {
+                            lclGrossWeight.value = grossWeight;
+                            lclGrossWeight.dispatchEvent(new Event('input'));
+                            console.log(`[AI] Set LCL G.W: ${grossWeight}`);
+                        }
+                    }
+                }
+            };
+            
+            applyCargoData();
+            
+            // Remark
+            if (data.remark) {
+                const remarkField = document.getElementById('remark-textarea');
+                if (remarkField) remarkField.value = data.remark;
+            }
+            
+            // Customer Information
+            if (data.customer_company) {
+                const companyInput = document.getElementById('c-company');
+                if (companyInput) companyInput.value = data.customer_company;
+            }
+            if (data.customer_name) {
+                const nameInput = document.getElementById('c-name');
+                if (nameInput) nameInput.value = data.customer_name;
+            }
+            if (data.customer_email) {
+                const emailInput = document.getElementById('c-email');
+                if (emailInput) emailInput.value = data.customer_email;
+            }
+            if (data.customer_phone) {
+                const phoneInput = document.getElementById('c-phone');
+                if (phoneInput) phoneInput.value = data.customer_phone;
+            }
+            
+            // Invoice Value
+            if (data.invoice_value_usd) {
+                const invoiceInput = document.getElementById('invoice-value');
+                if (invoiceInput) invoiceInput.value = data.invoice_value_usd;
             }
             
             // Summary 업데이트
