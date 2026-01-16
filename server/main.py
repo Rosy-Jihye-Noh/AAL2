@@ -652,15 +652,6 @@ def serve_index():
     else:
         return "File not found: frontend/ai_studio_code_F2.html", 404
 
-@app.route('/test_frontend.html')
-def serve_test_page():
-    """프론트엔드 테스트 페이지 서빙"""
-    test_file = BASE_DIR / 'frontend' / 'test_frontend.html'
-    if test_file.exists():
-        return send_file(str(test_file))
-    else:
-        return "File not found: frontend/test_frontend.html", 404
-
 @app.route('/css/<path:filename>')
 def serve_css(filename):
     """CSS 파일 서빙"""
