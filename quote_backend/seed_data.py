@@ -17,10 +17,6 @@ def seed_ports(db):
         {"code": "KRPTK", "name": "Pyeongtaek Port", "name_ko": "평택항", "country": "South Korea", "country_code": "KR", "port_type": "ocean"},
         {"code": "KRULS", "name": "Ulsan Port", "name_ko": "울산항", "country": "South Korea", "country_code": "KR", "port_type": "ocean"},
         
-        # South Korea - Airports
-        {"code": "KRICN", "name": "Incheon International Airport", "name_ko": "인천국제공항", "country": "South Korea", "country_code": "KR", "port_type": "air"},
-        {"code": "KRGMP", "name": "Gimpo International Airport", "name_ko": "김포국제공항", "country": "South Korea", "country_code": "KR", "port_type": "air"},
-        
         # China - Ocean Ports
         {"code": "CNSHA", "name": "Shanghai Port", "name_ko": "상하이항", "country": "China", "country_code": "CN", "port_type": "ocean"},
         {"code": "CNNGB", "name": "Ningbo Port", "name_ko": "닝보항", "country": "China", "country_code": "CN", "port_type": "ocean"},
@@ -29,21 +25,12 @@ def seed_ports(db):
         {"code": "CNTAO", "name": "Tianjin Port", "name_ko": "천진항", "country": "China", "country_code": "CN", "port_type": "ocean"},
         {"code": "CNDLC", "name": "Dalian Port", "name_ko": "대련항", "country": "China", "country_code": "CN", "port_type": "ocean"},
         
-        # China - Airports
-        {"code": "CNPVG", "name": "Shanghai Pudong International Airport", "name_ko": "상하이 푸동 국제공항", "country": "China", "country_code": "CN", "port_type": "air"},
-        {"code": "CNPEK", "name": "Beijing Capital International Airport", "name_ko": "베이징 수도 국제공항", "country": "China", "country_code": "CN", "port_type": "air"},
-        
         # Japan - Ocean Ports
         {"code": "JPTYO", "name": "Tokyo Port", "name_ko": "도쿄항", "country": "Japan", "country_code": "JP", "port_type": "ocean"},
         {"code": "JPYOK", "name": "Yokohama Port", "name_ko": "요코하마항", "country": "Japan", "country_code": "JP", "port_type": "ocean"},
         {"code": "JPOSA", "name": "Osaka Port", "name_ko": "오사카항", "country": "Japan", "country_code": "JP", "port_type": "ocean"},
         {"code": "JPKOB", "name": "Kobe Port", "name_ko": "고베항", "country": "Japan", "country_code": "JP", "port_type": "ocean"},
         {"code": "JPNGO", "name": "Nagoya Port", "name_ko": "나고야항", "country": "Japan", "country_code": "JP", "port_type": "ocean"},
-        
-        # Japan - Airports
-        {"code": "JPNRT", "name": "Narita International Airport", "name_ko": "나리타 국제공항", "country": "Japan", "country_code": "JP", "port_type": "air"},
-        {"code": "JPHND", "name": "Haneda Airport", "name_ko": "하네다 공항", "country": "Japan", "country_code": "JP", "port_type": "air"},
-        {"code": "JPKIX", "name": "Kansai International Airport", "name_ko": "간사이 국제공항", "country": "Japan", "country_code": "JP", "port_type": "air"},
         
         # USA - Ocean Ports
         {"code": "USLAX", "name": "Los Angeles Port", "name_ko": "로스앤젤레스항", "country": "United States", "country_code": "US", "port_type": "ocean"},
@@ -53,21 +40,11 @@ def seed_ports(db):
         {"code": "USOAK", "name": "Oakland Port", "name_ko": "오클랜드항", "country": "United States", "country_code": "US", "port_type": "ocean"},
         {"code": "USSAV", "name": "Savannah Port", "name_ko": "사바나항", "country": "United States", "country_code": "US", "port_type": "ocean"},
         
-        # USA - Airports
-        {"code": "USJFK", "name": "John F. Kennedy International Airport", "name_ko": "JFK 국제공항", "country": "United States", "country_code": "US", "port_type": "air"},
-        {"code": "USLGB_AIR", "name": "Los Angeles International Airport", "name_ko": "LA 국제공항", "country": "United States", "country_code": "US", "port_type": "air"},
-        {"code": "USORD", "name": "O'Hare International Airport", "name_ko": "오헤어 국제공항", "country": "United States", "country_code": "US", "port_type": "air"},
-        
         # Europe - Ocean Ports
         {"code": "NLRTM", "name": "Rotterdam Port", "name_ko": "로테르담항", "country": "Netherlands", "country_code": "NL", "port_type": "ocean"},
         {"code": "DEHAM", "name": "Hamburg Port", "name_ko": "함부르크항", "country": "Germany", "country_code": "DE", "port_type": "ocean"},
         {"code": "BEANR", "name": "Antwerp Port", "name_ko": "앤트워프항", "country": "Belgium", "country_code": "BE", "port_type": "ocean"},
         {"code": "GBFXT", "name": "Felixstowe Port", "name_ko": "펠릭스토우항", "country": "United Kingdom", "country_code": "GB", "port_type": "ocean"},
-        
-        # Europe - Airports
-        {"code": "DEFRA", "name": "Frankfurt Airport", "name_ko": "프랑크푸르트 공항", "country": "Germany", "country_code": "DE", "port_type": "air"},
-        {"code": "NLAMS", "name": "Amsterdam Schiphol Airport", "name_ko": "암스테르담 스키폴 공항", "country": "Netherlands", "country_code": "NL", "port_type": "air"},
-        {"code": "GBLHR", "name": "London Heathrow Airport", "name_ko": "런던 히드로 공항", "country": "United Kingdom", "country_code": "GB", "port_type": "air"},
         
         # Southeast Asia
         {"code": "SGSIN", "name": "Singapore Port", "name_ko": "싱가포르항", "country": "Singapore", "country_code": "SG", "port_type": "both"},

@@ -40,7 +40,9 @@ except ImportError:
 try:
     from ai_tools import (
         TOOL_DEFINITIONS,
+        TOOL_ACCESS_MATRIX,
         execute_tool,
+        check_tool_access,
         get_ocean_rates,
         get_bidding_status,
         get_shipping_indices,
@@ -52,6 +54,7 @@ try:
 except ImportError as e:
     AI_TOOLS_AVAILABLE = False
     TOOL_DEFINITIONS = []
+    TOOL_ACCESS_MATRIX = {}
     logger.warning(f"AI Tools module not available: {e}")
 
 # Dynamic Prompt 시스템 로드
@@ -68,6 +71,17 @@ try:
 except ImportError as e:
     DYNAMIC_PROMPT_AVAILABLE = False
     logger.warning(f"Dynamic Prompt system not available: {e}")
+
+# AI Conversation DB 모듈 로드
+try:
+    from auth.models import AIConversation, get_session as get_auth_session, init_db
+    # 테이블 자동 생성
+    init_db()
+    AI_CONVERSATION_DB_AVAILABLE = True
+    logger.info("AI Conversation DB module loaded successfully")
+except ImportError as e:
+    AI_CONVERSATION_DB_AVAILABLE = False
+    logger.warning(f"AI Conversation DB module not available: {e}")
 
 # ============================================================
 # SYSTEM PROMPT - 구조화된 견적 대화 흐름
@@ -86,6 +100,33 @@ SYSTEM_PROMPT = """당신은 AAL(Asia Logistics Link) 물류 플랫폼의 **시�
 - **시스템 안내**: 사용자를 적절한 페이지로 안내
 
 # ═══════════════════════════════════════════════════════════
+# ⚠️ 비딩 대화 핵심 규칙 (반드시 준수!)
+# ═══════════════════════════════════════════════════════════
+
+1. **매 응답에 📋 수집된 정보 표시 필수!**
+2. **create_quote_request 호출 전 사용자 확인 필수!** ("예/아니오")
+3. **trade_mode는 자동 추론!** (절대 질문하지 마세요!)
+4. **컨테이너 수량은 ETD 질문 시 명시적 확인!**
+5. **비딩 생성 완료 후 bidding_no 포함 필수!** (버튼 생성에 필요)
+
+# ═══════════════════════════════════════════════════════════
+# 🔄 trade_mode 자동 추론 규칙 (절대 질문하지 마세요!)
+# ═══════════════════════════════════════════════════════════
+
+| POL 코드 시작 | POD 코드 시작 | trade_mode |
+|--------------|--------------|------------|
+| KR (한국)     | 비한국        | **export** |
+| 비한국        | KR (한국)     | **import** |
+| KR           | KR           | **domestic** |
+
+예시:
+- KRPUS → NLRTM: **export** (한국 출발 → 해외)
+- CNSHA → KRPUS: **import** (해외 출발 → 한국)
+- KRPUS → KRINC: **domestic** (한국 내)
+
+⚠️ **trade_mode를 사용자에게 절대 묻지 마세요!** 자동 추론 후 "(자동)"으로 표시
+
+# ═══════════════════════════════════════════════════════════
 # 🔍 첫 문의 자동 파싱 (매우 중요!)
 # ═══════════════════════════════════════════════════════════
 
@@ -98,133 +139,147 @@ SYSTEM_PROMPT = """당신은 AAL(Asia Logistics Link) 물류 플랫폼의 **시�
 | "EXW (Italy)" | incoterms | EXW |
 | "항공", "Air" | shipping_type, load_type | air, Air |
 | "해상", "Ocean" | shipping_type | ocean |
-| "수입", "한국으로" | trade_mode | import |
-| "수출", "한국에서" | trade_mode | export |
 | "인천국제공항" | pod | ICN |
 | "시칠리", "Sicily" | pickup_address | Sicily, Italy |
 | "공장 픽업" | pickup_required | true |
+| "1대", "2컨테이너" | container_qty | 1, 2 |
 
 ⚠️ **이미 제공된 정보는 다시 묻지 마세요!**
 
 # ═══════════════════════════════════════════════════════════
-# 🚀 스마트 견적 대화 흐름
+# 🚀 비딩 대화 흐름 (운임 조회 후)
 # ═══════════════════════════════════════════════════════════
 
-## STEP 1: 첫 응답 - 파악된 정보 요약 + 누락된 정보만 질문
+## STEP 1: 비딩 진행 방법 선택
 
-사용자가 견적 문의를 하면:
+사용자가 운임 조회 후 "비딩 진행해줘", "신청해줘" 등을 말하면:
 
-### 1-1. 자동 파싱 (문의 내용에서 추출):
 ```
-"3kg 버킷 × 6개" → gross_weight_per_pkg: 3, pkg_qty: 6
-"약 18kg" → cargo_weight_kg: 18
-"EXW (Italy)" → incoterms: EXW
-"항공" → shipping_type: air, load_type: Air
-"인천국제공항" → pod: ICN
-"시칠리 공장 픽업" → pickup_required: true, pickup_address: Sicily, Italy
+📋 **비딩 진행 방법을 선택해주세요:**
+
+1️⃣ **대화로 진행** - 제가 필요한 정보를 하나씩 여쭤볼게요
+2️⃣ **페이지로 이동** - 견적 요청 페이지에서 직접 입력
+
+어떤 방식으로 진행하시겠어요?
 ```
 
-### 1-2. 지역명 → 공항/항구 추론:
+## STEP 2: 대화 진행 시 - 정보 현황 표시 + ETD/수량 확인
+
+**반드시 수집된 정보를 표시하고, 누락된 것만 질문!**
+
+```
+📋 **수집된 정보:**
+✅ 거래유형: 수출 (자동)
+✅ 운송: 해상 FCL
+✅ 출발지: KRPUS (부산)
+✅ 도착지: NLRTM (로테르담)
+✅ 컨테이너: 20DC
+❓ 수량: 1대 (확인 필요)
+❌ ETD: -
+❌ 고객정보: -
+
+👉 **일정 및 수량 확인:**
+- **ETD** (출발 예정일): 예) 2026-02-01
+- **컨테이너 수량**: 1대 맞으신가요? (다르면 알려주세요)
+```
+
+## STEP 3: 고객정보 수집 (한 번에!)
+
+```
+📋 **수집된 정보:**
+✅ 거래유형: 수출 (자동)
+✅ 운송: 해상 FCL
+✅ 출발지: KRPUS (부산)
+✅ 도착지: NLRTM (로테르담)
+✅ 컨테이너: 20DC x 1대
+✅ ETD: 2026-02-01
+❌ 고객정보: -
+
+👉 **마지막 단계:** 연락처 정보를 알려주세요!
+회사명/담당자명/이메일/전화번호
+예: 아로아랩스/홍길동/hong@example.com/010-1234-5678
+```
+
+## STEP 4: 최종 확인 (필수! create_quote_request 호출 전!)
+
+⚠️ **반드시 사용자 확인을 받아야 합니다!**
+
+```
+📋 **최종 확인 (생성 전)**
+
+| 항목 | 내용 |
+|------|------|
+| 거래유형 | 수출 |
+| 운송 | 해상 FCL |
+| 경로 | 부산(KRPUS) → 로테르담(NLRTM) |
+| 컨테이너 | 20DC x 1대 |
+| ETD | 2026-02-01 |
+| 예상 마감일 | 2026-01-28 18:00 (ETD-4일) |
+| 회사 | 아로아랩스 |
+| 담당자 | 홍길동 |
+| 이메일 | hong@example.com |
+| 전화번호 | 010-1234-5678 |
+
+✅ **위 내용으로 비딩 요청을 생성할까요?** (예/아니오)
+```
+
+마감일 계산: 해상 ETD-4일, 항공/육상 ETD-1일, 18:00
+
+## STEP 5: 사용자가 "예" 응답 → create_quote_request 호출!
+
+사용자가 "예", "네", "생성해줘" 등 긍정 응답 시에만 호출!
+
+## STEP 6: 비딩 생성 완료 응답 (bidding_no 포함 필수!)
+
+```
+🎉 **비딩 요청이 생성되었습니다!**
+
+| 항목 | 내용 |
+|------|------|
+| 견적 요청 번호 | QR-20260119-001 |
+| 비딩 번호 | EXSEA00023 |
+| 경로 | 부산(KRPUS) → 로테르담(NLRTM) |
+| ETD | 2026-02-01 |
+| 입찰 마감일 | 2026-01-28 18:00 |
+| 고객사 | 아로아랩스 (홍길동) |
+
+포워더들의 입찰을 기다립니다!
+```
+
+⚠️ **중요**: 응답에 bidding_no, request_number, deadline 포함 필수!
+→ 프론트엔드에서 "비딩 현황 보기" 버튼이 자동 생성됩니다.
+
+---
+
+# ═══════════════════════════════════════════════════════════
+# 🚀 일반 견적 대화 흐름 (항공/픽업 등)
+# ═══════════════════════════════════════════════════════════
+
+## 지역명 → 공항/항구 추론:
 | 지역명 | 공항 추론 |
 |--------|----------|
 | 시칠리아, Sicily | 카타니아(CTA), 팔레르모(PMO) |
 | 밀라노 | 말펜사(MXP) |
 | 로마 | 피우미치노(FCO) |
 
-### 1-3. 응답 형식 (⚠️ 매번 수집된 정보를 누적 표시!)
+## 응답 형식 (⚠️ 매번 수집된 정보를 누적 표시!)
 
 **중요: 모든 응답에서 아래 형식으로 수집된 정보를 누적 표시하세요!**
 
 ```
 📋 **수집된 정보:**
-✅ 거래유형: 수입
+✅ 거래유형: 수입 (자동)
 ✅ 운송방식: 항공
 ✅ 화물: 3kg × 6개 = 18kg
 ✅ 조건: EXW
 ✅ 도착지: ICN (인천공항)
 ⏳ 출발지: (확인 중)
 ❌ ETD: -
-❌ ETA: -
 ❌ 송장금액: -
 ❌ 고객정보: -
 
 👉 **다음 단계:** 출발지 공항을 선택해주세요!
 시칠리아 인근 → **카타니아(CTA)** / **팔레르모(PMO)** (추천: 카타니아)
-```
-
----
-
-## STEP 2: 출발지 확정 → 남은 정보만 질문 (누적 표시 계속!)
-
-사용자가 공항을 선택하면:
-
-```
-📋 **수집된 정보:**
-✅ 거래유형: 수입
-✅ 운송방식: 항공
-✅ 화물: 3kg × 6개 = 18kg
-✅ 조건: EXW
-✅ 도착지: ICN (인천공항)
-✅ 출발지: PMO (팔레르모)
-❌ ETD: -
-❌ ETA: -
-❌ 송장금액: -
-❌ 고객정보: -
-
-👉 **다음 단계:** 일정과 송장금액을 알려주세요!
-- ETD (출발 예정일): 예) 2026-01-20
-- ETA (도착 예정일): 예) 2026-01-25
-- 송장 금액 (Invoice Value, USD): 예) 500
-```
-
-💡 한 번에 여러 정보를 입력해도 됩니다!
-
----
-
-## STEP 3: 일정 확정 → 고객정보 요청 (누적 표시 계속!)
-
-```
-📋 **수집된 정보:**
-✅ 거래유형: 수입
-✅ 운송방식: 항공
-✅ 화물: 3kg × 6개 = 18kg
-✅ 조건: EXW
-✅ 도착지: ICN (인천공항)
-✅ 출발지: PMO (팔레르모)
-✅ ETD: 2026-01-20
-✅ ETA: 2026-01-25
-✅ 송장금액: $500 USD
-❌ 고객정보: -
-
-👉 **마지막 단계:** 연락처 정보를 알려주세요!
-- 회사명/담당자/이메일/전화번호 (슬래시로 구분)
-```
-
----
-
-## STEP 4: 모든 정보 수집 완료 → 즉시 JSON 출력!
-
-### ⚠️ 모든 필수 정보가 있으면 바로 JSON 출력!
-
-```
-📋 **수집된 정보 (완료!):**
-✅ 거래유형: 수입
-✅ 운송방식: 항공
-✅ 화물: 3kg × 6개 = 18kg
-✅ 조건: EXW
-✅ 도착지: ICN (인천공항)
-✅ 출발지: PMO (팔레르모)
-✅ ETD: 2026-01-20
-✅ ETA: 2026-01-25
-✅ 송장금액: $500 USD
-✅ 고객: 아로아랩스 (최정웅)
-
-🎉 **모든 정보가 수집되었습니다!**
-아래 버튼을 눌러 견적을 요청해주세요!
-
-```json
-{"quote_data": {"trade_mode": "import", "shipping_type": "air", "load_type": "Air", "pol": "PMO", "pod": "ICN", "etd": "2026-01-20", "eta": "2026-01-25", "invoice_value_usd": 500, "incoterms": "EXW", "gross_weight_per_pkg": 3, "pkg_qty": 6, "cargo_weight_kg": 18, "pickup_required": true, "pickup_address": "Sicily, Italy", "customer_company": "아로아랩스", "customer_name": "최정웅", "customer_email": "jungwoong.choi@aoroa.ai", "customer_phone": "010-3409-3482"}}
-```
 ```
 
 # ═══════════════════════════════════════════════════════════
@@ -314,6 +369,37 @@ get_port_info(search="시칠리아") → 결과 없음!
 | 40피트, 40', 40ft, 40DC | 40DC |
 | 40HC, 40하이큐브, 40피트HC | 4HDC |
 
+## ✈️ 항공 운임 조회 패턴
+```
+"인천에서 LA 50kg 항공 운임"
+→ 바로 get_air_rates(pol="ICN", pod="LAX", weight_kg=50)
+
+"항공으로 100kg 보내려면 얼마야?"
+→ 바로 get_air_rates(pol="ICN", pod="도착지코드", weight_kg=100)
+```
+
+## 📦 LCL 운임 조회 패턴 (Tool 호출 X, 바로 안내!)
+"LCL", "소량", "CBM", "혼적" 감지 시 → get_ocean_rates 호출하지 않고 바로 LCL 안내!
+
+```
+사용자: "부산에서 로테르담 LCL 운임 알려줘"
+→ Tool 호출 없이 바로 LCL 안내 메시지 출력!
+
+📦 **LCL (소량 화물) 운임 안내**
+
+LCL은 CBM(용적) 또는 중량 기반으로 운임이 산정됩니다.
+즉시 운임 조회가 어려우며, **상세 견적 요청**을 통해 포워더 비딩으로 정확한 운임을 확인하실 수 있습니다.
+
+📋 **비딩에 필요한 정보:**
+- 출발지/도착지 항구
+- 화물 부피 (CBM) 또는 크기 (L x W x H cm)
+- 화물 중량 (kg)
+- 출발 예정일 (ETD)
+
+💡 **지금 바로 비딩을 진행할까요?**
+"비딩 진행해줘"라고 말씀해주시면 필요한 정보를 수집하여 진행해드릴게요!
+```
+
 ## ⚠️ 중요: 다단계 실행 (항구 코드를 모를 경우)
 1. get_port_info로 코드 조회
 2. **바로 이어서** get_ocean_rates로 운임 조회
@@ -353,6 +439,34 @@ get_port_info(search="시칠리아") → 결과 없음!
 1. **한화 합계**와 **외화 합계** 둘 다 표시 (사용자가 비교할 수 있도록)
 2. **적용 환율** 명시 (환율 출처: 시스템 기준 환율)
 3. 세부 항목은 통화별로 원래 금액 표시 (USD, KRW, EUR 그대로)
+
+## ✈️ 항공 운임 응답 형식 (필수!)
+
+항공 운임 조회 결과는 **반드시** 다음 형식으로 표시:
+
+```
+✈️ **ICN → LAX** 항공 운임
+
+- 화물중량: 50kg
+- Chargeable Weight: 50kg
+- 예상 Transit: 3-7일
+
+💰 **예상 운임**
+- 운임: USD 325.00
+- 연료할증료: USD 65.00
+- 보안할증료: USD 50.00
+- AWB 발급료: USD 35.00
+- **합계: USD 475.00**
+
+⚠️ **예상 운임입니다.** 정확한 운임은 상세 견적 요청 시 확정됩니다.
+
+💡 **이 예상 운임으로 비딩을 진행하시겠어요?**
+"비딩 진행해줘" 또는 "신청할래"라고 말씀해주시면 바로 도와드릴게요!
+```
+
+**⚠️ 항공 운임 필수 규칙:**
+1. "예상 운임"임을 반드시 명시!
+2. 비딩 진행 안내 필수!
 
 ## 🛠️ 전체 도구 목록 (MCP MASTER)
 
@@ -455,29 +569,42 @@ AI: "가장 가까운 **카타니아 공항(CTA)**으로 설정하겠습니다. 
 # ❌ 절대 금지사항
 # ═══════════════════════════════════════════════════════════
 
-1. ❌ **이미 제공된 정보를 다시 질문하지 마세요!** (가장 중요!)
-2. ❌ 지역명(Sicily)으로 get_port_info 검색
-3. ❌ 항공에서 load_type 질문 (자동 "Air")
-4. ❌ "추천해줘" 후 같은 질문 반복
-5. ❌ 모든 정보 있는데 JSON 없이 끝내기
-6. ❌ "생성하겠습니다" 말만 하고 끝내기
+1. ❌ **trade_mode 질문** → POL/POD 기반 자동 추론!
+2. ❌ **수집된 정보 현황 표시 없이 질문** → 매번 📋 표시 필수!
+3. ❌ **확인 없이 create_quote_request 호출** → 반드시 "예/아니오" 확인!
+4. ❌ **이미 제공된 정보 다시 질문**
+5. ❌ **비딩 생성 후 bidding_no 누락** → 버튼 생성 불가!
+6. ❌ 지역명(Sicily)으로 get_port_info 검색
+7. ❌ 항공에서 load_type 질문 (자동 "Air")
+8. ❌ "생성하겠습니다" 말만 하고 끝내기
 
 # ═══════════════════════════════════════════════════════════
-# 📤 JSON 출력 형식
+# 📤 비딩 완료 응답 형식 (매우 중요!)
 # ═══════════════════════════════════════════════════════════
 
-### 필수 필드:
-- trade_mode, shipping_type, load_type, pol, pod, etd, eta
-- invoice_value_usd
+create_quote_request 호출 결과를 받으면 반드시 다음 정보 포함:
+
+```
+🎉 **비딩 요청이 생성되었습니다!**
+
+| 항목 | 내용 |
+|------|------|
+| 견적 요청 번호 | [request_number] |
+| 비딩 번호 | [bidding_no] |
+| 입찰 마감일 | [deadline] |
+| 경로 | [pol] → [pod] |
+| 고객사 | [customer_company] ([customer_name]) |
+```
+
+⚠️ bidding_no, request_number, deadline은 필수! → 프론트엔드 버튼 생성에 필요
+
+### 필수 필드 (해상 FCL):
+- trade_mode (자동추론), shipping_type, load_type, pol, pod, etd
+- container_type, container_qty
 - customer_company, customer_name, customer_email, customer_phone
 
-### 화물 필드 (첫 문의에서 파싱!):
-- gross_weight_per_pkg: 개당 중량 (kg)
-- pkg_qty: 포장 수량 (개)
-- cargo_weight_kg: 총 중량 (kg)
-
 ### 선택 필드:
-- incoterms, pickup_required, pickup_address, delivery_required, delivery_address, remark
+- invoice_value_usd, incoterms, pickup_required, pickup_address, delivery_required, delivery_address, remark
 """
 
 # ============================================================
@@ -511,6 +638,134 @@ class ConversationManager:
 
 # 전역 대화 관리자
 conversation_manager = ConversationManager()
+
+
+# ============================================================
+# DATABASE CONVERSATION STORAGE
+# ============================================================
+
+def save_conversation_to_db(
+    session_id: str,
+    role: str,
+    content: str,
+    user_id: int = None,
+    tool_used: List[str] = None,
+    quote_data: Dict = None,
+    navigation: Dict = None
+):
+    """
+    대화 내용을 DB에 저장
+    
+    Args:
+        session_id: 세션 ID
+        role: 'user' 또는 'assistant'
+        content: 메시지 내용
+        user_id: 사용자 ID (로그인한 경우)
+        tool_used: 사용된 도구 목록
+        quote_data: 견적 데이터
+        navigation: 네비게이션 데이터
+    """
+    if not AI_CONVERSATION_DB_AVAILABLE:
+        logger.debug("AI Conversation DB not available, skipping save")
+        return
+    
+    try:
+        session = get_auth_session()
+        
+        conversation = AIConversation(
+            user_id=user_id,
+            session_id=session_id,
+            role=role,
+            content=content[:10000],  # 최대 10000자
+            tool_used=json.dumps(tool_used) if tool_used else None,
+            quote_data=json.dumps(quote_data, ensure_ascii=False) if quote_data else None,
+            navigation=json.dumps(navigation, ensure_ascii=False) if navigation else None
+        )
+        
+        session.add(conversation)
+        session.commit()
+        logger.debug(f"Saved conversation: {session_id} - {role}")
+        
+    except Exception as e:
+        logger.error(f"Failed to save conversation to DB: {e}")
+    finally:
+        if 'session' in locals():
+            session.close()
+
+
+def get_conversation_history_from_db(session_id: str = None, user_id: int = None, limit: int = 50) -> List[Dict]:
+    """
+    DB에서 대화 이력 조회
+    
+    Args:
+        session_id: 세션 ID (선택)
+        user_id: 사용자 ID (선택)
+        limit: 최대 조회 건수
+    
+    Returns:
+        대화 이력 리스트
+    """
+    if not AI_CONVERSATION_DB_AVAILABLE:
+        return []
+    
+    try:
+        session = get_auth_session()
+        
+        query = session.query(AIConversation)
+        
+        if user_id:
+            query = query.filter(AIConversation.user_id == user_id)
+        elif session_id:
+            query = query.filter(AIConversation.session_id == session_id)
+        else:
+            return []
+        
+        conversations = query.order_by(AIConversation.created_at.desc()).limit(limit).all()
+        
+        # 역순으로 반환 (오래된 것부터)
+        return [conv.to_dict() for conv in reversed(conversations)]
+        
+    except Exception as e:
+        logger.error(f"Failed to get conversation history from DB: {e}")
+        return []
+    finally:
+        if 'session' in locals():
+            session.close()
+
+
+def clear_conversation_from_db(session_id: str = None, user_id: int = None):
+    """
+    DB에서 대화 이력 삭제
+    
+    Args:
+        session_id: 세션 ID (선택)
+        user_id: 사용자 ID (선택)
+    """
+    if not AI_CONVERSATION_DB_AVAILABLE:
+        return
+    
+    try:
+        session = get_auth_session()
+        
+        query = session.query(AIConversation)
+        
+        if user_id:
+            query = query.filter(AIConversation.user_id == user_id)
+        elif session_id:
+            query = query.filter(AIConversation.session_id == session_id)
+        else:
+            return
+        
+        deleted = query.delete()
+        session.commit()
+        logger.info(f"Deleted {deleted} conversation records")
+        
+    except Exception as e:
+        logger.error(f"Failed to clear conversation from DB: {e}")
+    finally:
+        if 'session' in locals():
+            session.close()
+
 
 # ============================================================
 # GEMINI TOOLS CONFIGURATION
@@ -631,9 +886,13 @@ def safe_get_response_text(response) -> str:
         return ""
 
 
-def process_tool_calls(response) -> tuple:
+def process_tool_calls(response, user_context: Dict[str, Any] = None) -> tuple:
     """
-    Gemini 응답에서 Tool 호출 처리 (타임아웃 적용)
+    Gemini 응답에서 Tool 호출 처리 (타임아웃 적용 + 사용자 권한 검증)
+    
+    Args:
+        response: Gemini 응답 객체
+        user_context: 사용자 컨텍스트 (로그인 정보)
     
     Returns:
         (tool_results: list, has_tool_calls: bool)
@@ -656,12 +915,12 @@ def process_tool_calls(response) -> tuple:
                     for key, value in func_call.args.items():
                         params[key] = value
                 
-                logger.info(f"Executing tool: {tool_name} with params: {params}")
+                logger.info(f"Executing tool: {tool_name} with params: {params}, user_context: {user_context.get('user_type') if user_context else 'guest'}")
                 
-                # Tool 실행 (타임아웃 적용)
+                # Tool 실행 (타임아웃 적용 + user_context 전달)
                 try:
                     with ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(execute_tool, tool_name, params)
+                        future = executor.submit(execute_tool, tool_name, params, user_context)
                         result = future.result(timeout=TOOL_TIMEOUT)
                 except FuturesTimeoutError:
                     logger.error(f"Tool timeout: {tool_name}")
@@ -697,7 +956,27 @@ def format_tool_results_for_response(tool_results: list) -> str:
         tool_name = tr["name"]
         
         if not result.get("success", False):
-            formatted.append(f"⚠️ {result.get('message', '조회 실패')}")
+            # 권한 거부인 경우 로그인 유도 메시지 추가
+            if result.get("access_denied"):
+                message = result.get("message", "이 기능을 사용하려면 로그인이 필요합니다.")
+                if result.get("require_login"):
+                    formatted.append(f"""🔒 **{message}**
+
+📌 **로그인 후 이용 가능한 기능:**
+
+**화주로 로그인 시:**
+- 견적 요청 및 비딩 관리
+- 입찰 비교 및 낙찰 처리
+
+**포워더로 로그인 시:**
+- 입찰 가능한 비딩 목록 확인
+- 비딩에 입찰 제출
+
+👉 로그인 페이지로 이동하시겠어요?""")
+                else:
+                    formatted.append(f"🚫 {message}")
+            else:
+                formatted.append(f"⚠️ {result.get('message', '조회 실패')}")
             continue
         
         # Tool별 포맷팅
@@ -841,14 +1120,18 @@ def format_tool_results_for_response(tool_results: list) -> str:
             text += f"- 화물중량: {result.get('weight_kg', 0)}kg\n"
             text += f"- Chargeable Weight: {result.get('chargeable_weight_kg', 0)}kg\n"
             text += f"- 예상 Transit: {result.get('transit_days', '-')}\n\n"
-            text += f"**운임 내역**\n"
+            text += f"💰 **예상 운임**\n"
             text += f"- 기본운임: ${charges.get('freight', 0):,.2f}\n"
             text += f"- 유류할증료: ${charges.get('fuel_surcharge', 0):,.2f}\n"
             text += f"- 보안료: ${charges.get('security_fee', 0):,.2f}\n"
             text += f"- AWB발급료: ${charges.get('awb_fee', 0):,.2f}\n"
-            text += f"- **총계: ${charges.get('total', 0):,.2f}**\n"
+            text += f"- **합계: ${charges.get('total', 0):,.2f}**\n"
+            # 예상 운임 안내
             if result.get("note"):
-                text += f"\n💡 {result['note']}"
+                text += f"\n⚠️ **{result['note']}**\n"
+            # 비딩 진행 안내
+            if result.get("bidding_guide"):
+                text += f"\n💡 **{result['bidding_guide']}**"
             formatted.append(text)
         
         elif tool_name == "get_schedules":
@@ -1069,13 +1352,21 @@ def format_tool_results_for_response(tool_results: list) -> str:
     return "\n".join(formatted)
 
 
-def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
+def chat_with_gemini(session_id: str, user_message: str, user_context: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Gemini와 대화 (Dynamic Prompt + Tool 함수 호출 포함)
     
     Args:
         session_id: 세션 ID
         user_message: 사용자 메시지
+        user_context: 사용자 컨텍스트 (로그인 정보)
+            {
+                "user_id": int,
+                "user_type": "shipper" | "forwarder",
+                "company": str,
+                "name": str,
+                "email": str
+            }
     
     Returns:
         {
@@ -1094,6 +1385,81 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
         }
     
     try:
+        # 사용자 컨텍스트 프롬프트 생성
+        user_context_prompt = ""
+        if user_context:
+            user_type = user_context.get("user_type")
+            user_type_ko = {"shipper": "화주", "forwarder": "포워더"}.get(user_type, "사용자")
+            name = user_context.get("name", "고객")
+            company = user_context.get("company", "")
+            
+            # 사용자 유형별 맞춤 안내
+            if user_type == "shipper":
+                role_guide = f"""
+**화주 전용 기능 안내:**
+- 📝 견적 요청 (고객정보 자동 입력됨)
+- 📋 **자신의** 비딩 현황만 조회 (중요!)
+- ✅ 입찰 비교 및 낙찰 처리
+- 📊 계약/배송 관리
+
+**비딩 조회 응답 형식:**
+"**{company} {name}님의 비딩 현황** (진행중: N건)"
+"""
+            elif user_type == "forwarder":
+                role_guide = f"""
+**포워더 전용 기능 안내:**
+- 📋 **전체** 입찰 가능한 비딩 조회
+- 💰 비딩에 입찰 제출
+- 📊 내 입찰 현황 관리
+- 📊 계약/배송 관리
+
+**비딩 조회 응답 형식:**
+"**입찰 가능한 비딩** (진행중: N건)"
+"""
+            else:
+                role_guide = ""
+            
+            user_context_prompt = f"""
+# ═══════════════════════════════════════════════════════════
+# 👤 현재 로그인 사용자 정보
+# ═══════════════════════════════════════════════════════════
+
+- **사용자 유형**: {user_type_ko}
+- **회사명**: {company}
+- **담당자명**: {name}
+- **이메일**: {user_context.get("email", "-")}
+- **사용자 ID**: {user_context.get("id", "-")}
+
+# 🎯 개인화 응답 규칙
+
+1. "{name}님"으로 친근하게 호칭
+2. 비딩 조회 시 사용자 유형에 따른 필터링 자동 적용됨
+3. 견적/입찰 생성 시 사용자 정보 자동 사용 (재확인 불필요)
+{role_guide}
+
+"""
+            logger.info(f"[UserContext] {user_type_ko} - {company}")
+        else:
+            # 비로그인 사용자 프롬프트
+            user_context_prompt = """
+# ═══════════════════════════════════════════════════════════
+# 👤 비로그인 사용자 (Guest)
+# ═══════════════════════════════════════════════════════════
+
+**접근 가능 기능:**
+- 운임 조회 (해상/항공)
+- 시장 지수 (BDI, SCFI, CCFI)
+- 최신 물류 뉴스, 환율, 항구 정보
+
+**로그인 필요 기능:**
+- 견적 요청, 비딩 관리, 입찰 제출 등
+
+사용자가 로그인 필요 기능을 요청하면 친절하게 로그인을 안내하세요.
+"이 기능을 이용하려면 로그인이 필요합니다. 로그인 페이지로 이동하시겠어요?"
+
+"""
+            logger.info("[UserContext] Guest (비로그인)")
+        
         # Dynamic Prompt 시스템 사용
         if DYNAMIC_PROMPT_AVAILABLE:
             # Intent 분류
@@ -1101,8 +1467,10 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
             intent_desc = get_intent_description(intents)
             logger.info(f"[Intent] Classified: {intent_desc} for message: {user_message[:50]}...")
             
-            # 동적 프롬프트 생성
+            # 동적 프롬프트 생성 (사용자 컨텍스트 추가)
             dynamic_prompt = get_dynamic_prompt(intents)
+            if user_context_prompt:
+                dynamic_prompt = user_context_prompt + dynamic_prompt
             logger.info(f"[Prompt] Generated dynamic prompt ({len(dynamic_prompt)} chars)")
             
             # 필요한 Tool 선별
@@ -1118,7 +1486,9 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
         else:
             # 기존 방식 (전체 프롬프트 + 전체 Tool)
             logger.info("[Prompt] Using legacy full prompt")
-            model = get_gemini_model(with_tools=AI_TOOLS_AVAILABLE)
+            # 사용자 컨텍스트가 있으면 기본 프롬프트에 추가
+            custom_prompt = user_context_prompt + SYSTEM_PROMPT if user_context_prompt else None
+            model = get_gemini_model(with_tools=AI_TOOLS_AVAILABLE, system_prompt=custom_prompt)
         
         if not model:
             return {
@@ -1155,8 +1525,8 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
         except Exception as debug_err:
             logger.warning(f"[DEBUG] Error in debug logging: {debug_err}")
         
-        # Tool 호출 처리
-        tool_results, has_tool_calls = process_tool_calls(response)
+        # Tool 호출 처리 (user_context 전달하여 권한 검증 및 필터링 적용)
+        tool_results, has_tool_calls = process_tool_calls(response, user_context)
         tools_used = []
         logger.info(f"[DEBUG] Tool results count: {len(tool_results)}, has_tool_calls: {has_tool_calls}")
         
@@ -1213,7 +1583,7 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
             # Tool 호출 없음 - 일반 응답
             ai_message = safe_get_response_text(response)
         
-        # 대화 이력 저장
+        # 대화 이력 저장 (메모리)
         conversation_manager.add_message(session_id, "user", user_message)
         conversation_manager.add_message(session_id, "model", ai_message)
         
@@ -1227,11 +1597,35 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
             if quote_data:
                 logger.info("Quote data extracted via fallback mechanism")
         
+        # 네비게이션 의도 감지
+        navigation = detect_navigation_intent(user_message, ai_message)
+        if navigation:
+            logger.info(f"[Navigation] Detected: {navigation['page']} -> {navigation['url']}")
+        
+        # 대화 이력 DB 저장 (user_context가 있으면 user_id 추출)
+        user_id = user_context.get('user_id') if user_context else None
+        save_conversation_to_db(
+            session_id=session_id,
+            role='user',
+            content=user_message,
+            user_id=user_id
+        )
+        save_conversation_to_db(
+            session_id=session_id,
+            role='assistant',
+            content=ai_message,
+            user_id=user_id,
+            tool_used=tools_used if tools_used else None,
+            quote_data=quote_data,
+            navigation=navigation
+        )
+        
         return {
             "success": True,
             "message": ai_message,
             "quote_data": quote_data,
-            "tool_used": tools_used if tools_used else None
+            "tool_used": tools_used if tools_used else None,
+            "navigation": navigation
         }
         
     except Exception as e:
@@ -1242,6 +1636,56 @@ def chat_with_gemini(session_id: str, user_message: str) -> Dict[str, Any]:
             "quote_data": None,
             "tool_used": None
         }
+
+
+# ============================================================
+# NAVIGATION DETECTION
+# ============================================================
+
+# 페이지 매핑 정의
+NAVIGATION_PAGES = {
+    "market": {"url": "/pages/market-data.html", "label": "시장 데이터 페이지", "keywords": ["market", "시장", "지수", "bdi", "scfi", "ccfi", "운임지수"]},
+    "news": {"url": "/pages/news-intelligence.html", "label": "뉴스 페이지", "keywords": ["news", "뉴스", "소식", "기사", "뉴스인텔리전스"]},
+    "quote": {"url": "/pages/quotation.html", "label": "견적 요청 페이지", "keywords": ["quote", "견적", "quotation", "운임조회"]},
+    "bidding": {"url": "/pages/bidding-list.html", "label": "비딩 리스트 페이지", "keywords": ["bidding", "비딩", "입찰", "비딩리스트"]},
+    "my_quotations": {"url": "/pages/shipper-bidding.html", "label": "내 견적 페이지", "keywords": ["my quotation", "내 견적", "화주", "shipper"]},
+    "dashboard": {"url": "/pages/dashboard-shipper.html", "label": "대시보드", "keywords": ["dashboard", "대시보드", "현황"]},
+    "report": {"url": "/pages/report-insight.html", "label": "리포트 & 인사이트 페이지", "keywords": ["report", "리포트", "인사이트", "분석"]},
+}
+
+def detect_navigation_intent(user_message: str, ai_message: str) -> Optional[Dict]:
+    """
+    사용자 메시지와 AI 응답에서 페이지 이동 의도를 감지합니다.
+    
+    Args:
+        user_message: 사용자 메시지
+        ai_message: AI 응답 메시지
+    
+    Returns:
+        {"page": str, "url": str, "label": str} 또는 None
+    """
+    combined_text = (user_message + " " + ai_message).lower()
+    
+    # 이동 요청 키워드
+    navigation_keywords = ["이동", "보여줘", "가줘", "열어줘", "페이지", "확인하러", "이동해", "보러", "가자", "navigate", "go to", "show me"]
+    
+    # 이동 요청이 있는지 확인
+    has_navigation_request = any(kw in combined_text for kw in navigation_keywords)
+    
+    if not has_navigation_request:
+        return None
+    
+    # 어떤 페이지로 이동하려는지 확인
+    for page_key, page_info in NAVIGATION_PAGES.items():
+        for keyword in page_info["keywords"]:
+            if keyword.lower() in combined_text:
+                return {
+                    "page": page_key,
+                    "url": page_info["url"],
+                    "label": page_info["label"] + "로 이동"
+                }
+    
+    return None
 
 
 def extract_quote_data(ai_message: str) -> Optional[Dict]:

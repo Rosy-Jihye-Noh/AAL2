@@ -2195,9 +2195,9 @@ const BiddingList = {
             if (detail.cargo_details && detail.cargo_details.length > 0) {
                 const cargo = detail.cargo_details;
                 if (detail.load_type === 'FCL') {
-                    cargoSummary = cargo.map(c => `${c.container_type} x ${c.quantity}`).join(', ');
+                    cargoSummary = cargo.map(c => `${c.container_type} x ${c.qty}`).join(', ');
                 } else {
-                    const totalPcs = cargo.reduce((sum, c) => sum + (c.quantity || 0), 0);
+                    const totalPcs = cargo.reduce((sum, c) => sum + (c.qty || 0), 0);
                     const totalWeight = cargo.reduce((sum, c) => sum + (c.gross_weight || 0), 0);
                     const totalCbm = cargo.reduce((sum, c) => sum + (c.cbm || 0), 0);
                     cargoSummary = `${totalPcs} PCS / ${totalWeight.toLocaleString()} KG / ${totalCbm.toFixed(1)} CBM`;
@@ -2382,7 +2382,12 @@ const BiddingList = {
      */
     formatPort(code, name) {
         if (name) {
-            return `${code}(${name})`;
+            // 쉼표로 분리하여 중복 제거
+            const parts = name.split(',').map(p => p.trim());
+            const uniqueParts = [...new Set(parts)];
+            // 최대 2개 요소만 사용 (도시, 국가)
+            const cleanName = uniqueParts.slice(0, 2).join(', ');
+            return `${code}(${cleanName})`;
         }
         return code || '-';
     },

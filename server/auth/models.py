@@ -64,6 +64,50 @@ class User(Base):
         return f"<User {self.email} ({self.user_type})>"
 
 
+class AIConversation(Base):
+    """
+    AI 대화 이력 테이블
+    사용자별 AI Assistant 대화 내용 저장
+    """
+    __tablename__ = "ai_conversations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # 사용자/세션 정보
+    user_id = Column(Integer, nullable=True, index=True)    # 로그인 사용자 ID (비로그인 시 NULL)
+    session_id = Column(String(100), nullable=False, index=True)  # 세션 ID
+    
+    # 대화 내용
+    role = Column(String(20), nullable=False)               # 'user' | 'assistant'
+    content = Column(String(10000), nullable=False)         # 메시지 내용
+    
+    # 메타데이터
+    tool_used = Column(String(500), nullable=True)          # 사용된 Tool 목록 (JSON)
+    quote_data = Column(String(5000), nullable=True)        # 견적 데이터 (JSON)
+    navigation = Column(String(500), nullable=True)         # 네비게이션 데이터 (JSON)
+    
+    # 타임스탬프
+    created_at = Column(DateTime, server_default=func.now())
+    
+    def __repr__(self):
+        return f"<AIConversation {self.session_id} - {self.role}>"
+    
+    def to_dict(self):
+        """딕셔너리 변환"""
+        import json
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "session_id": self.session_id,
+            "role": self.role,
+            "content": self.content,
+            "tool_used": json.loads(self.tool_used) if self.tool_used else None,
+            "quote_data": json.loads(self.quote_data) if self.quote_data else None,
+            "navigation": json.loads(self.navigation) if self.navigation else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
 def init_db():
     """데이터베이스 초기화 - 테이블 생성"""
     Base.metadata.create_all(bind=engine)

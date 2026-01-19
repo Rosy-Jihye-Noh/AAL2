@@ -23,7 +23,7 @@
             --bg-color: #000000;
             --text-main: #ffffff;
             --text-sub: rgba(255, 255, 255, 0.6);
-            --accent-color: #ffffff;
+            --accent-color: #3b82f6;
             --card-bg: #0a0a0a;
             --border-color: rgba(255, 255, 255, 0.1);
             --input-bg: #111111;
@@ -238,8 +238,8 @@
         
         .action-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--border-color); grid-column: span 2; }
         .btn { padding: 10px 24px; border-radius: 4px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
-        .btn-secondary { background: #eff6ff; color: var(--accent-color); }
-        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-secondary { background: #eff6ff; color: #3b82f6; border: 1px solid #3b82f6; }
+        .btn-primary { background: #3b82f6; color: white; }
         .btn-primary:hover { background: #2563eb; }
 
         /* Remark Helper Styles */
@@ -1920,12 +1920,11 @@
                     
                     <!-- Unavailable State -->
                     <div class="quick-quote-unavailable-msg" id="quick-quote-unavailable" style="display:none;">
-                        <h4><i class="fas fa-exclamation-triangle"></i> <span id="quick-quote-unavailable-title">실시간 견적 불가</span></h4>
-                        <p id="quick-quote-unavailable-msg">해당 구간은 실시간 견적을 제공하지 않습니다.</p>
+                        <h4><i class="fas fa-exclamation-triangle"></i> <span id="quick-quote-unavailable-title">즉시 견적 불가</span></h4>
+                        <p id="quick-quote-unavailable-msg">해당 구간은 즉시 견적을 제공하지 않습니다.</p>
                         <p id="quick-quote-available-period" style="display:none; margin-top: 10px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; color: var(--accent-color);">
                             <i class="fas fa-info-circle"></i> <span id="quick-quote-available-period-text"></span>
                         </p>
-                        <p style="margin-top: 10px; color: var(--text-sub);">견적 요청을 통해 포워더 비딩을 진행해 주세요.</p>
                     </div>
                 </div>
             </div>
@@ -2265,9 +2264,9 @@
                 unavailable.style.display = 'block';
                 
                 document.getElementById('quick-quote-unavailable-title').textContent = 
-                    data.message || '실시간 견적 불가';
+                    data.message || '해당 구간은 즉시 견적을 제공하지 않습니다.';
                 document.getElementById('quick-quote-unavailable-msg').textContent = 
-                    data.guide || '견적 요청을 통해 포워더 비딩을 진행해 주세요.';
+                    data.guide || '견적 요청을 통해 포워더 비딩을 진행해주세요.';
                 
                 // 유효한 운임 데이터 기간 안내
                 const periodEl = document.getElementById('quick-quote-available-period');
@@ -4167,7 +4166,24 @@
                 }
             }
             
-            document.getElementById('s-schedule').innerHTML = `${pol} → ${pod}<br><span style="color:#666; font-size:0.8em">${etd} → ${eta}</span>`;
+            // Format port for summary: "ICN - INCHEON AIRPORT, KOREA" → "ICN(INCHEON AIRPORT, KOREA)"
+            function formatPortForSummary(portStr) {
+                if (!portStr || portStr === '-') return '-';
+                const match = portStr.match(/^([A-Z]{3})\s*-\s*(.+)$/);
+                if (match) {
+                    return `${match[1]}(${match[2]})`;
+                }
+                return portStr;
+            }
+            const formattedPol = formatPortForSummary(pol);
+            const formattedPod = formatPortForSummary(pod);
+            
+            document.getElementById('s-schedule').innerHTML = `
+                ${formattedPol}<br>
+                <span style="font-size: 1.1em; color: var(--primary);">→</span><br>
+                ${formattedPod}<br>
+                <span style="color:#666; font-size:0.8em">${etd} → ${eta}</span>
+            `;
 
             // Cargo - Multi-row support
             let cargoTxt = '';
@@ -4525,17 +4541,7 @@
                 pod.classList.add('error');
             }
             
-            // Incoterms validation
-            if (!state.incoterms) {
-                errors.push('Incoterms is required');
-                // Incoterm 카드들에 시각적 피드백 추가
-                const incoContainer = document.getElementById('incoterm-container');
-                if (incoContainer) {
-                    incoContainer.style.border = '1px solid #ef4444';
-                    incoContainer.style.borderRadius = '8px';
-                    incoContainer.style.padding = '8px';
-                }
-            }
+            // Incoterms is now optional - no validation required
             
             // ETD validation
             const etdYear = document.getElementById('etd-year');

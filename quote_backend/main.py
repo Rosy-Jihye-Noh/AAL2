@@ -2425,8 +2425,8 @@ def get_freight_estimate(
             # 해당 구간에 운임 데이터가 전혀 없음
             return QuickQuotationResponse(
                 quick_quotation=False,
-                message="해당 구간은 실시간 견적을 제공하지 않습니다.",
-                guide="기본 비용(DOC, 씰, THC)만 자동완성됩니다. 운임은 직접 입력해 주세요.",
+                message="해당 구간은 즉시 견적을 제공하지 않습니다.",
+                guide="견적 요청을 통해 포워더 비딩을 진행해주세요.",
                 container_type=ct.code,
                 container_name=ct.name,
                 default_charges=default_charges
@@ -2444,8 +2444,8 @@ def get_freight_estimate(
         default_charges = get_default_charges(db, container_type)
         return QuickQuotationResponse(
             quick_quotation=False,
-            message="해당 컨테이너 타입의 운임 정보가 없습니다.",
-            guide="기본 비용(DOC, 씰, THC)만 자동완성됩니다. 운임은 직접 입력해 주세요.",
+            message="해당 구간은 즉시 견적을 제공하지 않습니다.",
+            guide="견적 요청을 통해 포워더 비딩을 진행해주세요.",
             container_type=ct.code,
             container_name=ct.name,
             default_charges=default_charges
@@ -2460,8 +2460,8 @@ def get_freight_estimate(
         default_charges = get_default_charges(db, container_type)
         return QuickQuotationResponse(
             quick_quotation=False,
-            message="해당 컨테이너 타입의 기본 운임이 등록되지 않았습니다.",
-            guide="기본 비용(DOC, 씰, THC)만 자동완성됩니다. 운임은 직접 입력해 주세요.",
+            message="해당 구간은 즉시 견적을 제공하지 않습니다.",
+            guide="견적 요청을 통해 포워더 비딩을 진행해주세요.",
             container_type=ct.code,
             container_name=ct.name,
             default_charges=default_charges

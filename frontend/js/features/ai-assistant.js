@@ -18,6 +18,7 @@ const AIAssistant = (function() {
     let isOpen = false;
     let isLoading = false;
     let sessionId = null;
+    let userContext = null;
     
     // Elements
     let container = null;
@@ -38,6 +39,52 @@ const AIAssistant = (function() {
         return sessionId;
     }
     
+    // Get user context from localStorage (로그인 정보)
+    function getUserContext() {
+        if (userContext) return userContext;
+        
+        try {
+            // 다양한 저장소에서 사용자 정보 찾기
+            const userDataStr = localStorage.getItem('user') || 
+                               localStorage.getItem('userData') || 
+                               sessionStorage.getItem('user') ||
+                               sessionStorage.getItem('userData');
+            
+            if (userDataStr) {
+                const userData = JSON.parse(userDataStr);
+                userContext = {
+                    user_id: userData.id || userData.user_id,
+                    user_type: userData.user_type || userData.userType,
+                    company: userData.company,
+                    name: userData.name,
+                    email: userData.email
+                };
+                console.log('[AI Assistant] User context loaded:', userContext.company, userContext.name);
+                return userContext;
+            }
+        } catch (e) {
+            console.warn('[AI Assistant] Failed to load user context:', e);
+        }
+        return null;
+    }
+    
+    // Clear user context on logout
+    function clearUserContext() {
+        userContext = null;
+    }
+    
+    // Get personalized greeting message
+    function getGreetingMessage() {
+        const context = getUserContext();
+        if (context && context.name) {
+            const userTypeMsg = context.user_type === 'forwarder' 
+                ? '입찰 제출이나 비딩 현황을 확인하시겠어요?' 
+                : '운임 조회나 견적 요청을 도와드릴까요?';
+            return `안녕하세요, <strong>${context.name}</strong>님! 👋<br>${userTypeMsg}`;
+        }
+        return '안녕하세요! 무엇을 도와드릴까요?';
+    }
+    
     // Create sidebar HTML
     function createSidebarHTML() {
         return `
@@ -54,7 +101,7 @@ const AIAssistant = (function() {
                 
                 <div class="ai-sidebar-messages" id="ai-sidebar-messages">
                     <div class="ai-message ai">
-                        안녕하세요! 무엇을 도와드릴까요?
+                        ${getGreetingMessage()}
                     </div>
                 </div>
                 
@@ -450,6 +497,273 @@ const AIAssistant = (function() {
                 font-size: 0.9rem;
             }
             
+            /* Navigation Button */
+            .ai-nav-button {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                width: 100%;
+                margin-top: 0.75rem;
+                padding: 0.75rem 1rem;
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-size: 0.9rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            
+            .ai-nav-button:hover {
+                background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            }
+            
+            .ai-nav-button i {
+                transition: transform 0.2s;
+            }
+            
+            .ai-nav-button:hover i {
+                transform: translateX(4px);
+            }
+            
+            /* Rich Response Styles */
+            .ai-header {
+                margin: 0.75rem 0 0.5rem;
+                padding-bottom: 0.25rem;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+                color: #f3f4f6;
+            }
+            
+            h3.ai-header {
+                font-size: 1rem;
+                color: #3b82f6;
+            }
+            
+            h4.ai-header {
+                font-size: 0.9rem;
+                color: #60a5fa;
+            }
+            
+            .ai-inline-code {
+                background: rgba(59, 130, 246, 0.2);
+                padding: 0.1rem 0.4rem;
+                border-radius: 4px;
+                font-family: 'Fira Code', monospace;
+                font-size: 0.85em;
+                color: #93c5fd;
+            }
+            
+            .ai-icon {
+                display: inline-block;
+                margin-right: 4px;
+            }
+            
+            .ai-check {
+                color: #10b981;
+            }
+            
+            .ai-cross {
+                color: #ef4444;
+            }
+            
+            .ai-question {
+                color: #f59e0b;
+            }
+            
+            .ai-list {
+                margin: 0.5rem 0;
+                padding-left: 1.25rem;
+                list-style: none;
+            }
+            
+            .ai-list-item {
+                position: relative;
+                padding: 0.25rem 0;
+                color: #d1d5db;
+            }
+            
+            .ai-list-item::before {
+                content: '•';
+                position: absolute;
+                left: -1rem;
+                color: #3b82f6;
+            }
+            
+            .ai-table-row {
+                display: block;
+                font-family: 'Fira Code', monospace;
+                font-size: 0.8rem;
+                color: #9ca3af;
+                background: rgba(0,0,0,0.2);
+                padding: 0.25rem 0.5rem;
+                margin: 0.125rem 0;
+                border-radius: 4px;
+            }
+            
+            /* Rate Card Styles */
+            .ai-rate-card {
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-top: 0.75rem;
+            }
+            
+            .ai-rate-card-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                color: #3b82f6;
+                margin-bottom: 0.75rem;
+            }
+            
+            .ai-rate-card-route {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                padding: 0.75rem;
+                background: rgba(0,0,0,0.2);
+                border-radius: 8px;
+                margin-bottom: 0.75rem;
+            }
+            
+            .ai-rate-card-route span {
+                font-weight: 600;
+                color: #f3f4f6;
+            }
+            
+            .ai-rate-card-route i {
+                color: #10b981;
+            }
+            
+            .ai-rate-card-total {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem;
+                background: rgba(16, 185, 129, 0.1);
+                border-radius: 8px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .ai-rate-card-total-label {
+                color: #9ca3af;
+                font-size: 0.85rem;
+            }
+            
+            .ai-rate-card-total-value {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: #10b981;
+            }
+            
+            /* Bidding Status Card */
+            .ai-bidding-card {
+                background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(249, 115, 22, 0.1));
+                border: 1px solid rgba(251, 191, 36, 0.3);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-top: 0.75rem;
+            }
+            
+            .ai-bidding-card-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                color: #fbbf24;
+                margin-bottom: 0.75rem;
+            }
+            
+            .ai-bidding-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem;
+                background: rgba(0,0,0,0.2);
+                border-radius: 6px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .ai-bidding-item-route {
+                font-weight: 500;
+                color: #f3f4f6;
+            }
+            
+            .ai-bidding-item-status {
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.75rem;
+                font-weight: 500;
+            }
+            
+            .ai-bidding-item-status.open {
+                background: rgba(16, 185, 129, 0.2);
+                color: #10b981;
+            }
+            
+            .ai-bidding-item-status.closed {
+                background: rgba(239, 68, 68, 0.2);
+                color: #ef4444;
+            }
+            
+            /* Market Index Card */
+            .ai-market-card {
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1));
+                border: 1px solid rgba(99, 102, 241, 0.3);
+                border-radius: 12px;
+                padding: 1rem;
+                margin-top: 0.75rem;
+            }
+            
+            .ai-market-card-header {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: 600;
+                color: #818cf8;
+                margin-bottom: 0.75rem;
+            }
+            
+            .ai-market-index {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem;
+                background: rgba(0,0,0,0.2);
+                border-radius: 6px;
+                margin-bottom: 0.5rem;
+            }
+            
+            .ai-market-index-name {
+                font-weight: 500;
+                color: #e5e7eb;
+            }
+            
+            .ai-market-index-value {
+                font-weight: 600;
+                font-size: 1.1rem;
+            }
+            
+            .ai-market-index-value.up {
+                color: #10b981;
+            }
+            
+            .ai-market-index-value.down {
+                color: #ef4444;
+            }
+            
+            .ai-market-index-change {
+                font-size: 0.75rem;
+                margin-left: 0.5rem;
+            }
+            
             @media (max-width: 480px) {
                 .ai-sidebar {
                     width: 100%;
@@ -489,6 +803,16 @@ const AIAssistant = (function() {
         
         isInitialized = true;
         console.log('[AI Assistant] Initialized');
+        
+        // 페이지 이동 후 자동 열기 체크
+        if (sessionStorage.getItem('ai_chat_open') === 'true') {
+            sessionStorage.removeItem('ai_chat_open');
+            // 약간의 딜레이 후 열기 (페이지 로드 완료 대기)
+            setTimeout(() => {
+                open();
+                console.log('[AI Assistant] Auto-opened after navigation');
+            }, 300);
+        }
     }
     
     // Auto resize textarea
@@ -523,21 +847,30 @@ const AIAssistant = (function() {
         setLoading(true);
         
         try {
+            // 요청 본문 구성 (user_context 포함)
+            const requestBody = {
+                session_id: getSessionId(),
+                message: message
+            };
+            
+            // 로그인 사용자 정보 추가 (있는 경우)
+            const context = getUserContext();
+            if (context) {
+                requestBody.user_context = context;
+            }
+            
             const response = await fetch(`${API_BASE}/api/ai/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    session_id: getSessionId(),
-                    message: message
-                })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
             removeTyping(typingId);
             
             if (data.success) {
-                addMessage(data.message, 'ai', data.quote_data);
-                saveMessage(data.message, 'ai', data.quote_data);
+                addMessage(data.message, 'ai', data.quote_data, data.navigation);
+                saveMessage(data.message, 'ai', data.quote_data, data.navigation);
             } else {
                 addMessage(data.message || '오류가 발생했습니다.', 'ai');
             }
@@ -552,14 +885,12 @@ const AIAssistant = (function() {
     }
     
     // Add message to chat
-    function addMessage(text, type, quoteData = null) {
+    function addMessage(text, type, quoteData = null, navigation = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `ai-message ${type}`;
         
-        // Format text
-        let formattedText = text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n/g, '<br>');
+        // Format text with rich formatting
+        let formattedText = formatAIResponse(text);
         
         messageDiv.innerHTML = formattedText;
         
@@ -568,8 +899,75 @@ const AIAssistant = (function() {
             messageDiv.appendChild(createQuoteCard(quoteData));
         }
         
+        // Add navigation button if exists
+        if (navigation && type === 'ai') {
+            messageDiv.appendChild(createNavigationButton(navigation));
+        }
+        
         messagesEl.appendChild(messageDiv);
         scrollToBottom();
+    }
+    
+    // Format AI response with rich elements
+    function formatAIResponse(text) {
+        let formatted = text
+            // Bold text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Code blocks
+            .replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>')
+            // Headers (## and ###)
+            .replace(/^### (.+)$/gm, '<h4 class="ai-header">$1</h4>')
+            .replace(/^## (.+)$/gm, '<h3 class="ai-header">$1</h3>')
+            // Emoji icons for common patterns
+            .replace(/📊/g, '<span class="ai-icon">📊</span>')
+            .replace(/🚢/g, '<span class="ai-icon">🚢</span>')
+            .replace(/✈️/g, '<span class="ai-icon">✈️</span>')
+            .replace(/📋/g, '<span class="ai-icon">📋</span>')
+            .replace(/💰/g, '<span class="ai-icon">💰</span>')
+            .replace(/✅/g, '<span class="ai-check">✅</span>')
+            .replace(/❌/g, '<span class="ai-cross">❌</span>')
+            .replace(/❓/g, '<span class="ai-question">❓</span>')
+            // Tables (Markdown style)
+            .replace(/\|(.+)\|/g, (match) => {
+                return formatTable(match);
+            })
+            // Lists
+            .replace(/^- (.+)$/gm, '<li class="ai-list-item">$1</li>')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+        
+        // Wrap consecutive list items in ul
+        formatted = formatted.replace(/(<li class="ai-list-item">.*?<\/li>(<br>)?)+/g, (match) => {
+            return `<ul class="ai-list">${match.replace(/<br>/g, '')}</ul>`;
+        });
+        
+        return formatted;
+    }
+    
+    // Format Markdown table
+    function formatTable(tableText) {
+        // Simple pass-through for now, complex table parsing would be needed
+        // Just add basic styling class
+        return `<span class="ai-table-row">${tableText}</span>`;
+    }
+    
+    // Create navigation button
+    function createNavigationButton(navData) {
+        const btn = document.createElement('button');
+        btn.className = 'ai-nav-button';
+        btn.innerHTML = `<i class="fas fa-arrow-right"></i> ${navData.label}`;
+        btn.onclick = function() {
+            navigateToPage(navData.url);
+        };
+        return btn;
+    }
+    
+    // Navigate to page with chat auto-open
+    function navigateToPage(url) {
+        // 채팅창 자동 열기 플래그 저장
+        sessionStorage.setItem('ai_chat_open', 'true');
+        // 페이지 이동
+        window.location.href = url;
     }
     
     // Create quote card - 견적 생성 완료 또는 준비 상태에 따라 다른 카드 표시
@@ -690,10 +1088,10 @@ const AIAssistant = (function() {
     }
     
     // Save message to sessionStorage (메인페이지와 공유하는 키 사용)
-    function saveMessage(text, type, quoteData = null) {
+    function saveMessage(text, type, quoteData = null, navigation = null) {
         let history = JSON.parse(sessionStorage.getItem('ai_conversation') || '[]');
         // 메인페이지와 호환되는 형식 (role, content)
-        history.push({ role: type, content: text, quoteData, timestamp: Date.now() });
+        history.push({ role: type, content: text, quoteData, navigation, timestamp: Date.now() });
         // Keep only last 50 messages
         if (history.length > 50) history = history.slice(-50);
         sessionStorage.setItem('ai_conversation', JSON.stringify(history));
@@ -709,7 +1107,7 @@ const AIAssistant = (function() {
                 // 메인페이지 형식(role, content) 또는 기존 형식(type, text) 모두 지원
                 const type = msg.role || msg.type;
                 const text = msg.content || msg.text;
-                addMessage(text, type, msg.quoteData);
+                addMessage(text, type, msg.quoteData, msg.navigation);
             });
         }
     }
@@ -745,7 +1143,18 @@ const AIAssistant = (function() {
         sessionStorage.removeItem('ai_conversation');
         sessionStorage.removeItem('ai_session_id');
         sessionId = null;
-        messagesEl.innerHTML = '<div class="ai-message ai">안녕하세요! 무엇을 도와드릴까요?</div>';
+        userContext = null;  // 사용자 컨텍스트도 초기화
+        messagesEl.innerHTML = `<div class="ai-message ai">${getGreetingMessage()}</div>`;
+    }
+    
+    // Update user context (로그인/로그아웃 시 호출)
+    function updateUserContext() {
+        userContext = null;  // 캐시 초기화
+        getUserContext();    // 다시 로드
+        // 채팅창이 열려있으면 인사 메시지 업데이트
+        if (messagesEl && messagesEl.children.length === 1) {
+            messagesEl.innerHTML = `<div class="ai-message ai">${getGreetingMessage()}</div>`;
+        }
     }
     
     // Public API
@@ -758,6 +1167,8 @@ const AIAssistant = (function() {
         goToBidding,
         submitQuoteRequest,
         clearConversation,
+        updateUserContext,  // 로그인/로그아웃 시 호출
+        clearUserContext,   // 로그아웃 시 호출
         isOpen: () => isOpen
     };
 })();

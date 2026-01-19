@@ -29,7 +29,14 @@ def ai_chat():
     Request Body:
     {
         "session_id": "unique_session_id",
-        "message": "사용자 메시지"
+        "message": "사용자 메시지",
+        "user_context": {  # 선택사항 - 로그인 사용자 정보
+            "user_id": int,
+            "user_type": "shipper" | "forwarder",
+            "company": str,
+            "name": str,
+            "email": str
+        }
     }
     
     Response:
@@ -43,11 +50,16 @@ def ai_chat():
         data = request.get_json()
         session_id = data.get('session_id', 'default')
         message = data.get('message', '')
+        user_context = data.get('user_context')  # 사용자 컨텍스트 (선택)
         
         if not message:
             return jsonify({'success': False, 'message': '메시지를 입력해주세요.'}), 400
         
-        result = gemini_backend.chat_with_gemini(session_id, message)
+        # 사용자 컨텍스트가 있으면 세션 ID에 user_id 포함
+        if user_context and user_context.get('user_id'):
+            session_id = f"user_{user_context['user_id']}_{session_id}"
+        
+        result = gemini_backend.chat_with_gemini(session_id, message, user_context)
         return jsonify(result)
         
     except Exception as e:
@@ -95,6 +107,41 @@ def ai_status():
         'available': gemini_backend.GEMINI_AVAILABLE,
         'model': 'gemini-2.5-flash' if gemini_backend.GEMINI_AVAILABLE else None
     })
+
+
+@ai_bp.route('/history', methods=['GET'])
+def ai_history():
+    """
+    대화 이력 조회 API
+    
+    Query Parameters:
+    - session_id: 세션 ID (선택)
+    - user_id: 사용자 ID (선택)
+    - limit: 최대 조회 건수 (기본: 50)
+    """
+    try:
+        session_id = request.args.get('session_id')
+        user_id = request.args.get('user_id', type=int)
+        limit = request.args.get('limit', 50, type=int)
+        
+        if not session_id and not user_id:
+            return jsonify({'success': False, 'message': 'session_id 또는 user_id가 필요합니다.'}), 400
+        
+        history = gemini_backend.get_conversation_history_from_db(
+            session_id=session_id,
+            user_id=user_id,
+            limit=limit
+        )
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'count': len(history)
+        })
+        
+    except Exception as e:
+        logger.error(f"AI History error: {e}", exc_info=True)
+        return jsonify({'success': False, 'message': f'오류가 발생했습니다: {str(e)}'}), 500
 
 
 @ai_bp.route('/create-quote', methods=['POST'])

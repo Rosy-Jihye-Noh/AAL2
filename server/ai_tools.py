@@ -812,6 +812,119 @@ TOOL_DEFINITIONS = [
 
 
 # ============================================================
+# TOOL ACCESS MATRIX (사용자 유형별 접근 제어)
+# ============================================================
+
+TOOL_ACCESS_MATRIX = {
+    # 공개 도구 (Guest 포함 모든 사용자)
+    "get_ocean_rates": ["guest", "shipper", "forwarder"],
+    "get_air_rates": ["guest", "shipper", "forwarder"],
+    "get_schedules": ["guest", "shipper", "forwarder"],
+    "get_shipping_indices": ["guest", "shipper", "forwarder"],
+    "get_latest_news": ["guest", "shipper", "forwarder"],
+    "get_exchange_rates": ["guest", "shipper", "forwarder"],
+    "get_global_alerts": ["guest", "shipper", "forwarder"],
+    "get_port_info": ["guest", "shipper", "forwarder"],
+    "navigate_to_page": ["guest", "shipper", "forwarder"],
+    
+    # 화주 전용
+    "create_quote_request": ["shipper"],
+    "get_my_quotes": ["shipper"],
+    "update_quote_request": ["shipper"],
+    "cancel_quote_request": ["shipper"],
+    "get_quote_detail": ["shipper"],
+    "award_bid": ["shipper"],
+    "close_bidding": ["shipper"],
+    "get_shipper_analytics": ["shipper"],
+    
+    # 포워더 전용
+    "submit_bid": ["forwarder"],
+    "get_my_bids": ["forwarder"],
+    
+    # 사용자 유형별 다른 동작 (로그인 필요)
+    "get_bidding_status": ["shipper", "forwarder"],  # 화주: 자신만, 포워더: 전체
+    "get_bidding_detail": ["shipper", "forwarder"],
+    "get_bidding_bids": ["shipper", "forwarder"],
+    "get_contracts": ["shipper", "forwarder"],
+    "get_contract_detail": ["shipper", "forwarder"],
+    "get_shipments": ["shipper", "forwarder"],
+    "track_shipment": ["shipper", "forwarder"],
+    "get_notifications": ["shipper", "forwarder"],
+    "send_message": ["shipper", "forwarder"],
+}
+
+# 도구별 로그인 필요 여부 메시지
+TOOL_LOGIN_MESSAGES = {
+    "get_bidding_status": "비딩 현황을 확인하려면 로그인이 필요합니다.",
+    "create_quote_request": "견적 요청은 화주 회원만 이용할 수 있습니다.",
+    "submit_bid": "입찰 제출은 포워더 회원만 이용할 수 있습니다.",
+    "get_my_quotes": "내 견적을 확인하려면 로그인이 필요합니다.",
+    "get_my_bids": "내 입찰을 확인하려면 로그인이 필요합니다.",
+    "get_contracts": "계약 정보를 확인하려면 로그인이 필요합니다.",
+    "get_shipments": "배송 정보를 확인하려면 로그인이 필요합니다.",
+}
+
+
+def check_tool_access(tool_name: str, user_context: Optional[Dict] = None) -> Dict[str, Any]:
+    """
+    도구 접근 권한 검증
+    
+    Args:
+        tool_name: 도구 이름
+        user_context: 사용자 컨텍스트 (None이면 Guest)
+    
+    Returns:
+        {"allowed": bool, "message": str, "user_type": str}
+    """
+    # 매트릭스에 없는 도구는 허용
+    if tool_name not in TOOL_ACCESS_MATRIX:
+        return {"allowed": True, "user_type": "guest"}
+    
+    allowed_types = TOOL_ACCESS_MATRIX[tool_name]
+    
+    # Guest 확인
+    if user_context is None:
+        user_type = "guest"
+    else:
+        user_type = user_context.get("user_type", "guest")
+    
+    # 권한 체크
+    if user_type in allowed_types or "guest" in allowed_types:
+        return {"allowed": True, "user_type": user_type}
+    
+    # 권한 없음
+    if user_type == "guest":
+        message = TOOL_LOGIN_MESSAGES.get(tool_name, "이 기능을 사용하려면 로그인이 필요합니다.")
+        return {
+            "allowed": False,
+            "user_type": "guest",
+            "message": message,
+            "require_login": True
+        }
+    elif user_type == "shipper" and "forwarder" in allowed_types:
+        return {
+            "allowed": False,
+            "user_type": "shipper",
+            "message": "이 기능은 포워더(운송사) 전용입니다.",
+            "require_login": False
+        }
+    elif user_type == "forwarder" and "shipper" in allowed_types:
+        return {
+            "allowed": False,
+            "user_type": "forwarder",
+            "message": "이 기능은 화주 전용입니다.",
+            "require_login": False
+        }
+    else:
+        return {
+            "allowed": False,
+            "user_type": user_type,
+            "message": "이 기능에 대한 접근 권한이 없습니다.",
+            "require_login": False
+        }
+
+
+# ============================================================
 # TOOL 1: GET OCEAN RATES (해상 운임 조회)
 # ============================================================
 
@@ -861,8 +974,8 @@ def get_ocean_rates(pol: str, pod: str, container_type: str = "4HDC") -> Dict[st
         if not data.get("quick_quotation"):
             return {
                 "success": False,
-                "message": data.get("message", "해당 구간의 운임 정보가 없습니다."),
-                "suggestion": data.get("guide", "견적 요청을 통해 포워더 비딩을 진행해 주세요.")
+                "message": data.get("message", "해당 구간은 즉시 견적을 제공하지 않습니다."),
+                "suggestion": data.get("guide", "견적 요청을 통해 포워더 비딩을 진행해주세요.")
             }
         
         # 운임 상세 정리
@@ -958,17 +1071,20 @@ def get_ocean_rates(pol: str, pod: str, container_type: str = "4HDC") -> Dict[st
 # TOOL 2: GET BIDDING STATUS (비딩 현황 조회)
 # ============================================================
 
-def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
+def get_bidding_status(status: str = "open", limit: int = 5, customer_email: str = None) -> Dict[str, Any]:
     """
     비딩(입찰) 현황 조회
     
     Args:
         status: 비딩 상태 (open, closed, awarded, all)
         limit: 조회 건수
+        customer_email: 고객 이메일 (화주인 경우 자신의 비딩만 필터링)
     
     Returns:
         비딩 현황 딕셔너리
     """
+    logger.info(f"[get_bidding_status] Called with status={status}, limit={limit}, customer_email={customer_email}")
+    
     session = None
     try:
         session = get_quote_db_session()
@@ -977,6 +1093,13 @@ def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
         status_filter = ""
         if status and status != "all":
             status_filter = f"AND b.status = '{status}'"
+        
+        # 고객 이메일 필터 (화주인 경우 자신의 비딩만)
+        customer_filter = ""
+        if customer_email:
+            # SQL 인젝션 방지를 위해 파라미터 바인딩 사용
+            customer_filter = f"AND c.email = :customer_email"
+            logger.info(f"[get_bidding_status] Applying customer filter for email: {customer_email}")
         
         # 비딩 목록 조회
         query = text(f"""
@@ -992,19 +1115,33 @@ def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
                 qr.load_type,
                 qr.etd,
                 c.company as customer_company,
+                c.email as customer_email,
                 (SELECT COUNT(*) FROM bids WHERE bidding_id = b.id AND status = 'submitted') as bid_count
             FROM biddings b
             JOIN quote_requests qr ON b.quote_request_id = qr.id
             JOIN customers c ON qr.customer_id = c.id
-            WHERE 1=1 {status_filter}
+            WHERE 1=1 {status_filter} {customer_filter}
             ORDER BY b.created_at DESC
             LIMIT {limit}
         """)
         
-        results = session.execute(query).fetchall()
+        # 파라미터 바인딩으로 실행 (SQL 인젝션 방지)
+        params = {}
+        if customer_email:
+            params["customer_email"] = customer_email
+        
+        results = session.execute(query, params).fetchall()
         
         if not results:
             status_text = {"open": "진행 중인", "closed": "마감된", "awarded": "낙찰 완료된", "all": ""}.get(status, "")
+            if customer_email:
+                return {
+                    "success": True,
+                    "message": f"회원님의 {status_text} 비딩이 없습니다. 견적 요청을 통해 새 비딩을 시작해보세요!",
+                    "biddings": [],
+                    "count": 0,
+                    "is_filtered": True
+                }
             return {
                 "success": True,
                 "message": f"{status_text} 비딩이 없습니다.",
@@ -1015,7 +1152,7 @@ def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
         # 결과 정리
         biddings = []
         for row in results:
-            bid_id, bidding_no, bid_status, deadline, created_at, pol, pod, shipping_type, load_type, etd, customer, bid_count = row
+            bid_id, bidding_no, bid_status, deadline, created_at, pol, pod, shipping_type, load_type, etd, customer, cust_email, bid_count = row
             
             # 상태 한글화
             status_kr = {
@@ -1045,18 +1182,32 @@ def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
                 "customer": customer
             })
         
-        # 통계
-        stats_query = text("""
-            SELECT 
-                status,
-                COUNT(*) as count
-            FROM biddings
-            GROUP BY status
-        """)
-        stats_results = session.execute(stats_query).fetchall()
+        # 통계 (고객 필터링 적용)
+        if customer_email:
+            stats_query = text("""
+                SELECT 
+                    b.status,
+                    COUNT(*) as count
+                FROM biddings b
+                JOIN quote_requests qr ON b.quote_request_id = qr.id
+                JOIN customers c ON qr.customer_id = c.id
+                WHERE c.email = :customer_email
+                GROUP BY b.status
+            """)
+            stats_results = session.execute(stats_query, {"customer_email": customer_email}).fetchall()
+        else:
+            stats_query = text("""
+                SELECT 
+                    status,
+                    COUNT(*) as count
+                FROM biddings
+                GROUP BY status
+            """)
+            stats_results = session.execute(stats_query).fetchall()
+        
         stats = {row[0]: row[1] for row in stats_results}
         
-        return {
+        result = {
             "success": True,
             "biddings": biddings,
             "count": len(biddings),
@@ -1067,6 +1218,13 @@ def get_bidding_status(status: str = "open", limit: int = 5) -> Dict[str, Any]:
                 "total": sum(stats.values())
             }
         }
+        
+        # 화주 필터링 여부 표시
+        if customer_email:
+            result["is_filtered"] = True
+            result["filter_type"] = "shipper"
+        
+        return result
         
     except Exception as e:
         logger.error(f"get_bidding_status error: {e}")
@@ -1680,6 +1838,9 @@ def get_air_rates(
         return {
             "success": True,
             "route": f"{pol.upper()} → {pod.upper()}",
+            "pol": pol.upper(),
+            "pod": pod.upper(),
+            "shipping_type": "air",
             "weight_kg": weight_kg,
             "chargeable_weight_kg": cw,
             "charges": {
@@ -1690,7 +1851,9 @@ def get_air_rates(
                 "total": round(total, 2)
             },
             "currency": "USD",
-            "note": "예상 운임입니다. 실제 운임은 항공사 및 시즌에 따라 변동될 수 있습니다.",
+            "note": "예상 운임입니다. 정확한 운임은 상세 견적 요청 시 확정됩니다.",
+            "bidding_guide": "이 예상 운임으로 비딩을 진행하시겠어요? '비딩 진행해줘'라고 말씀해주세요!",
+            "can_proceed_bidding": True,
             "transit_days": "3-7일 (직항/경유에 따라 상이)"
         }
         
@@ -3156,17 +3319,92 @@ def send_message(
 # TOOL EXECUTOR (통합 실행기)
 # ============================================================
 
-def execute_tool(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+def execute_tool(tool_name: str, parameters: Dict[str, Any], user_context: Optional[Dict] = None) -> Dict[str, Any]:
     """
-    Tool 함수 실행
+    Tool 함수 실행 (권한 검증 포함)
     
     Args:
         tool_name: Tool 이름
         parameters: Tool 파라미터
+        user_context: 사용자 컨텍스트 (None이면 Guest)
     
     Returns:
         Tool 실행 결과
     """
+    # 1. 권한 검증
+    access_check = check_tool_access(tool_name, user_context)
+    if not access_check.get("allowed"):
+        return {
+            "success": False,
+            "message": access_check.get("message", "접근 권한이 없습니다."),
+            "require_login": access_check.get("require_login", False),
+            "access_denied": True
+        }
+    
+    # 2. 사용자 컨텍스트 기반 파라미터 자동 주입
+    if user_context:
+        user_type = user_context.get("user_type")
+        user_email = user_context.get("email")
+        user_id = user_context.get("user_id") or user_context.get("id")  # 프론트엔드는 user_id로 전송
+        
+        logger.info(f"[execute_tool] user_context: type={user_type}, email={user_email}, id={user_id}")
+        
+        # 사용자 유형별 필터링이 필요한 도구에 자동 주입
+        if tool_name == "get_bidding_status" and user_type == "shipper":
+            # 화주는 자신의 비딩만 조회
+            parameters["customer_email"] = user_email
+            logger.info(f"[execute_tool] Injecting customer_email={user_email} for shipper")
+        
+        elif tool_name == "get_my_quotes" and user_type == "shipper":
+            # 화주의 견적 목록
+            if "customer_email" not in parameters:
+                parameters["customer_email"] = user_email
+        
+        elif tool_name == "get_my_bids" and user_type == "forwarder":
+            # 포워더의 입찰 목록
+            if "forwarder_email" not in parameters:
+                parameters["forwarder_email"] = user_email
+        
+        elif tool_name == "get_contracts":
+            # 계약 목록 - 사용자 정보 자동 주입
+            if "user_type" not in parameters:
+                parameters["user_type"] = user_type
+            if "user_id" not in parameters and user_id:
+                parameters["user_id"] = user_id
+        
+        elif tool_name == "get_shipments":
+            # 배송 목록 - 사용자 정보 자동 주입
+            if "user_type" not in parameters:
+                parameters["user_type"] = user_type
+            if "user_id" not in parameters and user_id:
+                parameters["user_id"] = user_id
+        
+        elif tool_name == "get_notifications":
+            # 알림 목록 - 사용자 정보 자동 주입
+            if "user_type" not in parameters:
+                parameters["user_type"] = user_type
+            if "user_id" not in parameters and user_id:
+                parameters["user_id"] = user_id
+        
+        elif tool_name == "get_shipper_analytics" and user_type == "shipper":
+            # 화주 분석 - customer_id 자동 주입
+            if "customer_id" not in parameters and user_id:
+                parameters["customer_id"] = user_id
+        
+        elif tool_name == "create_quote_request" and user_type == "shipper":
+            # 견적 요청 시 고객 정보 자동 입력
+            if "customer_email" not in parameters:
+                parameters["customer_email"] = user_email
+            if "customer_company" not in parameters and user_context.get("company"):
+                parameters["customer_company"] = user_context.get("company")
+            if "customer_name" not in parameters and user_context.get("name"):
+                parameters["customer_name"] = user_context.get("name")
+        
+        elif tool_name == "submit_bid" and user_type == "forwarder":
+            # 입찰 제출 시 포워더 정보 자동 입력
+            if "forwarder_email" not in parameters:
+                parameters["forwarder_email"] = user_email
+    
     tool_map = {
         # 기존 도구
         "get_ocean_rates": get_ocean_rates,

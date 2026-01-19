@@ -181,6 +181,43 @@
     border-bottom: none;
 }
 
+/* Bidding Table Column Widths */
+.bidding-table th,
+.bidding-table td {
+    white-space: nowrap;
+}
+
+.bidding-table th:nth-child(1),
+.bidding-table td:nth-child(1) { width: 110px; }  /* Bidding No */
+.bidding-table th:nth-child(2),
+.bidding-table td:nth-child(2) { width: 80px; }   /* 화주사 */
+.bidding-table th:nth-child(3),
+.bidding-table td:nth-child(3) { min-width: 200px; } /* POL */
+.bidding-table th:nth-child(4),
+.bidding-table td:nth-child(4) { min-width: 200px; } /* POD */
+.bidding-table th:nth-child(5),
+.bidding-table td:nth-child(5) { width: 90px; }   /* 운송타입 */
+.bidding-table th:nth-child(6),
+.bidding-table td:nth-child(6) { width: 80px; }   /* 물량 */
+.bidding-table th:nth-child(7),
+.bidding-table td:nth-child(7) { width: 90px; }   /* ETD */
+.bidding-table th:nth-child(8),
+.bidding-table td:nth-child(8) { width: 60px; }   /* 상태 */
+.bidding-table th:nth-child(9),
+.bidding-table td:nth-child(9) { width: 50px; text-align: center; } /* 입찰기업 */
+.bidding-table th:nth-child(10),
+.bidding-table td:nth-child(10) { width: 80px; }  /* 평균 입찰가 */
+.bidding-table th:nth-child(11),
+.bidding-table td:nth-child(11) { width: 80px; text-align: center; } /* 입찰참여 */
+
+.type-badge {
+    white-space: nowrap;
+}
+
+.status-badge {
+    white-space: nowrap;
+}
+
 /* Table Cell Styles */
 .bidding-no {
     font-family: 'JetBrains Mono', monospace;
