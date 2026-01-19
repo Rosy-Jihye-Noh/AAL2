@@ -1,4 +1,5 @@
----
+
+
 ## 1. 서비스 개요
 
 ### 1.1 한 줄 정의
@@ -16,7 +17,7 @@
 * **셀러** : 대기업/중견/중소 수출기업(가격 공개/비공개 혼재)
 * **바이어** : 해외 유통체인/도매상/프로젝트 바이어
 * **운영자(내부)** : 온보딩/검증/거래/리스크 관리(초기 성공의 핵심)
----
+
 ## 2. 레퍼런스 기반 벤치마킹 포인트
 
 | 레퍼런스      | 핵심 요소             | 우리 서비스에 반영                                   |
@@ -4543,17 +4544,17 @@ Response: 200 OK
       title: string
       summary: string                    # AI 요약 (기존 시스템)
       key_points: [string]              # AI 핵심 포인트 (기존 시스템)
-    
+  
       countries: [string]
       industries: [string]
       tags: [string]
-    
+  
       sentiment: enum
       impact_level: enum
-    
+  
       published_at: datetime
       analyzed_at: datetime
-    
+  
       # B2B 확장 필드
       related_categories: [{ id, name }]
       opportunity_score: number
